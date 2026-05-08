@@ -409,11 +409,15 @@ const TQA={
 let CU=null,CUD=null,saved=JSON.parse(localStorage.getItem('tk_s')||'[]');
 let activeC='all',prods=[],chatMID=null,unsubC=null,pendImg=null;
 
-window.addEventListener('fb-ready',()=>{
-  const{auth,onAuthStateChanged}=window._fb;
-  onAuthStateChanged(auth,async u=>{CU=u;CUD=u?await loadUD(u.uid):null;updUI();});
-  init();
-});
+(function waitFB(){
+  if(window._fb){
+    const{auth,onAuthStateChanged}=window._fb;
+    onAuthStateChanged(auth,async u=>{CU=u;CUD=u?await loadUD(u.uid):null;updUI();});
+    init();
+  } else {
+    setTimeout(waitFB, 100);
+  }
+})();
 
 async function init(){renderNav();renderCats();bindEv();updUI();await Promise.all([loadProds(),loadStats()]);}
 
