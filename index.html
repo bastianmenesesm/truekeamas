@@ -1,1570 +1,972 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Truekeamas | Cambia. Ahorra. Conecta.</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <!-- Firebase SDK — Proyecto: truekeamas -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile }
-      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc,
-             query, where, orderBy, onSnapshot, serverTimestamp, limit }
-      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-    // ─── CONFIGURACIÓN FIREBASE TRUEKEAMAS ───
-    const firebaseConfig = {
-      apiKey: "AIzaSyDH4TQbvRym1fkIIFwPpssU5qBENCM-GSk",
-      authDomain: "truekeamas.firebaseapp.com",
-      projectId: "truekeamas",
-      storageBucket: "truekeamas.firebasestorage.app",
-      messagingSenderId: "873643507138",
-      appId: "1:873643507138:web:7eacc2a7972639b196aa5b",
-      measurementId: "G-6CS5K1RZ6M"
-    };
-    // ─────────────────────────────────────────
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    window._fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-      onAuthStateChanged, signOut, updateProfile, collection, addDoc, getDocs, doc, getDoc,
-      setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit };
-    window.dispatchEvent(new Event('fb-ready'));
-  </script>
-
-  <style>
-    :root {
-      --violet: #4B1FA7;
-      --violet-light: #7B4FD9;
-      --lime: #AAEB2E;
-      --lime-dark: #8DC425;
-      --ink: #0F0C1E;
-      --ink-soft: #2A2540;
-      --muted: #6E6889;
-      --surface: #F7F5FF;
-      --card: #FFFFFF;
-      --line: #E8E2F6;
-      --danger: #E03358;
-      --amber: #F5B932;
-      --shadow-card: 0 12px 40px rgba(75,31,167,.10);
-      --shadow-deep: 0 24px 56px rgba(75,31,167,.18);
-    }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{scroll-behavior:smooth;font-size:16px}
-    body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--ink);overflow-x:hidden;min-height:100vh}
-    button,input,select,textarea{font:inherit}
-    button{cursor:pointer;border:none;background:none}
-
-    /* ── LAYOUT ── */
-    .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-
-    /* ── SIDEBAR ── */
-    .sidebar{position:sticky;top:0;height:100vh;background:var(--card);border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;z-index:20;overflow-y:auto}
-    .brand{display:flex;align-items:center;gap:12px;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:20px}
-    .brand-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--violet),#9B6FE0);display:grid;place-items:center;flex-shrink:0;box-shadow:0 8px 20px rgba(75,31,167,.3)}
-    .brand-logo svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-    .brand-text h1{font-family:'Syne',sans-serif;font-size:19px;font-weight:900;color:var(--violet);letter-spacing:-.5px}
-    .brand-text p{font-size:11px;color:var(--muted);font-weight:500;margin-top:1px}
-    .nav{display:flex;flex-direction:column;gap:4px;flex:1}
-    .nav-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;color:var(--ink-soft);font-weight:700;font-size:14px;transition:all .18s ease;width:100%;text-align:left}
-    .nav-item:hover,.nav-item.active{background:linear-gradient(135deg,rgba(75,31,167,.1),rgba(170,235,46,.06));color:var(--violet)}
-    .nav-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;background:var(--surface);transition:all .18s ease}
-    .nav-item:hover .nav-icon,.nav-item.active .nav-icon{background:linear-gradient(135deg,var(--violet),var(--violet-light));box-shadow:0 6px 14px rgba(75,31,167,.25)}
-    .nav-icon svg{width:17px;height:17px;stroke:var(--muted);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s}
-    .nav-item:hover .nav-icon svg,.nav-item.active .nav-icon svg{stroke:#fff}
-    .nav-divider{height:1px;background:var(--line);margin:10px 0}
-    .nav-user-info{margin-top:auto;padding-top:16px;border-top:1px solid var(--line)}
-    .nav-user-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--surface)}
-    .nav-user-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--violet-light));display:grid;place-items:center;color:#fff;font-weight:900;font-size:15px;flex-shrink:0}
-    .nav-user-name{font-weight:700;font-size:13px;color:var(--ink-soft)}
-    .nav-user-level{font-size:11px;color:var(--muted)}
-
-    /* ── MAIN ── */
-    .main{min-width:0;padding:0 28px 60px}
-
-    /* ── TOPBAR ── */
-    .topbar{position:sticky;top:0;z-index:10;background:linear-gradient(135deg,var(--violet) 0%,var(--violet-light) 100%);margin:0 -28px 28px;padding:16px 28px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 30px rgba(75,31,167,.25)}
-    .search-wrap{position:relative;flex:1;max-width:560px}
-    .search-wrap input{width:100%;padding:12px 46px 12px 18px;border-radius:12px;border:0;outline:0;background:rgba(255,255,255,.95);color:var(--ink);font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
-    .search-wrap input::placeholder{color:var(--muted)}
-    .search-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:8px;background:var(--violet);display:grid;place-items:center}
-    .search-btn svg{width:15px;height:15px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .top-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
-    .top-btn{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.2);transition:background .15s}
-    .top-btn:hover{background:rgba(255,255,255,.25)}
-    .top-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .badge-dot{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--lime);color:var(--ink);font-size:11px;font-weight:900;display:grid;place-items:center}
-    .profile-btn{display:flex;align-items:center;gap:9px;padding:7px 14px 7px 7px;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.2)}
-    .profile-avatar-top{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--lime),#7BDB2E);display:grid;place-items:center;font-size:13px;font-weight:900;color:var(--ink)}
-
-    /* ── HERO ── */
-    .hero{border-radius:20px;overflow:hidden;background:linear-gradient(135deg,var(--ink) 0%,var(--ink-soft) 55%,#3A1A78 100%);padding:52px 52px 44px;display:grid;grid-template-columns:1fr 380px;gap:40px;align-items:center;box-shadow:var(--shadow-deep);position:relative}
-    .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 30%,rgba(170,235,46,.12) 0%,transparent 50%),radial-gradient(circle at 20% 80%,rgba(123,79,217,.2) 0%,transparent 40%);pointer-events:none}
-    .hero-content{position:relative;z-index:1}
-    .hero-label{display:inline-flex;align-items:center;gap:8px;background:rgba(170,235,46,.15);border:1px solid rgba(170,235,46,.3);border-radius:8px;padding:6px 12px;margin-bottom:20px;color:var(--lime);font-size:12px;font-weight:700;letter-spacing:.5px}
-    .hero-label::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-    .hero h2{font-family:'Syne',sans-serif;font-size:clamp(32px,3.5vw,50px);font-weight:900;line-height:1.06;color:#fff;letter-spacing:-1px;margin-bottom:16px}
-    .hero h2 em{color:var(--lime);font-style:normal}
-    .hero p{color:rgba(255,255,255,.7);font-size:16px;line-height:1.6;max-width:440px;margin-bottom:28px}
-    .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
-    .hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px}
-    .stat-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px 14px;backdrop-filter:blur(8px)}
-    .stat-card strong{display:block;font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:var(--lime);line-height:1;margin-bottom:4px}
-    .stat-card span{font-size:12px;color:rgba(255,255,255,.65);font-weight:500;line-height:1.3}
-    .hero-visual{position:relative;z-index:1}
-    .phone-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:20px;backdrop-filter:blur(12px);animation:floatY 3.5s ease-in-out infinite}
-    @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-    .phone-mockup{display:grid;gap:12px}
-    .swap-row{display:flex;align-items:center;gap:12px}
-    .swap-item{flex:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center}
-    .swap-emoji{font-size:32px;display:block;margin-bottom:4px}
-    .swap-label{font-size:11px;color:rgba(255,255,255,.8);font-weight:700}
-    .swap-value{font-size:13px;color:var(--lime);font-weight:900;margin-top:2px}
-    .swap-arrow{width:36px;height:36px;border-radius:50%;background:var(--lime);color:var(--ink);display:grid;place-items:center;font-size:18px;font-weight:900;flex-shrink:0}
-    .match-badge{background:rgba(170,235,46,.15);border:1px solid rgba(170,235,46,.3);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;color:#fff}
-    .match-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);animation:pulse 1.5s infinite;flex-shrink:0}
-    .match-text{font-size:12px;font-weight:700}
-    .match-sub{font-size:11px;color:rgba(255,255,255,.6)}
-
-    /* ── BTNS ── */
-    .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:12px;font-weight:700;font-size:14px;transition:all .18s ease;text-decoration:none;justify-content:center}
-    .btn svg{width:17px;height:17px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .btn-lime{background:var(--lime);color:var(--ink);box-shadow:0 8px 24px rgba(170,235,46,.35)}
-    .btn-lime:hover{background:var(--lime-dark);transform:translateY(-2px)}
-    .btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
-    .btn-ghost:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
-    .btn-violet{background:var(--violet);color:#fff;box-shadow:0 8px 24px rgba(75,31,167,.3)}
-    .btn-violet:hover{background:var(--violet-light);transform:translateY(-2px)}
-    .btn-outline{background:#fff;color:var(--violet);border:2px solid var(--line)}
-    .btn-outline:hover{border-color:var(--violet);transform:translateY(-1px)}
-    .btn-danger{background:var(--danger);color:#fff;box-shadow:0 8px 24px rgba(224,51,88,.25)}
-    .btn-danger:hover{opacity:.88;transform:translateY(-1px)}
-    .btn-sm{padding:8px 14px;font-size:13px;border-radius:9px;min-height:36px}
-
-    /* ── SECTIONS ── */
-    .section{margin-top:32px}
-    .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-    .section-head h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.3px}
-    .link-btn{color:var(--violet);font-weight:700;font-size:14px}
-    .link-btn:hover{opacity:.7}
-
-    /* ── CATEGORIES ── */
-    .cat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
-    .cat-item{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .18s ease;font-weight:700;font-size:13px;color:var(--ink-soft)}
-    .cat-item:hover,.cat-item.active{border-color:var(--violet);background:rgba(75,31,167,.05);color:var(--violet);transform:translateY(-2px);box-shadow:0 8px 20px rgba(75,31,167,.1)}
-    .cat-emoji{width:46px;height:46px;border-radius:12px;font-size:22px;display:grid;place-items:center;background:linear-gradient(135deg,var(--surface),#EDE8FF)}
-
-    /* ── PRODUCTS ── */
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    select.filter-select{height:40px;border:1.5px solid var(--line);border-radius:10px;padding:0 14px;background:var(--card);color:var(--ink);outline:none;font-size:13px;font-weight:600;min-width:160px}
-    .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:16px}
-    .product-card{background:var(--card);border:1.5px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-card);transition:all .2s ease}
-    .product-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-deep);border-color:rgba(75,31,167,.2)}
-    .product-img{height:160px;display:grid;place-items:center;background:linear-gradient(135deg,#F5F2FF,#EDE8FF);font-size:56px;position:relative;overflow:hidden}
-    .product-img img{width:100%;height:100%;object-fit:cover}
-    .product-body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
-    .product-body h4{font-family:'Syne',sans-serif;font-size:16px;font-weight:800}
-    .chips{display:flex;flex-wrap:wrap;gap:5px}
-    .chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700}
-    .chip-lime{background:rgba(170,235,46,.2);color:#4A6D00}
-    .chip-violet{background:rgba(75,31,167,.1);color:var(--violet)}
-    .chip-amber{background:rgba(245,185,50,.15);color:#8A5B00}
-    .product-meta{font-size:12px;color:var(--muted);font-weight:500;line-height:1.4}
-    .product-price{font-family:'Syne',sans-serif;font-size:17px;font-weight:900;color:var(--violet)}
-    .product-wants{font-size:12px;color:var(--muted);font-weight:600;line-height:1.35}
-    .product-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
-    .own-badge{font-size:11px;color:var(--muted);font-style:italic;padding:4px 0}
-
-    /* ── PROCESS ── */
-    .process-section{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:32px;margin-top:32px;box-shadow:var(--shadow-card)}
-    .process-section h3{font-family:'Syne',sans-serif;font-size:22px;font-weight:900;margin-bottom:8px}
-    .process-section>p{color:var(--muted);font-size:15px;margin-bottom:24px;max-width:600px}
-    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-    .step{border:1.5px solid var(--line);border-radius:14px;padding:20px;background:var(--surface)}
-    .step-num{width:40px;height:40px;border-radius:10px;margin-bottom:14px;display:grid;place-items:center;font-family:'Syne',sans-serif;font-size:18px;font-weight:900}
-    .step-num.violet{background:linear-gradient(135deg,var(--violet),var(--violet-light));color:#fff}
-    .step-num.lime{background:linear-gradient(135deg,var(--lime),var(--lime-dark));color:var(--ink)}
-    .step h5{font-weight:800;font-size:15px;margin-bottom:6px}
-    .step p{font-size:13px;color:var(--muted);line-height:1.5}
-
-    /* ── TRUST BAND ── */
-    .trust-band{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
-    .trust-item{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow-card)}
-    .trust-icon{width:38px;height:38px;border-radius:10px;margin-bottom:12px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(75,31,167,.1),rgba(170,235,46,.08))}
-    .trust-icon svg{width:18px;height:18px;stroke:var(--violet);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .trust-item h5{font-weight:800;font-size:14px;margin-bottom:6px}
-    .trust-item p{font-size:12px;color:var(--muted);line-height:1.5}
-
-    /* ── MODAL ── */
-    .modal-overlay{position:fixed;inset:0;background:rgba(15,12,30,.6);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
-    .modal-overlay.open{display:flex}
-    .modal-box{background:var(--card);border-radius:20px;width:min(700px,100%);max-height:85vh;overflow-y:auto;box-shadow:0 40px 80px rgba(15,12,30,.3);animation:slideUp .25s ease}
-    .modal-box.wide{width:min(900px,100%)}
-    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    .modal-head{display:flex;align-items:center;justify-content:space-between;padding:22px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:1}
-    .modal-head h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:900}
-    .close-btn{width:36px;height:36px;border-radius:10px;background:var(--surface);display:grid;place-items:center;color:var(--muted);font-size:20px;font-weight:700;transition:all .15s}
-    .close-btn:hover{background:var(--line);color:var(--ink)}
-    .modal-body{padding:24px}
-
-    /* ── FORMS ── */
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .form-grid .full{grid-column:1/-1}
-    label.field{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px;color:var(--ink-soft)}
-    label.field input,label.field select,label.field textarea{border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;background:var(--surface);color:var(--ink);outline:none;font-size:14px;transition:border-color .15s}
-    label.field input:focus,label.field select:focus,label.field textarea:focus{border-color:var(--violet);background:#fff}
-    label.field textarea{min-height:90px;resize:vertical}
-    .notice-box{background:rgba(75,31,167,.06);border:1.5px solid rgba(75,31,167,.15);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--violet);font-weight:600;line-height:1.5}
-    .notice-lime{background:rgba(170,235,46,.1);border-color:rgba(170,235,46,.3);color:#3D5900}
-    .notice-danger{background:rgba(224,51,88,.06);border-color:rgba(224,51,88,.2);color:var(--danger)}
-    .check-group{display:flex;flex-direction:column;gap:10px}
-    .check-row{display:flex;align-items:flex-start;gap:12px;padding:13px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface)}
-    .check-row input[type="checkbox"]{width:18px;height:18px;margin-top:2px;accent-color:var(--violet);flex-shrink:0}
-    .check-row-text strong{display:block;font-weight:800;font-size:14px;margin-bottom:2px}
-    .check-row-text span{font-size:12px;color:var(--muted)}
-    .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap}
-
-    /* ── AUTH TABS ── */
-    .auth-tabs{display:flex;gap:0;margin-bottom:24px;border-radius:12px;overflow:hidden;border:1.5px solid var(--line)}
-    .auth-tab{flex:1;padding:12px;font-weight:700;font-size:14px;background:var(--surface);color:var(--muted);transition:all .15s;border:none}
-    .auth-tab.active{background:var(--violet);color:#fff}
-
-    /* ── CHAT MODAL ── */
-    .chat-box{border:1.5px solid var(--line);border-radius:12px;padding:14px;background:var(--surface);min-height:260px;max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
-    .chat-bubble{padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.4;max-width:80%}
-    .chat-bubble.them{background:#fff;border:1px solid var(--line);color:var(--ink-soft);align-self:flex-start;border-top-left-radius:4px}
-    .chat-bubble.me{background:var(--violet);color:#fff;align-self:flex-end;border-top-right-radius:4px}
-    .chat-bubble .cb-name{font-size:10px;opacity:.65;margin-bottom:3px;font-weight:700}
-    .chat-bubble .cb-time{font-size:10px;opacity:.5;margin-top:3px;text-align:right}
-    .chat-input-row{display:flex;gap:8px;margin-top:12px}
-    .chat-input-row input{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;outline:none;font-size:14px}
-    .chat-input-row input:focus{border-color:var(--violet)}
-
-    /* ── LEVELS ── */
-    .level-rows{display:grid;gap:8px;margin-top:12px}
-    .level-row{display:flex;align-items:center;gap:12px;padding:11px;border:1.5px solid var(--line);border-radius:10px;font-size:13px}
-
-    /* ── ADMIN PANEL ── */
-    .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-    .admin-stat{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:18px}
-    .admin-stat strong{display:block;font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--violet)}
-    .admin-stat span{font-size:13px;color:var(--muted)}
-    .admin-table{width:100%;border-collapse:collapse;font-size:13px}
-    .admin-table th{text-align:left;padding:10px 12px;background:var(--surface);font-weight:700;color:var(--ink-soft);border-bottom:2px solid var(--line)}
-    .admin-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
-    .admin-table tr:hover td{background:var(--surface)}
-    .admin-tabs{display:flex;gap:8px;margin-bottom:18px}
-    .admin-tab{padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;border:1.5px solid var(--line);color:var(--muted);background:var(--surface);transition:all .15s}
-    .admin-tab.active{background:var(--violet);color:#fff;border-color:var(--violet)}
-
-    /* ── FLOATING TRUQUI ── */
-    .truqui-fab{position:fixed;right:20px;bottom:28px;z-index:90;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--violet),var(--violet-light));box-shadow:0 12px 30px rgba(75,31,167,.4);display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;transition:transform .2s;border:none;animation:floatY 3s ease-in-out infinite}
-    .truqui-fab:hover{transform:scale(1.1) translateY(-4px)}
-    .truqui-fab .notif-ring{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:var(--lime);border:2px solid #fff;animation:pulse 2s infinite}
-
-    .truqui-panel{position:fixed;right:20px;bottom:100px;z-index:89;width:340px;max-height:520px;background:var(--card);border-radius:20px;box-shadow:0 24px 60px rgba(75,31,167,.2);border:1.5px solid var(--line);display:none;flex-direction:column;animation:slideUp .2s ease}
-    .truqui-panel.open{display:flex}
-    .truqui-panel-head{background:linear-gradient(135deg,var(--violet),var(--violet-light));padding:16px;border-radius:18px 18px 0 0;display:flex;align-items:center;gap:10px}
-    .truqui-panel-head h4{color:#fff;font-weight:800;font-size:15px;flex:1}
-    .truqui-panel-head p{color:rgba(255,255,255,.75);font-size:11px;font-weight:500}
-    .truqui-close{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.2);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:700;flex-shrink:0}
-    .truqui-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-    .truqui-intro{background:linear-gradient(135deg,var(--violet),var(--violet-light));border-radius:12px 12px 12px 4px;padding:12px;color:#fff;font-size:13px;line-height:1.5}
-    .truqui-intro b{display:block;margin-bottom:3px;font-size:14px}
-    .quick-grid{display:grid;gap:6px}
-    .quick-btn{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);text-align:left;font-weight:700;font-size:12px;color:var(--ink-soft);transition:all .15s}
-    .quick-btn:hover{border-color:var(--violet);color:var(--violet);transform:translateX(2px)}
-    .truqui-chat{display:flex;flex-direction:column;gap:7px;max-height:180px;overflow-y:auto}
-    .tc-msg{padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.42;max-width:90%}
-    .tc-msg.bot{background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);align-self:flex-start;border-top-left-radius:3px}
-    .tc-msg.user{background:var(--violet);color:#fff;align-self:flex-end;border-top-right-radius:3px}
-    .truqui-input-row{display:grid;grid-template-columns:1fr 38px;gap:8px;padding:12px;border-top:1px solid var(--line)}
-    .truqui-input-row input{border:1.5px solid var(--line);border-radius:9px;padding:0 12px;min-width:0;outline:none;font-size:13px;height:38px}
-    .truqui-input-row input:focus{border-color:var(--violet)}
-    .truqui-send{width:38px;height:38px;border-radius:9px;background:var(--violet);display:grid;place-items:center;transition:all .15s}
-    .truqui-send:hover{background:var(--violet-light);transform:scale(1.05)}
-    .truqui-send svg{width:15px;height:15px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
-
-    /* ── BOTTOM NAV ── */
-    .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:66px;background:var(--card);border-top:1px solid var(--line);z-index:50;grid-template-columns:repeat(5,1fr);box-shadow:0 -8px 20px rgba(75,31,167,.1)}
-    .bottom-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:11px;font-weight:700;padding:6px 4px}
-    .bottom-nav-btn.active{color:var(--violet)}
-    .bottom-nav-btn svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-
-    /* ── TOAST ── */
-    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);opacity:0;pointer-events:none;z-index:200;background:var(--ink);color:#fff;border-radius:12px;padding:13px 20px;font-weight:700;font-size:14px;box-shadow:var(--shadow-deep);transition:all .22s ease;max-width:min(90vw,480px);text-align:center}
-    .toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
-
-    /* ── EMPTY STATE ── */
-    .empty-state{grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed var(--line);border-radius:16px;color:var(--muted);font-weight:600}
-    .empty-state .es-icon{font-size:48px;margin-bottom:12px;display:block}
-    .empty-state p{font-size:15px;margin-bottom:16px}
-
-    /* ── SPINNER ── */
-    .spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(75,31,167,.2);border-top-color:var(--violet);border-radius:50%;animation:spin .7s linear infinite}
-    .spinner-big{width:40px;height:40px;border-width:4px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* ── MATCHES LIST ── */
-    .matches-list{display:grid;gap:12px}
-    .match-card{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:14px;align-items:center;transition:all .15s;cursor:pointer}
-    .match-card:hover{border-color:var(--violet);box-shadow:var(--shadow-card)}
-    .match-card-emoji{font-size:32px;width:52px;height:52px;background:var(--card);border-radius:12px;display:grid;place-items:center;flex-shrink:0;border:1px solid var(--line)}
-    .match-card-info{flex:1;min-width:0}
-    .match-card-title{font-weight:800;font-size:15px;color:var(--ink-soft)}
-    .match-card-sub{font-size:12px;color:var(--muted);margin-top:2px}
-    .match-card-badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0}
-    .match-card-badge.active{background:rgba(170,235,46,.2);color:#3D5900}
-    .match-card-badge.pending{background:rgba(245,185,50,.15);color:#8A5B00}
-
-    /* ── PUBLICATIONS USER ── */
-    .myposts-list{display:grid;gap:12px}
-    .mypost-card{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:12px;align-items:center}
-    .mypost-emoji{font-size:28px;width:48px;height:48px;background:var(--card);border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);flex-shrink:0}
-    .mypost-info{flex:1;min-width:0}
-    .mypost-title{font-weight:800;font-size:15px}
-    .mypost-sub{font-size:12px;color:var(--muted);margin-top:2px}
-    .mypost-actions{display:flex;gap:8px;flex-shrink:0}
-
-    /* ── RESPONSIVE ── */
-    @media(max-width:1180px){.app{grid-template-columns:220px 1fr}}
-    @media(max-width:860px){
-      body{padding-bottom:70px}
-      .app{display:block}
-      .sidebar{display:none}
-      .main{padding:0 16px 40px}
-      .topbar{margin:0 -16px 20px;padding:12px 16px;flex-wrap:wrap}
-      .top-actions{display:none}
-      .hero{grid-template-columns:1fr;padding:32px 24px 28px}
-      .hero-visual{display:none}
-      .cat-grid{grid-template-columns:repeat(3,1fr)}
-      .products{grid-template-columns:repeat(2,1fr)}
-      .steps{grid-template-columns:1fr 1fr}
-      .trust-band{grid-template-columns:1fr 1fr}
-      .bottom-nav{display:grid}
-      .form-grid{grid-template-columns:1fr}
-      .truqui-panel{width:calc(100vw - 32px);right:16px}
-    }
-    @media(max-width:540px){
-      .hero{padding:24px 18px}
-      .hero h2{font-size:28px}
-      .cat-grid{grid-template-columns:repeat(2,1fr)}
-      .products{grid-template-columns:1fr}
-      .steps{grid-template-columns:1fr}
-      .trust-band{grid-template-columns:1fr}
-      .admin-grid{grid-template-columns:1fr}
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Truekeamas | Cambia. Ahorra. Conecta.</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,updateProfile}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import{getFirestore,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getStorage,ref,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+const cfg={apiKey:"AIzaSyDH4TQbvRym1fkIIFwPpssU5qBENCM-GSk",authDomain:"truekeamas.firebaseapp.com",projectId:"truekeamas",storageBucket:"truekeamas.firebasestorage.app",messagingSenderId:"873643507138",appId:"1:873643507138:web:7eacc2a7972639b196aa5b"};
+const app=initializeApp(cfg);
+window._fb={auth:getAuth(app),db:getFirestore(app),st:getStorage(app),createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,updateProfile,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp,ref,uploadBytes,getDownloadURL};
+window.dispatchEvent(new Event('fb-ready'));
+</script>
+<style>
+:root{--v:#4B1FA7;--vl:#7B4FD9;--lm:#AAEB2E;--ld:#8DC425;--ink:#0F0C1E;--is:#2A2540;--mu:#6E6889;--sf:#F7F5FF;--cd:#fff;--ln:#E8E2F6;--dg:#E03358;--am:#F5B932;--sc:0 12px 40px rgba(75,31,167,.10);--sd:0 24px 56px rgba(75,31,167,.18)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--sf);color:var(--ink);overflow-x:hidden;min-height:100vh}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:none;background:none}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;background:var(--cd);border-right:1px solid var(--ln);padding:24px 16px;display:flex;flex-direction:column;z-index:20;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:12px;padding-bottom:24px;border-bottom:1px solid var(--ln);margin-bottom:20px}
+.brand-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--v),#9B6FE0);display:grid;place-items:center;flex-shrink:0;box-shadow:0 8px 20px rgba(75,31,167,.3)}
+.brand-logo svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.brand-text h1{font-family:'Syne',sans-serif;font-size:19px;font-weight:900;color:var(--v);letter-spacing:-.5px}
+.brand-text p{font-size:11px;color:var(--mu);font-weight:500;margin-top:1px}
+.nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.ni{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;color:var(--is);font-weight:700;font-size:14px;transition:all .18s;width:100%;text-align:left}
+.ni:hover,.ni.active{background:linear-gradient(135deg,rgba(75,31,167,.1),rgba(170,235,46,.06));color:var(--v)}
+.nic{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;background:var(--sf);transition:all .18s}
+.ni:hover .nic,.ni.active .nic{background:linear-gradient(135deg,var(--v),var(--vl));box-shadow:0 6px 14px rgba(75,31,167,.25)}
+.nic svg{width:17px;height:17px;stroke:var(--mu);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s}
+.ni:hover .nic svg,.ni.active .nic svg{stroke:#fff}
+.nd{height:1px;background:var(--ln);margin:10px 0}
+.nu{margin-top:auto;padding-top:16px;border-top:1px solid var(--ln)}
+.nuc{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--sf)}
+.nua{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--v),var(--vl));display:grid;place-items:center;color:#fff;font-weight:900;font-size:15px;flex-shrink:0}
+.main{min-width:0;padding:0 28px 60px}
+.topbar{position:sticky;top:0;z-index:10;background:linear-gradient(135deg,var(--v),var(--vl));margin:0 -28px 28px;padding:16px 28px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 30px rgba(75,31,167,.25)}
+.sw{position:relative;flex:1;max-width:560px}
+.sw input{width:100%;padding:12px 46px 12px 18px;border-radius:12px;border:0;outline:0;background:rgba(255,255,255,.95);color:var(--ink);font-size:14px}
+.sw input::placeholder{color:var(--mu)}
+.sb{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:8px;background:var(--v);display:grid;place-items:center}
+.sb svg{width:15px;height:15px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ta{display:flex;align-items:center;gap:10px;margin-left:auto}
+.tb{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.2);transition:background .15s}
+.tb:hover{background:rgba(255,255,255,.25)}
+.tb svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.bd{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--lm);color:var(--ink);font-size:11px;font-weight:900;display:grid;place-items:center}
+.pb{display:flex;align-items:center;gap:9px;padding:7px 14px 7px 7px;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.2)}
+.pa{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--lm),#7BDB2E);display:grid;place-items:center;font-size:13px;font-weight:900;color:var(--ink)}
+.hero{border-radius:20px;overflow:hidden;background:linear-gradient(135deg,var(--ink),var(--is) 55%,#3A1A78);padding:52px;display:grid;grid-template-columns:1fr 380px;gap:40px;align-items:center;box-shadow:var(--sd);position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 30%,rgba(170,235,46,.12),transparent 50%),radial-gradient(circle at 20% 80%,rgba(123,79,217,.2),transparent 40%);pointer-events:none}
+.hc{position:relative;z-index:1}
+.hl{display:inline-flex;align-items:center;gap:8px;background:rgba(170,235,46,.15);border:1px solid rgba(170,235,46,.3);border-radius:8px;padding:6px 12px;margin-bottom:20px;color:var(--lm);font-size:12px;font-weight:700}
+.hl::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--lm);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h2{font-family:'Syne',sans-serif;font-size:clamp(32px,3.5vw,50px);font-weight:900;line-height:1.06;color:#fff;letter-spacing:-1px;margin-bottom:16px}
+.hero h2 em{color:var(--lm);font-style:normal}
+.hero p{color:rgba(255,255,255,.7);font-size:16px;line-height:1.6;max-width:440px;margin-bottom:28px}
+.ha{display:flex;gap:12px;flex-wrap:wrap}
+.hs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px}
+.sc2{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px 14px;backdrop-filter:blur(8px)}
+.sc2 strong{display:block;font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:var(--lm);line-height:1;margin-bottom:4px}
+.sc2 span{font-size:12px;color:rgba(255,255,255,.65);font-weight:500;line-height:1.3}
+.hv{position:relative;z-index:1}
+.pc{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:20px;backdrop-filter:blur(12px);animation:floatY 3.5s ease-in-out infinite}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.sr{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.si{flex:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center}
+.se{font-size:32px;display:block;margin-bottom:4px}
+.sl{font-size:11px;color:rgba(255,255,255,.8);font-weight:700}
+.sv{font-size:13px;color:var(--lm);font-weight:900;margin-top:2px}
+.sa{width:36px;height:36px;border-radius:50%;background:var(--lm);color:var(--ink);display:grid;place-items:center;font-size:18px;font-weight:900;flex-shrink:0}
+.mb2{background:rgba(170,235,46,.15);border:1px solid rgba(170,235,46,.3);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;color:#fff}
+.md{width:8px;height:8px;border-radius:50%;background:var(--lm);animation:pulse 1.5s infinite;flex-shrink:0}
+.mt{font-size:12px;font-weight:700}.ms{font-size:11px;color:rgba(255,255,255,.6)}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:12px;font-weight:700;font-size:14px;transition:all .18s;text-decoration:none;justify-content:center}
+.btn svg{width:17px;height:17px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.bl{background:var(--lm);color:var(--ink);box-shadow:0 8px 24px rgba(170,235,46,.35)}.bl:hover{background:var(--ld);transform:translateY(-2px)}
+.bg{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}.bg:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
+.bv{background:var(--v);color:#fff;box-shadow:0 8px 24px rgba(75,31,167,.3)}.bv:hover{background:var(--vl);transform:translateY(-2px)}
+.bo{background:#fff;color:var(--v);border:2px solid var(--ln)}.bo:hover{border-color:var(--v)}
+.bd2{background:var(--dg);color:#fff}.bd2:hover{opacity:.88}
+.bsm{padding:8px 14px;font-size:13px;border-radius:9px;min-height:36px}
+.sec{margin-top:32px}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.sh h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.3px}
+.lk{color:var(--v);font-weight:700;font-size:14px}
+.cg{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.ci{background:var(--cd);border:1.5px solid var(--ln);border-radius:14px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .18s;font-weight:700;font-size:13px;color:var(--is)}
+.ci:hover,.ci.active{border-color:var(--v);background:rgba(75,31,167,.05);color:var(--v);transform:translateY(-2px);box-shadow:0 8px 20px rgba(75,31,167,.1)}
+.ce{width:46px;height:46px;border-radius:12px;font-size:22px;display:grid;place-items:center;background:linear-gradient(135deg,var(--sf),#EDE8FF)}
+.tl{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+select.fs{height:40px;border:1.5px solid var(--ln);border-radius:10px;padding:0 14px;background:var(--cd);color:var(--ink);outline:none;font-size:13px;font-weight:600;min-width:160px}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:16px}
+.pk{background:var(--cd);border:1.5px solid var(--ln);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--sc);transition:all .2s}
+.pk:hover{transform:translateY(-4px);box-shadow:var(--sd);border-color:rgba(75,31,167,.2)}
+.pi{height:180px;display:grid;place-items:center;background:linear-gradient(135deg,#F5F2FF,#EDE8FF);font-size:56px;position:relative;overflow:hidden}
+/* GALLERY */
+.gal{position:relative;height:180px;overflow:hidden;background:linear-gradient(135deg,#F5F2FF,#EDE8FF)}
+.gm{width:100%;height:100%;object-fit:cover;display:block}
+.gn{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;font-size:14px;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:2;cursor:pointer}
+.gn.gp{left:8px}.gn.gx{right:8px}
+.gd{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:2}
+.gdt{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)}.gdt.active{background:#fff}
+.pb2{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.pb2 h4{font-family:'Syne',sans-serif;font-size:16px;font-weight:800}
+.ch{display:flex;flex-wrap:wrap;gap:5px}
+.ch span{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700}
+.cl{background:rgba(170,235,46,.2);color:#4A6D00}.cv{background:rgba(75,31,167,.1);color:var(--v)}.ca{background:rgba(245,185,50,.15);color:#8A5B00}
+.pm{font-size:12px;color:var(--mu);font-weight:500;line-height:1.4}
+.pp{font-family:'Syne',sans-serif;font-size:17px;font-weight:900;color:var(--v)}
+.pw{font-size:12px;color:var(--mu);font-weight:600;line-height:1.35}
+.pak{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+/* PHOTO UPLOAD */
+.pua{border:2px dashed var(--ln);border-radius:14px;padding:24px;text-align:center;cursor:pointer;transition:all .18s;background:var(--sf);position:relative;overflow:hidden}
+.pua:hover{border-color:var(--v);background:rgba(75,31,167,.04)}
+.pua input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.pp2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.ppi{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1}
+.ppi img{width:100%;height:100%;object-fit:cover}
+.ppi button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--dg);color:#fff;font-size:12px;display:grid;place-items:center}
+.upr{height:4px;background:var(--ln);border-radius:2px;margin-top:8px;overflow:hidden}
+.upb{height:100%;background:linear-gradient(90deg,var(--v),var(--lm));border-radius:2px;transition:width .3s;width:0}
+/* PROCESS */
+.ps{background:var(--cd);border:1.5px solid var(--ln);border-radius:20px;padding:32px;margin-top:32px;box-shadow:var(--sc)}
+.ps h3{font-family:'Syne',sans-serif;font-size:22px;font-weight:900;margin-bottom:8px}
+.ps>p{color:var(--mu);font-size:15px;margin-bottom:24px;max-width:600px}
+.sts{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.st{border:1.5px solid var(--ln);border-radius:14px;padding:20px;background:var(--sf)}
+.sn{width:40px;height:40px;border-radius:10px;margin-bottom:14px;display:grid;place-items:center;font-family:'Syne',sans-serif;font-size:18px;font-weight:900}
+.sn.sv2{background:linear-gradient(135deg,var(--v),var(--vl));color:#fff}.sn.sl2{background:linear-gradient(135deg,var(--lm),var(--ld));color:var(--ink)}
+.st h5{font-weight:800;font-size:15px;margin-bottom:6px}.st p{font-size:13px;color:var(--mu);line-height:1.5}
+.tb2{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+.ti{background:var(--cd);border:1.5px solid var(--ln);border-radius:14px;padding:18px;box-shadow:var(--sc)}
+.tic{width:38px;height:38px;border-radius:10px;margin-bottom:12px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(75,31,167,.1),rgba(170,235,46,.08))}
+.tic svg{width:18px;height:18px;stroke:var(--v);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ti h5{font-weight:800;font-size:14px;margin-bottom:6px}.ti p{font-size:12px;color:var(--mu);line-height:1.5}
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(15,12,30,.6);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.mo.open{display:flex}
+.mb{background:var(--cd);border-radius:20px;width:min(700px,100%);max-height:88vh;overflow-y:auto;box-shadow:0 40px 80px rgba(15,12,30,.3);animation:su .25s ease}
+.mb.wide{width:min(900px,100%)}
+.mb.cm{width:min(640px,100%);max-height:88vh;height:88vh;display:flex;flex-direction:column;overflow:hidden}
+@keyframes su{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--ln);background:var(--cd);flex-shrink:0}
+.mh h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:900}
+.mhs{font-size:12px;color:var(--mu);margin-top:2px}
+.mc{width:36px;height:36px;border-radius:10px;background:var(--sf);display:grid;place-items:center;color:var(--mu);font-size:20px;font-weight:700;flex-shrink:0}
+.mc:hover{background:var(--ln);color:var(--ink)}
+.mbd{padding:24px;flex:1;overflow-y:auto}
+.cm .mbd{padding:0;display:flex;flex-direction:column;overflow:hidden}
+/* CHAT */
+.cmsg{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--sf)}
+.cb{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5;max-width:78%;word-break:break-word}
+.cb.them{background:var(--cd);border:1px solid var(--ln);color:var(--is);align-self:flex-start;border-top-left-radius:4px}
+.cb.me{background:var(--v);color:#fff;align-self:flex-end;border-top-right-radius:4px}
+.cbn{font-size:11px;opacity:.65;margin-bottom:4px;font-weight:700}
+.cbt{font-size:10px;opacity:.5;margin-top:4px;text-align:right}
+.cbi{width:100%;max-width:200px;border-radius:8px;margin-bottom:6px;display:block;cursor:pointer}
+.cf{padding:12px 14px;border-top:1px solid var(--ln);background:var(--cd);flex-shrink:0}
+.cir{display:flex;gap:8px;align-items:center}
+.cir input{flex:1;border:1.5px solid var(--ln);border-radius:10px;padding:10px 14px;outline:none;font-size:14px}
+.cir input:focus{border-color:var(--v)}
+.cib{width:40px;height:40px;border-radius:10px;background:var(--sf);border:1.5px solid var(--ln);display:grid;place-items:center;flex-shrink:0;position:relative;overflow:hidden;cursor:pointer}
+.cib input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.cib svg{width:18px;height:18px;stroke:var(--mu);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cib:hover{border-color:var(--v)}
+.csb{width:40px;height:40px;border-radius:10px;background:var(--v);display:grid;place-items:center;flex-shrink:0}
+.csb:hover{background:var(--vl)}
+.csb svg{width:17px;height:17px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cem{text-align:center;color:var(--mu);font-size:13px;padding:40px 20px;font-weight:600}
+.cipw{margin-bottom:8px}
+.cip{display:inline-flex;align-items:center;gap:8px;background:var(--sf);border:1.5px solid var(--ln);border-radius:10px;padding:8px}
+.cip img{height:48px;border-radius:6px}
+.cip button{width:20px;height:20px;border-radius:50%;background:var(--dg);color:#fff;font-size:11px;display:grid;place-items:center;flex-shrink:0}
+/* FORMS */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fg .fl{grid-column:1/-1}
+label.fd{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px;color:var(--is)}
+label.fd input,label.fd select,label.fd textarea{border:1.5px solid var(--ln);border-radius:10px;padding:11px 14px;background:var(--sf);color:var(--ink);outline:none;font-size:14px;transition:border-color .15s}
+label.fd input:focus,label.fd select:focus,label.fd textarea:focus{border-color:var(--v);background:#fff}
+label.fd textarea{min-height:90px;resize:vertical}
+.nb{background:rgba(75,31,167,.06);border:1.5px solid rgba(75,31,167,.15);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--v);font-weight:600;line-height:1.5}
+.nbl{background:rgba(170,235,46,.1);border-color:rgba(170,235,46,.3);color:#3D5900}
+.nbd{background:rgba(224,51,88,.06);border-color:rgba(224,51,88,.2);color:var(--dg)}
+.cg2{display:flex;flex-direction:column;gap:10px}
+.cr{display:flex;align-items:flex-start;gap:12px;padding:13px;border:1.5px solid var(--ln);border-radius:12px;background:var(--sf)}
+.cr input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:var(--v);flex-shrink:0}
+.ct strong{display:block;font-weight:800;font-size:14px;margin-bottom:2px}
+.ct span{font-size:12px;color:var(--mu)}
+.ma{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap}
+.at{display:flex;margin-bottom:24px;border-radius:12px;overflow:hidden;border:1.5px solid var(--ln)}
+.atb{flex:1;padding:12px;font-weight:700;font-size:14px;background:var(--sf);color:var(--mu);border:none}
+.atb.active{background:var(--v);color:#fff}
+/* MATCHES */
+.ml{display:grid;gap:12px}
+.mk{background:var(--sf);border:1.5px solid var(--ln);border-radius:14px;padding:16px;display:flex;gap:14px;align-items:center;transition:all .15s;cursor:pointer}
+.mk:hover{border-color:var(--v);box-shadow:var(--sc)}
+.mke{font-size:28px;width:52px;height:52px;background:var(--cd);border-radius:12px;display:grid;place-items:center;flex-shrink:0;border:1px solid var(--ln);overflow:hidden}
+.mke img{width:100%;height:100%;object-fit:cover}
+.mki{flex:1;min-width:0}
+.mkt{font-weight:800;font-size:15px}
+.mks{font-size:12px;color:var(--mu);margin-top:3px}
+/* MY POSTS */
+.mpl{display:grid;gap:12px}
+.mpk{background:var(--sf);border:1.5px solid var(--ln);border-radius:14px;padding:14px;display:flex;gap:12px;align-items:center}
+.mpi{width:52px;height:52px;border-radius:10px;background:var(--cd);border:1px solid var(--ln);overflow:hidden;flex-shrink:0;display:grid;place-items:center;font-size:24px}
+.mpi img{width:100%;height:100%;object-fit:cover}
+.mpif{flex:1;min-width:0}
+.mpif .t{font-weight:800;font-size:14px}
+.mpif .s{font-size:12px;color:var(--mu);margin-top:2px}
+/* ADMIN */
+.ag{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.as{background:var(--sf);border:1.5px solid var(--ln);border-radius:14px;padding:18px}
+.as strong{display:block;font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--v)}
+.as span{font-size:13px;color:var(--mu)}
+table.at2{width:100%;border-collapse:collapse;font-size:13px}
+table.at2 th{text-align:left;padding:10px 12px;background:var(--sf);font-weight:700;color:var(--is);border-bottom:2px solid var(--ln)}
+table.at2 td{padding:10px 12px;border-bottom:1px solid var(--ln);vertical-align:middle}
+.atabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.atab{padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;border:1.5px solid var(--ln);color:var(--mu);background:var(--sf)}
+.atab.active{background:var(--v);color:#fff;border-color:var(--v)}
+/* TRUQUI FAB */
+.tfab{position:fixed;right:20px;bottom:28px;z-index:90;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--v),var(--vl));box-shadow:0 12px 30px rgba(75,31,167,.4);display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;border:none;animation:floatY 3s ease-in-out infinite}
+.tfab:hover{transform:scale(1.1)}
+.tp{position:fixed;right:20px;bottom:100px;z-index:89;width:340px;max-height:520px;background:var(--cd);border-radius:20px;box-shadow:0 24px 60px rgba(75,31,167,.2);border:1.5px solid var(--ln);display:none;flex-direction:column;animation:su .2s ease}
+.tp.open{display:flex}
+.tph{background:linear-gradient(135deg,var(--v),var(--vl));padding:16px;border-radius:18px 18px 0 0;display:flex;align-items:center;gap:10px}
+.tph h4{color:#fff;font-weight:800;font-size:15px;flex:1}.tph p{color:rgba(255,255,255,.75);font-size:11px}
+.tx{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.2);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:700;flex-shrink:0}
+.tpb{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.ti2{background:linear-gradient(135deg,var(--v),var(--vl));border-radius:12px 12px 12px 4px;padding:12px;color:#fff;font-size:13px;line-height:1.5}
+.ti2 b{display:block;margin-bottom:3px;font-size:14px}
+.qg{display:grid;gap:6px}
+.qb{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--ln);background:var(--sf);text-align:left;font-weight:700;font-size:12px;color:var(--is);transition:all .15s}
+.qb:hover{border-color:var(--v);color:var(--v)}
+.tc{display:flex;flex-direction:column;gap:7px;max-height:180px;overflow-y:auto}
+.tcm{padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.42;max-width:90%}
+.tcm.bot{background:var(--sf);border:1px solid var(--ln);color:var(--is);align-self:flex-start}
+.tcm.user{background:var(--v);color:#fff;align-self:flex-end}
+.tir{display:grid;grid-template-columns:1fr 38px;gap:8px;padding:12px;border-top:1px solid var(--ln)}
+.tir input{border:1.5px solid var(--ln);border-radius:9px;padding:0 12px;min-width:0;outline:none;font-size:13px;height:38px}
+.tir input:focus{border-color:var(--v)}
+.ts{width:38px;height:38px;border-radius:9px;background:var(--v);display:grid;place-items:center}
+.ts svg{width:15px;height:15px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+/* BOTTOM NAV */
+.bn{display:none;position:fixed;bottom:0;left:0;right:0;height:66px;background:var(--cd);border-top:1px solid var(--ln);z-index:50;grid-template-columns:repeat(5,1fr);box-shadow:0 -8px 20px rgba(75,31,167,.1)}
+.bnb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--mu);font-size:11px;font-weight:700;padding:6px 4px}
+.bnb.active{color:var(--v)}.bnb svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+/* TOAST */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);opacity:0;pointer-events:none;z-index:200;background:var(--ink);color:#fff;border-radius:12px;padding:13px 20px;font-weight:700;font-size:14px;box-shadow:var(--sd);transition:all .22s;max-width:min(90vw,480px);text-align:center}
+.toast.v{opacity:1;transform:translateX(-50%) translateY(0)}
+.es{grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed var(--ln);border-radius:16px;color:var(--mu);font-weight:600}
+.ei{font-size:48px;margin-bottom:12px;display:block}
+.sp{display:inline-block;width:20px;height:20px;border:3px solid rgba(75,31,167,.2);border-top-color:var(--v);border-radius:50%;animation:spin .7s linear infinite}
+.sp2{width:40px;height:40px;border-width:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:1180px){.app{grid-template-columns:220px 1fr}}
+@media(max-width:860px){body{padding-bottom:70px}.app{display:block}.sidebar{display:none}.main{padding:0 16px 40px}.topbar{margin:0 -16px 20px;padding:12px 16px;flex-wrap:wrap}.ta{display:none}.hero{grid-template-columns:1fr;padding:32px 24px}.hv{display:none}.cg{grid-template-columns:repeat(3,1fr)}.pg{grid-template-columns:repeat(2,1fr)}.sts{grid-template-columns:1fr 1fr}.tb2{grid-template-columns:1fr 1fr}.bn{display:grid}.fg{grid-template-columns:1fr}.ag{grid-template-columns:1fr 1fr}.tp{width:calc(100vw - 32px);right:16px}}
+@media(max-width:540px){.hero{padding:24px 18px}.hero h2{font-size:28px}.cg{grid-template-columns:repeat(2,1fr)}.pg{grid-template-columns:1fr}.sts{grid-template-columns:1fr}.tb2{grid-template-columns:1fr}.ag{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-
 <div class="app">
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-logo">
-        <svg viewBox="0 0 24 24"><path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z"/></svg>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo"><svg viewBox="0 0 24 24"><path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z"/></svg></div>
+    <div class="brand-text"><h1>Truekeamas</h1><p>Cambia. Ahorra. Conecta.</p></div>
+  </div>
+  <nav class="nav" id="sideNav"></nav>
+  <div class="nu" id="sideUI" style="display:none">
+    <div class="nuc">
+      <div class="nua" id="sideAv">?</div>
+      <div><div style="font-weight:700;font-size:13px;color:var(--is)" id="sideName">—</div><div style="font-size:11px;color:var(--mu)" id="sideLvl">Nuevo</div></div>
+    </div>
+  </div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div class="sw"><input id="searchInput" type="search" placeholder="Buscar productos, servicios..." autocomplete="off"><button class="sb" id="searchBtn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button></div>
+    <div class="ta">
+      <button class="tb" data-open="agreements"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/></svg>Mensajes<span class="bd" id="msgC" style="display:none">0</span></button>
+      <button class="tb" data-open="cart"><svg viewBox="0 0 24 24"><path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>Guardados<span class="bd" id="cartC">0</span></button>
+      <button class="pb" id="topPB"><div class="pa" id="topAv">?</div><span id="topName">Entrar</span></button>
+    </div>
+  </header>
+  <section class="hero" id="inicio">
+    <div class="hc">
+      <div class="hl">✦ Plataforma de Trueque Digital</div>
+      <h2>Intercambia lo que tienes por lo que <em>necesitas</em></h2>
+      <p>Truekeamas conecta personas para hacer trueques, compras secundarias o acuerdos mixtos.</p>
+      <div class="ha">
+        <button class="btn bl" data-scroll="vitrina"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Explorar productos</button>
+        <button class="btn bg" data-open="publish"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Publicar ahora</button>
       </div>
-      <div class="brand-text">
-        <h1>Truekeamas</h1>
-        <p>Cambia. Ahorra. Conecta.</p>
+      <div class="hs">
+        <div class="sc2"><strong id="stP">—</strong><span>Publicaciones activas</span></div>
+        <div class="sc2"><strong id="stU">—</strong><span>Usuarios registrados</span></div>
+        <div class="sc2"><strong id="stM">—</strong><span>Matches realizados</span></div>
       </div>
     </div>
-    <nav class="nav" id="sideNav"></nav>
-    <div class="nav-user-info" id="sideUserInfo" style="display:none">
-      <div class="nav-user-card">
-        <div class="nav-user-avatar" id="sideUserAvatar">?</div>
-        <div>
-          <div class="nav-user-name" id="sideUserName">—</div>
-          <div class="nav-user-level" id="sideUserLevel">—</div>
+    <div class="hv">
+      <div class="pc">
+        <div class="sr">
+          <div class="si"><span class="se">📱</span><div class="sl">Tú ofreces</div><div class="sv">Tu producto</div></div>
+          <div class="sa">⇄</div>
+          <div class="si"><span class="se">💻</span><div class="sl">Recibes</div><div class="sv">Lo que buscas</div></div>
         </div>
+        <div class="mb2"><div class="md"></div><div><div class="mt">¡Match en tiempo real!</div><div class="ms">Chat interno protegido</div></div></div>
       </div>
     </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main">
-    <header class="topbar">
-      <div class="search-wrap">
-        <input id="searchInput" type="search" placeholder="Buscar productos, usuarios o servicios..." autocomplete="off">
-        <button class="search-btn" id="searchBtn">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        </button>
-      </div>
-      <div class="top-actions">
-        <button class="top-btn" data-open="chat">
-          <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/></svg>
-          Mensajes <span class="badge-dot" id="msgCount" style="display:none">0</span>
-        </button>
-        <button class="top-btn" data-open="cart">
-          <svg viewBox="0 0 24 24"><path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
-          Guardados <span class="badge-dot" id="cartCount">0</span>
-        </button>
-        <button class="profile-btn" id="topProfileBtn">
-          <div class="profile-avatar-top" id="topAvatar">?</div>
-          <span id="userNameTop">Entrar</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- HERO -->
-    <section class="hero" id="inicio">
-      <div class="hero-content">
-        <div class="hero-label">✦ Plataforma de Trueque Digital</div>
-        <h2>Intercambia lo que tienes por lo que <em>necesitas</em></h2>
-        <p>Truekeamas conecta personas para hacer trueques, compras secundarias o acuerdos mixtos dentro de una experiencia simple, segura y guiada.</p>
-        <div class="hero-actions">
-          <button class="btn btn-lime" data-scroll="vitrina">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            Explorar productos
-          </button>
-          <button class="btn btn-ghost" data-open="publish">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-            Publicar ahora
-          </button>
-        </div>
-        <div class="hero-stats">
-          <div class="stat-card"><strong id="statPosts">—</strong><span>Publicaciones activas</span></div>
-          <div class="stat-card"><strong id="statUsers">—</strong><span>Usuarios registrados</span></div>
-          <div class="stat-card"><strong id="statMatches">—</strong><span>Matches realizados</span></div>
-        </div>
-      </div>
-      <div class="hero-visual">
-        <div class="phone-card">
-          <div class="phone-mockup">
-            <div class="swap-row">
-              <div class="swap-item">
-                <span class="swap-emoji">📱</span>
-                <div class="swap-label">Tú ofreces</div>
-                <div class="swap-value">Tu producto</div>
-              </div>
-              <div class="swap-arrow">⇄</div>
-              <div class="swap-item">
-                <span class="swap-emoji">💻</span>
-                <div class="swap-label">Recibes</div>
-                <div class="swap-value">Lo que buscas</div>
-              </div>
-            </div>
-            <div class="match-badge">
-              <div class="match-dot"></div>
-              <div>
-                <div class="match-text">¡Match en tiempo real!</div>
-                <div class="match-sub">Chat interno protegido</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CATEGORIES -->
-    <section class="section" id="categorias">
-      <div class="section-head">
-        <h3>Categorías populares</h3>
-        <button class="link-btn" id="clearFilters">Ver todas</button>
-      </div>
-      <div class="cat-grid" id="categoryGrid"></div>
-    </section>
-
-    <!-- VITRINA -->
-    <section class="section" id="vitrina">
-      <div class="section-head">
-        <h3>Publicaciones</h3>
-        <div class="toolbar">
-          <select class="filter-select" id="modeFilter">
-            <option value="all">Todos los acuerdos</option>
-            <option value="barter">Trueque</option>
-            <option value="buy">Compra directa</option>
-            <option value="mixed">Acuerdo mixto</option>
-          </select>
-          <select class="filter-select" id="levelFilter">
-            <option value="all">Todos los niveles</option>
-            <option value="Nuevo">Nuevo</option>
-            <option value="Verificado">Verificado</option>
-            <option value="Confiable">Confiable</option>
-          </select>
-        </div>
-      </div>
-      <div class="products" id="productGrid">
-        <div class="empty-state" style="grid-column:1/-1">
-          <span class="es-icon">🔄</span>
-          <p>Cargando publicaciones...</p>
-          <div class="spinner spinner-big" style="margin:0 auto"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- HOW IT WORKS -->
-    <section class="process-section">
-      <h3>Un flujo claro para acordar con confianza</h3>
-      <p>Truekeamas facilita el encuentro, el registro del acuerdo y las evidencias.</p>
-      <div class="steps">
-        <div class="step"><div class="step-num violet">01</div><h5>Regístrate</h5><p>Crea tu cuenta, valida identidad y muestra tu nivel de usuario antes de acordar.</p></div>
-        <div class="step"><div class="step-num lime">02</div><h5>Publica</h5><p>El trueque queda siempre disponible. Puedes sumar compra directa o acuerdo mixto.</p></div>
-        <div class="step"><div class="step-num violet">03</div><h5>Haz Match</h5><p>Envía una propuesta, se abre un chat real. Deja evidencia del acuerdo dentro de la plataforma.</p></div>
-        <div class="step"><div class="step-num lime">04</div><h5>Califica</h5><p>Sube comprobante y califica cuando exista recepción o evidencia de entrega.</p></div>
-      </div>
-    </section>
-
-    <div class="trust-band">
-      <div class="trust-item">
-        <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-5"/></svg></div>
-        <h5>Seguridad primero</h5><p>Verificación, reportes con evidencia y acuerdos registrados dentro de la plataforma.</p>
-      </div>
-      <div class="trust-item">
-        <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="m12 2 3 6 6.5.9-4.7 4.6 1.1 6.5L12 17l-5.9 3 1.1-6.5-4.7-4.6L9 8l3-6Z"/></svg></div>
-        <h5>Reputación visible</h5><p>Niveles Nuevo, Verificado y Confiable para tomar mejores decisiones.</p>
-      </div>
-      <div class="trust-item">
-        <div class="trust-icon"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
-        <h5>Acuerdos protegidos</h5><p>Los usuarios acuerdan condiciones, pagos y transporte dentro del chat interno.</p>
-      </div>
-      <div class="trust-item">
-        <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M20.8 8.6c0 5.2-8.8 10.4-8.8 10.4S3.2 13.8 3.2 8.6A4.7 4.7 0 0 1 12 6.3a4.7 4.7 0 0 1 8.8 2.3Z"/></svg></div>
-        <h5>Comunidad</h5><p>Comentarios respetuosos y calificación posterior a la recepción.</p>
+  </section>
+  <section class="sec" id="categorias">
+    <div class="sh"><h3>Categorías populares</h3><button class="lk" id="clearFilters">Ver todas</button></div>
+    <div class="cg" id="catGrid"></div>
+  </section>
+  <section class="sec" id="vitrina">
+    <div class="sh"><h3>Publicaciones</h3>
+      <div class="tl">
+        <select class="fs" id="modeF"><option value="all">Todos los acuerdos</option><option value="barter">Trueque</option><option value="buy">Compra directa</option><option value="mixed">Acuerdo mixto</option></select>
+        <select class="fs" id="levelF"><option value="all">Todos los niveles</option><option value="Nuevo">Nuevo</option><option value="Verificado">Verificado</option><option value="Confiable">Confiable</option></select>
       </div>
     </div>
-  </main>
+    <div class="pg" id="prodGrid"><div class="es"><span class="ei">🔄</span><p>Cargando...</p><div class="sp sp2" style="margin:0 auto"></div></div></div>
+  </section>
+  <section class="ps">
+    <h3>Un flujo claro para acordar con confianza</h3>
+    <p>Truekeamas facilita el encuentro, el chat en tiempo real y el registro del acuerdo.</p>
+    <div class="sts">
+      <div class="st"><div class="sn sv2">01</div><h5>Regístrate</h5><p>Crea tu cuenta y valida tu identidad.</p></div>
+      <div class="st"><div class="sn sl2">02</div><h5>Publica con fotos</h5><p>Sube 2 fotos reales de tu producto.</p></div>
+      <div class="st"><div class="sn sv2">03</div><h5>Haz Match</h5><p>Se abre un chat en tiempo real con el otro usuario.</p></div>
+      <div class="st"><div class="sn sl2">04</div><h5>Entrega y califica</h5><p>Coordina y califica cuando confirmes la entrega.</p></div>
+    </div>
+  </section>
+  <div class="tb2">
+    <div class="ti"><div class="tic"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-5"/></svg></div><h5>Seguridad primero</h5><p>Verificación, reportes y acuerdos registrados.</p></div>
+    <div class="ti"><div class="tic"><svg viewBox="0 0 24 24"><path d="m12 2 3 6 6.5.9-4.7 4.6 1.1 6.5L12 17l-5.9 3 1.1-6.5-4.7-4.6L9 8l3-6Z"/></svg></div><h5>Reputación visible</h5><p>Niveles Nuevo, Verificado y Confiable.</p></div>
+    <div class="ti"><div class="tic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h5>Chat protegido</h5><p>Mensajes en tiempo real, registrados en la plataforma.</p></div>
+    <div class="ti"><div class="tic"><svg viewBox="0 0 24 24"><path d="M20.8 8.6c0 5.2-8.8 10.4-8.8 10.4S3.2 13.8 3.2 8.6A4.7 4.7 0 0 1 12 6.3a4.7 4.7 0 0 1 8.8 2.3Z"/></svg></div><h5>Comunidad</h5><p>Calificación posterior a cada entrega.</p></div>
+  </div>
+</main>
 </div>
-
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav" id="bottomNav">
-  <button class="bottom-nav-btn active" data-nav="inicio"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>Inicio</button>
-  <button class="bottom-nav-btn" data-nav="vitrina"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Explorar</button>
-  <button class="bottom-nav-btn" data-open="publish"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Publicar</button>
-  <button class="bottom-nav-btn" data-open="chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/></svg>Mensajes</button>
-  <button class="bottom-nav-btn" id="mobileProfileBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Perfil</button>
+<nav class="bn" id="bnav">
+  <button class="bnb active" data-nav="inicio"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>Inicio</button>
+  <button class="bnb" data-nav="vitrina"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Explorar</button>
+  <button class="bnb" data-open="publish"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Publicar</button>
+  <button class="bnb" data-open="agreements"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/></svg>Mensajes</button>
+  <button class="bnb" id="mobPB"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Perfil</button>
 </nav>
-
-<!-- FLOATING TRUQUI -->
-<button class="truqui-fab" id="truquiFab" aria-label="Abrir Truqui">
-  🤖<span class="notif-ring"></span>
-</button>
-
-<div class="truqui-panel" id="truquiPanel">
-  <div class="truqui-panel-head">
-    <div style="font-size:24px">🤖</div>
-    <div style="flex:1">
-      <h4>Truqui</h4>
-      <p>● Tu asistente virtual</p>
+<button class="tfab" id="truquiFab">🤖</button>
+<div class="tp" id="truquiPanel">
+  <div class="tph"><div style="font-size:24px">🤖</div><div style="flex:1"><h4>Truqui</h4><p>● Asistente virtual</p></div><button class="tx" id="truquiX">×</button></div>
+  <div class="tpb">
+    <div class="ti2"><b>👋 ¡Hola! Soy Truqui</b>Pregúntame sobre trueques, publicaciones, match o seguridad.</div>
+    <div class="qg">
+      <button class="qb" data-q="trueque">↻ ¿Cómo funciona el trueque?</button>
+      <button class="qb" data-q="publicar">📷 Cómo publicar con fotos</button>
+      <button class="qb" data-q="match">🤝 Cómo hacer match</button>
+      <button class="qb" data-q="seguridad">🔐 Seguridad</button>
     </div>
-    <button class="truqui-close" id="truquiClose">×</button>
+    <div class="tc" id="tchat"><div class="tcm bot">Hola, soy Truqui. ¿En qué puedo ayudarte?</div></div>
   </div>
-  <div class="truqui-body">
-    <div class="truqui-intro">
-      <b>👋 ¡Hola! Soy Truqui</b>
-      Puedo ayudarte con el trueque, publicaciones, envíos, seguridad y más. ¡Escríbeme!
-    </div>
-    <div class="quick-grid">
-      <button class="quick-btn" data-q="trueque">↻ ¿Cómo funciona el trueque?</button>
-      <button class="quick-btn" data-q="publicar">📝 Cómo publicar</button>
-      <button class="quick-btn" data-q="match">🤝 Cómo hacer match</button>
-      <button class="quick-btn" data-q="seguridad">🔐 Seguridad</button>
-    </div>
-    <div class="truqui-chat" id="truquiChat">
-      <div class="tc-msg bot">Hola, soy Truqui. Pregúntame lo que quieras sobre Truekeamas.</div>
-    </div>
-  </div>
-  <div class="truqui-input-row">
-    <input id="truquiInput" placeholder="Escribe tu pregunta...">
-    <button class="truqui-send" id="truquiSend">
-      <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg>
-    </button>
+  <div class="tir"><input id="tInput" placeholder="Escribe tu pregunta..."><button class="ts" id="tSend"><svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button></div>
+</div>
+<div class="mo" id="modal">
+  <div class="mb" id="mbox">
+    <div class="mh"><div><h3 id="mTitle"></h3><div class="mhs" id="mSub"></div></div><button class="mc" id="mClose">×</button></div>
+    <div class="mbd" id="mBody"></div>
   </div>
 </div>
-
-<!-- MODAL -->
-<div class="modal-overlay" id="modal">
-  <div class="modal-box" id="modalBox">
-    <div class="modal-head">
-      <h3 id="modalTitle"></h3>
-      <button class="close-btn" id="closeModal">×</button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-  </div>
-</div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
-// ══════════════════════════════════════════════════
-//  TRUEKEAMAS — APP PRINCIPAL
-//  Base de datos: Firebase Firestore
-//  Auth: Firebase Auth (email/password)
-//  Admin: contraseña fija (cambiar en producción)
-// ══════════════════════════════════════════════════
-
-const ADMIN_PASSWORD = 'truekeamas2024admin'; // ← Cambia esto en producción
-
-const categories = [
-  { name: 'Tecnología', emoji: '📱' },
-  { name: 'Hogar', emoji: '🛋️' },
-  { name: 'Deportes', emoji: '⚽' },
-  { name: 'Moda', emoji: '👕' },
-  { name: 'Libros', emoji: '📘' },
-  { name: 'Juguetes', emoji: '🧸' }
+const ADMIN_PASS='truekeamas2024admin';
+const CATS=[{n:'Tecnología',e:'📱'},{n:'Hogar',e:'🛋️'},{n:'Deportes',e:'⚽'},{n:'Moda',e:'👕'},{n:'Libros',e:'📘'},{n:'Juguetes',e:'🧸'}];
+const NAV=[
+  {l:'Inicio',id:'inicio',ic:'<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'},
+  {l:'Explorar',id:'vitrina',ic:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'},
+  {l:'Publicar',id:'publish',ic:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'},
+  {l:'Mis acuerdos',id:'agreements',ic:'<path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/>'},
+  {l:'Guardados',id:'cart',ic:'<path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>'},
+  {l:'Mis publicaciones',id:'myPosts',ic:'<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>'},
+  {l:'Mi perfil',id:'profile',ic:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'},
+  {l:'Ayuda',id:'help',ic:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.5 2c-1.1.8-2 1.4-2 3"/><path d="M12 17h.01"/>'}
 ];
-
-const truquiAnswers = {
-  trueque: 'El trueque es el corazón de Truekeamas. Publicas tu producto, otro usuario se interesa y hace clic en "Match". Se abre un chat real donde acuerdan los detalles del intercambio.',
-  publicar: 'Para publicar: 1) Inicia sesión o regístrate. 2) Haz clic en "Publicar ahora". 3) Completa título, categoría, valor referencial y qué buscas a cambio. 4) ¡Listo! Tu publicación aparece en la vitrina real.',
-  match: 'Para hacer match: ve a una publicación que te interese y haz clic en "Match". Se crea un chat privado con el dueño. Desde ahí coordinan el intercambio y dejan registro de todo.',
-  seguridad: 'Seguridad: No compartas datos bancarios en el chat. Prefiere entregas presenciales en lugares públicos. Usa el botón "Reportar" si algo parece sospechoso. Tus mensajes quedan registrados en la plataforma.',
-  envio: 'Envío seguro: coordina empresa de envío, sucursal, fecha estimada y código de seguimiento dentro del chat. Sube el comprobante antes de confirmar la entrega.',
-  calificar: 'Las calificaciones se habilitan después de que ambas partes confirman el acuerdo. Usa entre 1 y 5 estrellas y deja un comentario respetuoso para ayudar a la comunidad.',
-  niveles: 'Niveles de usuario: Nuevo (cuenta recién creada), Verificado (identidad validada), Confiable (buen historial), En revisión (caso pendiente), Bloqueado (restringido).',
-  fallback: '¡Buena pregunta! Puedes preguntarme sobre: cómo funciona el trueque, cómo publicar, cómo hacer match, seguridad, envío seguro o niveles de usuario.'
+const TQA={
+  trueque:'El trueque es el corazón de Truekeamas. Publicas tu producto con 2 fotos, otro usuario hace clic en "🤝 Match" y se abre un chat en tiempo real donde coordinan el intercambio.',
+  publicar:'Para publicar: 1) Inicia sesión. 2) Clic en "Publicar ahora". 3) Sube 2 fotos de tu producto. 4) Completa título, categoría, valor referencial y qué buscas. 5) ¡Publicar!',
+  match:'Para hacer match: ve a una publicación y haz clic en "🤝 Match". Se crea un chat privado en tiempo real. Pueden enviarse mensajes e imágenes.',
+  seguridad:'Seguridad: No compartas datos bancarios. Prefiere entregas presenciales en lugares públicos. Usa "Reportar" ante cualquier sospecha.',
+  fallback:'Puedo ayudarte con: trueque, cómo publicar con fotos, cómo hacer match, seguridad o niveles de usuario.'
 };
 
-const navItems = [
-  { label: 'Inicio', id: 'inicio', icon: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>' },
-  { label: 'Explorar', id: 'vitrina', icon: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>' },
-  { label: 'Publicar', id: 'publish', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>' },
-  { label: 'Mis acuerdos', id: 'agreements', icon: '<path d="M8 12h8"/><path d="m14 9 3 3-3 3"/><path d="M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z"/>' },
-  { label: 'Guardados', id: 'cart', icon: '<path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>' },
-  { label: 'Mis publicaciones', id: 'myPosts', icon: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>' },
-  { label: 'Mi perfil', id: 'profile', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' },
-  { label: 'Ayuda', id: 'help', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.5 2c-1.1.8-2 1.4-2 3"/><path d="M12 17h.01"/>' }
-];
+let CU=null,CUD=null,saved=JSON.parse(localStorage.getItem('tk_s')||'[]');
+let activeC='all',prods=[],chatMID=null,unsubC=null,pendImg=null;
 
-// ── STATE ──
-let currentUser = null;
-let currentUserData = null;
-let savedItems = JSON.parse(localStorage.getItem('tk_saved') || '[]');
-let activeCategory = 'all';
-let activeMatchId = null;
-let unsubscribeChat = null;
-let allProducts = [];
-
-// ── FIREBASE READY ──
-window.addEventListener('fb-ready', () => {
-  const { onAuthStateChanged } = window._fb;
-  const { auth } = window._fb;
-  onAuthStateChanged(auth, async (user) => {
-    currentUser = user;
-    if (user) {
-      await loadUserData(user.uid);
-    } else {
-      currentUserData = null;
-    }
-    updateUserUI();
-  });
+window.addEventListener('fb-ready',()=>{
+  const{auth,onAuthStateChanged}=window._fb;
+  onAuthStateChanged(auth,async u=>{CU=u;CUD=u?await loadUD(u.uid):null;updUI();});
   init();
 });
 
-// Si Firebase no carga (sin configurar), mostramos modo demo
-setTimeout(() => {
-  if (!window._fb) {
-    showFirebaseSetupNotice();
-    initOffline();
-  }
-}, 3000);
+async function init(){renderNav();renderCats();bindEv();updUI();await Promise.all([loadProds(),loadStats()]);}
 
-function showFirebaseSetupNotice() {
-  const notice = document.createElement('div');
-  notice.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#F5B932;color:#0F0C1E;padding:12px 20px;text-align:center;font-weight:700;font-size:14px;z-index:999;';
-  notice.innerHTML = '⚠️ Para activar la base de datos real, configura Firebase en el código (busca "TU_API_KEY"). <a href="https://console.firebase.google.com" target="_blank" style="color:var(--violet);text-decoration:underline">Ir a Firebase Console</a>';
-  document.body.prepend(notice);
+function renderNav(){
+  document.getElementById('sideNav').innerHTML=NAV.map((x,i)=>`
+    <button class="ni${i===0?' active':''}" data-nav="${x.id}">
+      <div class="nic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${x.ic}</svg></div>${x.l}
+    </button>`).join('')+'<div class="nd"></div>';
+}
+function renderCats(){
+  document.getElementById('catGrid').innerHTML=CATS.map(c=>`
+    <button class="ci${activeC===c.n?' active':''}" data-cat="${c.n}"><div class="ce">${c.e}</div>${c.n}</button>`).join('');
+}
+async function loadProds(){
+  if(!window._fb)return;
+  const{db,collection,query,orderBy,getDocs}=window._fb;
+  try{
+    const s=await getDocs(query(collection(db,'products'),orderBy('createdAt','desc')));
+    prods=s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>p.status!=='deleted');
+    renderProds();
+  }catch(e){document.getElementById('prodGrid').innerHTML='<div class="es"><span class="ei">📭</span><p>Sé el primero en publicar</p><button class="btn bv bsm" data-open="publish">Publicar ahora</button></div>';}
+}
+async function loadStats(){
+  if(!window._fb)return;
+  const{db,collection,getDocs}=window._fb;
+  try{
+    const[p,u,m]=await Promise.all([getDocs(collection(db,'products')),getDocs(collection(db,'users')),getDocs(collection(db,'matches'))]);
+    document.getElementById('stP').textContent=p.size;
+    document.getElementById('stU').textContent=u.size;
+    document.getElementById('stM').textContent=m.size;
+  }catch(e){}
+}
+async function loadUD(uid){
+  if(!window._fb)return null;
+  const{db,doc,getDoc}=window._fb;
+  try{const s=await getDoc(doc(db,'users',uid));return s.exists()?s.data():null;}catch(e){return null;}
 }
 
-function initOffline() {
-  renderNav();
-  renderCategories();
-  document.getElementById('productGrid').innerHTML = `
-    <div class="empty-state" style="grid-column:1/-1">
-      <span class="es-icon">🔧</span>
-      <p>Conecta Firebase para ver publicaciones reales</p>
-      <button class="btn btn-violet btn-sm" onclick="openModal('help')">Ver instrucciones</button>
-    </div>`;
-  updateUserUI();
-}
-
-// ── INIT ──
-async function init() {
-  renderNav();
-  renderCategories();
-  bindEvents();
-  updateUserUI();
-  await Promise.all([loadProducts(), loadStats()]);
-}
-
-// ── RENDER NAV ──
-function renderNav() {
-  const nav = document.getElementById('sideNav');
-  nav.innerHTML = navItems.map((item, i) => `
-    <button class="nav-item ${i === 0 ? 'active' : ''}" data-nav="${item.id}">
-      <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${item.icon}</svg></div>
-      ${item.label}
-    </button>
-  `).join('') + '<div class="nav-divider"></div>';
-}
-
-// ── RENDER CATEGORIES ──
-function renderCategories() {
-  document.getElementById('categoryGrid').innerHTML = categories.map(c => `
-    <button class="cat-item ${activeCategory === c.name ? 'active' : ''}" data-category="${c.name}">
-      <div class="cat-emoji">${c.emoji}</div>${c.name}
-    </button>
-  `).join('');
-}
-
-// ── LOAD PRODUCTS (Firebase) ──
-async function loadProducts() {
-  if (!window._fb) return;
-  const { db, collection, getDocs, query, orderBy, where } = window._fb;
-  try {
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderProducts();
-  } catch(e) {
-    console.error(e);
-    document.getElementById('productGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><span class="es-icon">📭</span><p>No hay publicaciones aún. ¡Sé el primero en publicar!</p><button class="btn btn-violet btn-sm" data-open="publish">Publicar ahora</button></div>`;
-  }
-}
-
-// ── LOAD STATS ──
-async function loadStats() {
-  if (!window._fb) return;
-  const { db, collection, getDocs } = window._fb;
-  try {
-    const [postsSnap, usersSnap, matchesSnap] = await Promise.all([
-      getDocs(collection(db, 'products')),
-      getDocs(collection(db, 'users')),
-      getDocs(collection(db, 'matches'))
-    ]);
-    document.getElementById('statPosts').textContent = postsSnap.size;
-    document.getElementById('statUsers').textContent = usersSnap.size;
-    document.getElementById('statMatches').textContent = matchesSnap.size;
-  } catch(e) {}
-}
-
-// ── LOAD USER DATA ──
-async function loadUserData(uid) {
-  if (!window._fb) return;
-  const { db, doc, getDoc } = window._fb;
-  try {
-    const snap = await getDoc(doc(db, 'users', uid));
-    currentUserData = snap.exists() ? snap.data() : null;
-  } catch(e) {}
-}
-
-// ── RENDER PRODUCTS ──
-function renderProducts() {
-  const query = document.getElementById('searchInput').value.trim().toLowerCase();
-  const mode = document.getElementById('modeFilter').value;
-  const level = document.getElementById('levelFilter').value;
-  const filtered = allProducts.filter(p => {
-    if (p.status === 'deleted') return false;
-    const byQuery = !query || [p.title, p.owner, p.category, p.wants, p.location].join(' ').toLowerCase().includes(query);
-    const byCategory = activeCategory === 'all' || p.category === activeCategory;
-    const byMode = mode === 'all' || (mode === 'barter' && p.barter) || (mode === 'buy' && p.buy) || (mode === 'mixed' && p.mixed);
-    const byLevel = level === 'all' || p.level === level;
-    return byQuery && byCategory && byMode && byLevel;
+function renderProds(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  const m=document.getElementById('modeF').value;
+  const l=document.getElementById('levelF').value;
+  const f=prods.filter(p=>{
+    const bq=!q||[p.title,p.owner,p.category,p.wants,p.location].join(' ').toLowerCase().includes(q);
+    const bc=activeC==='all'||p.category===activeC;
+    const bm=m==='all'||(m==='barter'&&p.barter)||(m==='buy'&&p.buy)||(m==='mixed'&&p.mixed);
+    const bl=l==='all'||p.level===l;
+    return bq&&bc&&bm&&bl;
   });
-  const grid = document.getElementById('productGrid');
-  if (!filtered.length) {
-    grid.innerHTML = `<div class="empty-state"><span class="es-icon">🔍</span><p>No encontramos publicaciones con esos filtros.</p><button class="btn btn-violet btn-sm" onclick="clearFilters()">Ver todas</button></div>`;
-    return;
-  }
-  grid.innerHTML = filtered.map(productCard).join('');
+  const g=document.getElementById('prodGrid');
+  if(!f.length){g.innerHTML='<div class="es"><span class="ei">🔍</span><p>Sin resultados.</p><button class="btn bv bsm" onclick="clearF()">Ver todas</button></div>';return;}
+  g.innerHTML=f.map(pCard).join('');
+}
+function fmtP(v){return v?'$'+Number(v).toLocaleString('es-CL'):'Solo trueque';}
+function pCard(p){
+  const own=CU&&p.ownerId===CU.uid;
+  const photos=p.photos||[];
+  const gal=photos.length?`
+    <div class="gal" id="gal_${p.id}" data-idx="0">
+      <img class="gm" id="gm_${p.id}" src="${esc(photos[0])}" alt="${esc(p.title)}" loading="lazy">
+      ${photos.length>1?`<button class="gn gp" data-gp="${p.id}">‹</button><button class="gn gx" data-gx="${p.id}">›</button><div class="gd">${photos.map((_,i)=>`<span class="gdt${i===0?' active':''}" data-gid="${p.id}" data-gi="${i}"></span>`).join('')}</div>`:''}
+    </div>`:`<div class="pi">${p.emoji||'📦'}</div>`;
+  return`<article class="pk">${gal}<div class="pb2">
+    <div class="ch"><span class="cl">Trueque</span>${p.buy?'<span class="cv">Compra</span>':''}${p.mixed?'<span class="ca">Mixto</span>':''}</div>
+    <h4>${esc(p.title)}</h4>
+    <div class="pm">por <strong>${esc(p.owner||'Usuario')}</strong> · ${p.level||'Nuevo'}<br>${esc(p.location||'')}</div>
+    <div class="pp">${fmtP(p.price)}</div>
+    <div class="pw">Busca: ${esc(p.wants||'')}</div>
+    <div class="pak">${own
+      ?'<span style="font-size:11px;color:var(--mu);font-style:italic;grid-column:1/-1">✏️ Tu publicación</span>'
+      :`<button class="btn bo bsm" data-sv="${p.id}">${saved.includes(p.id)?'❤️ Guardado':'🤍 Guardar'}</button><button class="btn bv bsm" data-mt="${p.id}">🤝 Match</button>`}
+    </div>
+  </div></article>`;
 }
 
-function formatPrice(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : 'Solo trueque'; }
-function timeAgo(ts) {
-  if (!ts) return '';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  const diff = (Date.now() - d) / 1000;
-  if (diff < 60) return 'ahora';
-  if (diff < 3600) return Math.floor(diff/60) + 'm';
-  if (diff < 86400) return Math.floor(diff/3600) + 'h';
-  return Math.floor(diff/86400) + 'd';
-}
-
-function productCard(p) {
-  const isOwn = currentUser && p.ownerId === currentUser.uid;
-  return `
-    <article class="product-card">
-      <div class="product-img">${p.emoji || '📦'}</div>
-      <div class="product-body">
-        <div class="chips">
-          <span class="chip chip-lime">Trueque</span>
-          ${p.buy ? '<span class="chip chip-violet">Compra</span>' : ''}
-          ${p.mixed ? '<span class="chip chip-amber">Mixto</span>' : ''}
-        </div>
-        <h4>${esc(p.title)}</h4>
-        <div class="product-meta">por <strong>${esc(p.owner || 'Usuario')}</strong> · ${p.level || 'Nuevo'}<br>${esc(p.location || '')}</div>
-        <div class="product-price">${formatPrice(p.price)}</div>
-        <div class="product-wants">Busca: ${esc(p.wants || '')}</div>
-        <div class="product-actions">
-          ${isOwn
-            ? `<span class="own-badge" style="grid-column:1/-1">✏️ Tu publicación</span>`
-            : `<button class="btn btn-outline btn-sm" data-save="${p.id}" title="Guardar">
-                ${savedItems.includes(p.id) ? '❤️ Guardado' : '🤍 Guardar'}
-              </button>
-              <button class="btn btn-violet btn-sm" data-match="${p.id}">🤝 Match</button>`
-          }
-        </div>
-      </div>
-    </article>`;
-}
-
-// ── EVENTS ──
-function bindEvents() {
-  document.body.addEventListener('click', e => {
-    const nav = e.target.closest('[data-nav]');
-    const open = e.target.closest('[data-open]');
-    const scroll = e.target.closest('[data-scroll]');
-    const cat = e.target.closest('[data-category]');
-    const save = e.target.closest('[data-save]');
-    const match = e.target.closest('[data-match]');
-    const q = e.target.closest('[data-q]');
-
-    if (nav) handleNav(nav.dataset.nav);
-    if (open) openModal(open.dataset.open);
-    if (scroll) smoothScroll(scroll.dataset.scroll);
-    if (cat) { activeCategory = cat.dataset.category; renderCategories(); renderProducts(); }
-    if (save) toggleSave(save.dataset.save);
-    if (match) handleMatch(match.dataset.match);
-    if (q) handleQuickQ(q.dataset.q);
+function bindEv(){
+  document.body.addEventListener('click',e=>{
+    const nav=e.target.closest('[data-nav]');
+    const open=e.target.closest('[data-open]');
+    const scr=e.target.closest('[data-scroll]');
+    const cat=e.target.closest('[data-cat]');
+    const sv=e.target.closest('[data-sv]');
+    const mt=e.target.closest('[data-mt]');
+    const q=e.target.closest('[data-q]');
+    const gp=e.target.closest('[data-gp]');
+    const gx=e.target.closest('[data-gx]');
+    if(nav)handleNav(nav.dataset.nav);
+    if(open)openMod(open.dataset.open);
+    if(scr)sScroll(scr.dataset.scroll);
+    if(cat){activeC=cat.dataset.cat;renderCats();renderProds();}
+    if(sv)toggleSave(sv.dataset.sv);
+    if(mt)doMatch(mt.dataset.mt);
+    if(q)handleQ(q.dataset.q);
+    if(gp){e.stopPropagation();galNav(gp.dataset.gp,-1);}
+    if(gx){e.stopPropagation();galNav(gx.dataset.gx,+1);}
   });
-
-  document.getElementById('closeModal').addEventListener('click', () => { closeModal(); if(unsubscribeChat){ unsubscribeChat(); unsubscribeChat=null; } });
-  document.getElementById('modal').addEventListener('click', e => { if(e.target.id==='modal'){ closeModal(); if(unsubscribeChat){unsubscribeChat();unsubscribeChat=null;} } });
-  document.getElementById('searchInput').addEventListener('input', renderProducts);
-  document.getElementById('searchBtn').addEventListener('click', renderProducts);
-  document.getElementById('modeFilter').addEventListener('change', renderProducts);
-  document.getElementById('levelFilter').addEventListener('change', renderProducts);
-  document.getElementById('clearFilters').addEventListener('click', clearFilters);
-  document.getElementById('topProfileBtn').addEventListener('click', () => openModal(currentUser ? 'profile' : 'auth'));
-  document.getElementById('mobileProfileBtn')?.addEventListener('click', () => openModal(currentUser ? 'profile' : 'auth'));
-
-  // Truqui
-  document.getElementById('truquiFab').addEventListener('click', toggleTruqui);
-  document.getElementById('truquiClose').addEventListener('click', () => document.getElementById('truquiPanel').classList.remove('open'));
-  document.getElementById('truquiSend').addEventListener('click', sendTruqui);
-  document.getElementById('truquiInput').addEventListener('keydown', e => { if(e.key==='Enter') sendTruqui(); });
+  document.getElementById('mClose').addEventListener('click',closeCM);
+  document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeCM();});
+  document.getElementById('searchInput').addEventListener('input',renderProds);
+  document.getElementById('searchBtn').addEventListener('click',renderProds);
+  document.getElementById('modeF').addEventListener('change',renderProds);
+  document.getElementById('levelF').addEventListener('change',renderProds);
+  document.getElementById('clearFilters').addEventListener('click',clearF);
+  document.getElementById('topPB').addEventListener('click',()=>openMod(CU?'profile':'auth'));
+  document.getElementById('mobPB')?.addEventListener('click',()=>openMod(CU?'profile':'auth'));
+  document.getElementById('truquiFab').addEventListener('click',()=>document.getElementById('truquiPanel').classList.toggle('open'));
+  document.getElementById('truquiX').addEventListener('click',()=>document.getElementById('truquiPanel').classList.remove('open'));
+  document.getElementById('tSend').addEventListener('click',sendTQ);
+  document.getElementById('tInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendTQ();});
 }
-
-function handleNav(id) {
-  document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === id));
-  if (['inicio','vitrina','categorias'].includes(id)) smoothScroll(id);
-  else openModal(id);
+function closeCM(){if(unsubC){unsubC();unsubC=null;}chatMID=null;pendImg=null;closeModal();}
+function handleNav(id){
+  document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===id));
+  if(['inicio','vitrina','categorias'].includes(id))sScroll(id);else openMod(id);
 }
-
-function smoothScroll(id) { document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
-
-function clearFilters() {
-  activeCategory = 'all';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('modeFilter').value = 'all';
-  document.getElementById('levelFilter').value = 'all';
-  renderCategories();
-  renderProducts();
+function sScroll(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
+function clearF(){activeC='all';document.getElementById('searchInput').value='';document.getElementById('modeF').value='all';document.getElementById('levelF').value='all';renderCats();renderProds();}
+function galNav(pid,d){
+  const p=prods.find(x=>x.id===pid);if(!p||!p.photos||p.photos.length<2)return;
+  const g=document.getElementById('gal_'+pid);if(!g)return;
+  let idx=parseInt(g.dataset.idx||'0');idx=(idx+d+p.photos.length)%p.photos.length;
+  g.dataset.idx=idx;document.getElementById('gm_'+pid).src=p.photos[idx];
+  g.querySelectorAll('.gdt').forEach((dt,i)=>dt.classList.toggle('active',i===idx));
 }
-
-// ── USER UI ──
-function updateUserUI() {
-  const name = currentUser ? (currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario') : 'Entrar';
-  const initials = name.charAt(0).toUpperCase();
-  document.getElementById('userNameTop').textContent = name;
-  document.getElementById('topAvatar').textContent = initials;
-  const si = document.getElementById('sideUserInfo');
-  if (currentUser) {
-    si.style.display = 'block';
-    document.getElementById('sideUserAvatar').textContent = initials;
-    document.getElementById('sideUserName').textContent = name;
-    document.getElementById('sideUserLevel').textContent = currentUserData?.level || 'Nuevo';
-  } else { si.style.display = 'none'; }
-  document.getElementById('cartCount').textContent = savedItems.length;
+function toggleSave(id){
+  if(!CU){toast('Inicia sesión para guardar.');openMod('auth');return;}
+  saved=saved.includes(id)?saved.filter(x=>x!==id):[...saved,id];
+  localStorage.setItem('tk_s',JSON.stringify(saved));
+  document.getElementById('cartC').textContent=saved.length;
+  renderProds();toast(saved.includes(id)?'Guardado ❤️':'Eliminado de guardados.');
 }
-
-// ── TOGGLE SAVE ──
-function toggleSave(id) {
-  if (!currentUser) { toast('Inicia sesión para guardar publicaciones.'); openModal('auth'); return; }
-  if (savedItems.includes(id)) savedItems = savedItems.filter(x => x !== id);
-  else savedItems.push(id);
-  localStorage.setItem('tk_saved', JSON.stringify(savedItems));
-  document.getElementById('cartCount').textContent = savedItems.length;
-  renderProducts();
-  toast(savedItems.includes(id) ? 'Publicación guardada.' : 'Publicación eliminada de guardados.');
-}
-
-// ── MATCH ──
-async function handleMatch(productId) {
-  if (!currentUser) { toast('Debes iniciar sesión para hacer match.'); openModal('auth'); return; }
-  const product = allProducts.find(p => p.id === productId);
-  if (!product) return;
-  if (product.ownerId === currentUser.uid) { toast('No puedes hacer match con tu propia publicación.'); return; }
-  if (!window._fb) { toast('Conecta Firebase para usar el match real.'); return; }
-  const { db, collection, addDoc, query, where, getDocs, serverTimestamp } = window._fb;
-  // Check if match already exists
-  const q = query(collection(db, 'matches'),
-    where('productId', '==', productId),
-    where('requesterId', '==', currentUser.uid));
-  const existing = await getDocs(q);
-  if (!existing.empty) {
-    const matchId = existing.docs[0].id;
-    openChatModal(matchId, product);
-    return;
-  }
-  // Create match
-  try {
-    const ref = await addDoc(collection(db, 'matches'), {
-      productId, productTitle: product.title, productEmoji: product.emoji || '📦',
-      ownerId: product.ownerId, ownerName: product.owner,
-      requesterId: currentUser.uid, requesterName: currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
-      status: 'active', createdAt: serverTimestamp()
-    });
-    // Stats
-    loadStats();
-    toast('¡Match creado! Se abrió tu chat con ' + product.owner);
-    openChatModal(ref.id, product);
-  } catch(e) { console.error(e); toast('Error al crear el match. Intenta de nuevo.'); }
-}
-
-// ── CHAT MODAL ──
-function openChatModal(matchId, product) {
-  activeMatchId = matchId;
-  openModal('chat_real');
-  // After render, setup listener
-  setTimeout(() => setupChatListener(matchId, product), 200);
-}
-
-function setupChatListener(matchId, product) {
-  if (!window._fb) return;
-  if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
-  const { db, collection, onSnapshot, query, orderBy } = window._fb;
-  const chatBox = document.getElementById('liveChatBox');
-  if (!chatBox) return;
-  const q = query(collection(db, 'matches', matchId, 'messages'), orderBy('createdAt', 'asc'));
-  unsubscribeChat = onSnapshot(q, snap => {
-    chatBox.innerHTML = '';
-    snap.docs.forEach(d => {
-      const m = d.data();
-      const isMe = m.senderId === currentUser?.uid;
-      const div = document.createElement('div');
-      div.className = `chat-bubble ${isMe ? 'me' : 'them'}`;
-      div.innerHTML = `${!isMe ? `<div class="cb-name">${esc(m.senderName)}</div>` : ''}<div>${esc(m.text)}</div><div class="cb-time">${timeAgo(m.createdAt)}</div>`;
-      chatBox.appendChild(div);
-    });
-    chatBox.scrollTop = chatBox.scrollHeight;
-    if (snap.empty) {
-      chatBox.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Inicia la conversación. Deja claro qué ofreces y qué esperas recibir.</div>`;
+async function doMatch(productId){
+  if(!CU){toast('Inicia sesión para hacer match.');openMod('auth');return;}
+  const prod=prods.find(p=>p.id===productId);
+  if(!prod)return;
+  if(prod.ownerId===CU.uid){toast('No puedes hacer match con tu propia publicación.');return;}
+  if(!window._fb){toast('Firebase no configurado.');return;}
+  const{db,collection,addDoc,query,where,getDocs,serverTimestamp}=window._fb;
+  try{
+    const q=query(collection(db,'matches'),where('productId','==',productId),where('requesterId','==',CU.uid));
+    const ex=await getDocs(q);
+    let mid;
+    if(!ex.empty){mid=ex.docs[0].id;toast('Chat ya existe. Abriendo...');}
+    else{
+      const myN=CUD?.displayName||CU.displayName||CU.email?.split('@')[0]||'Usuario';
+      const r=await addDoc(collection(db,'matches'),{
+        productId,productTitle:prod.title,productEmoji:prod.emoji||'📦',
+        productPhoto:(prod.photos&&prod.photos[0])||null,
+        ownerId:prod.ownerId,ownerName:prod.owner,
+        requesterId:CU.uid,requesterName:myN,
+        status:'active',lastMessage:'',lastMessageAt:serverTimestamp(),createdAt:serverTimestamp()
+      });
+      mid=r.id;loadStats();toast('¡Match creado con '+prod.owner+'! 🎉');
     }
-  });
+    openChat(mid,prod);
+  }catch(e){console.error(e);toast('Error: '+e.message);}
 }
 
-async function sendChatMessage(matchId) {
-  const input = document.getElementById('liveChatInput');
-  const text = input?.value.trim();
-  if (!text || !currentUser || !window._fb) return;
-  if (hasBadWords(text)) { toast('Mensaje bloqueado por lenguaje ofensivo.'); return; }
-  const { db, collection, addDoc, serverTimestamp } = window._fb;
-  try {
-    await addDoc(collection(db, 'matches', matchId, 'messages'), {
-      text, senderId: currentUser.uid,
-      senderName: currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
-      createdAt: serverTimestamp()
-    });
-    input.value = '';
-  } catch(e) { toast('Error al enviar mensaje.'); }
-}
-
-// ── MODAL SYSTEM ──
-function openModal(type) {
-  const titles = {
-    auth: 'Acceder a Truekeamas', publish: 'Publicar producto o servicio',
-    profile: 'Mi perfil', cart: 'Publicaciones guardadas', chat_real: 'Chat del acuerdo',
-    agreements: 'Mis acuerdos', myPosts: 'Mis publicaciones', shipping: 'Envío seguro',
-    rating: 'Calificar acuerdo', report: 'Reportar problema', admin: '🔒 Panel de Administración',
-    help: 'Ayuda', notifications: 'Notificaciones', settings: 'Configuración'
-  };
-  document.getElementById('modalTitle').textContent = titles[type] || 'Truekeamas';
-  document.getElementById('modalBox').className = 'modal-box' + (type === 'admin' ? ' wide' : '');
-  document.getElementById('modalBody').innerHTML = getContent(type);
+function openChat(mid,prod){
+  chatMID=mid;
+  const box=document.getElementById('mbox');
+  box.className='mb cm';
+  document.getElementById('mTitle').textContent=esc(prod.title||'Chat');
+  document.getElementById('mSub').textContent='Chat con '+esc(prod.owner||'Usuario');
   document.getElementById('modal').classList.add('open');
-  bindModalEvents(type);
-}
-
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
-
-function getContent(type) {
-  if (type === 'auth') return authContent();
-  if (type === 'publish') return publishContent();
-  if (type === 'profile') return profileContent();
-  if (type === 'cart') return cartContent();
-  if (type === 'chat_real') return chatRealContent();
-  if (type === 'agreements') return agreementsContent();
-  if (type === 'myPosts') return myPostsContent();
-  if (type === 'shipping') return shippingContent();
-  if (type === 'rating') return ratingContent();
-  if (type === 'report') return reportContent();
-  if (type === 'admin') return adminContent();
-  if (type === 'help') return helpContent();
-  return `<div class="notice-box notice-lime"><strong>Sección en desarrollo</strong><br>Esta sección estará disponible pronto.</div>`;
-}
-
-// ── AUTH CONTENT ──
-function authContent() {
-  return `
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin" onclick="showTab('login')">Iniciar sesión</button>
-      <button class="auth-tab" id="tabRegister" onclick="showTab('register')">Registrarse</button>
-    </div>
-    <div id="loginForm">
-      <div class="form-grid">
-        <label class="field full">Correo electrónico<input type="email" id="loginEmail" placeholder="tu@correo.cl" autocomplete="email"></label>
-        <label class="field full">Contraseña<input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"></label>
+  document.getElementById('mBody').innerHTML=`
+    <div class="cmsg" id="cmsgs"><div class="cem"><div class="sp" style="margin:0 auto 12px"></div>Cargando mensajes...</div></div>
+    <div class="cf">
+      <div class="cipw" id="cipw"></div>
+      <div class="cir">
+        <div class="cib"><input type="file" id="cfi" accept="image/*"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+        <input id="cInput" placeholder="Escribe tu mensaje..." autocomplete="off">
+        <button class="csb" id="cSend"><svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button>
       </div>
-      <div class="modal-actions">
-        <button class="btn btn-violet" id="btnLogin" style="width:100%">Iniciar sesión</button>
-      </div>
-      <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">¿Eres administrador? <button onclick="openModal('admin')" style="color:var(--violet);font-weight:700;font-size:12px">Panel Admin</button></p>
-    </div>
-    <div id="registerForm" style="display:none">
-      <div class="form-grid">
-        <label class="field full">Nombre completo<input type="text" id="regName" placeholder="Ej: Camila Torres"></label>
-        <label class="field full">Correo electrónico<input type="email" id="regEmail" placeholder="tu@correo.cl" autocomplete="email"></label>
-        <label class="field full">Contraseña (mínimo 6 caracteres)<input type="password" id="regPassword" placeholder="••••••••"></label>
-        <label class="field full">Teléfono (opcional)<input type="tel" id="regPhone" placeholder="+56 9 1234 5678"></label>
-        <label class="field full">Comuna<input type="text" id="regLocation" placeholder="Ej: Santiago, La Florida..."></label>
-      </div>
-      <div class="notice-box full" style="margin-top:8px">Al registrarte aceptas que Truekeamas facilita el contacto pero no es responsable de productos, pagos ni transporte.</div>
-      <div class="modal-actions">
-        <button class="btn btn-lime" id="btnRegister" style="width:100%">Crear cuenta</button>
-      </div>
-    </div>
-  `;
-}
-
-function showTab(tab) {
-  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
-  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
-}
-
-// ── PUBLISH CONTENT ──
-function publishContent() {
-  if (!currentUser) return `<div class="notice-box notice-danger">Debes iniciar sesión para publicar.</div><div class="modal-actions"><button class="btn btn-violet" data-open="auth">Iniciar sesión</button></div>`;
-  return `
-    <form id="publishForm" class="form-grid">
-      <label class="field">Título<input required name="title" placeholder="Ej: Monitor 24 pulgadas"></label>
-      <label class="field">Categoría<select name="category">${categories.map(c=>`<option>${c.name}</option>`).join('')}<option>Servicios</option></select></label>
-      <label class="field">Valor referencial (CLP)<input name="price" type="number" min="0" placeholder="0 para solo trueque"></label>
-      <label class="field">Ubicación<input name="location" placeholder="Ej: Santiago, online..."></label>
-      <label class="field full">¿Qué buscas a cambio?<textarea required name="wants" placeholder="Ej: teclado mecánico, silla o dinero complementario"></textarea></label>
-      <label class="field full">Descripción del estado<textarea name="description" placeholder="Describe el estado actual del producto (nuevo, usado, detalles importantes...)"></textarea></label>
-      <div class="check-group full">
-        <div class="check-row"><input type="checkbox" checked disabled><div class="check-row-text"><strong>✅ Trueque activo (siempre activado)</strong><span>El corazón de Truekeamas.</span></div></div>
-        <label class="check-row"><input type="checkbox" name="buy"><div class="check-row-text"><strong>Permitir compra directa</strong><span>El precio referencial queda visible.</span></div></label>
-        <label class="check-row"><input type="checkbox" name="mixed" checked><div class="check-row-text"><strong>Permitir acuerdo mixto</strong><span>Producto más dinero u otro beneficio.</span></div></label>
-      </div>
-      <div class="notice-box full">Truekeamas muestra tu publicación como vitrina. Estado, pago y entrega se acuerdan entre usuarios.</div>
-      <div class="modal-actions full">
-        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-        <button class="btn btn-lime" type="submit" id="publishBtn">📤 Publicar ahora</button>
-      </div>
-    </form>`;
-}
-
-// ── PROFILE CONTENT ──
-function profileContent() {
-  if (!currentUser) return `<div class="notice-box notice-danger">No has iniciado sesión.</div>`;
-  const name = currentUserData?.displayName || currentUser.displayName || 'Usuario';
-  const level = currentUserData?.level || 'Nuevo';
-  const phone = currentUserData?.phone || '';
-  const location = currentUserData?.location || '';
-  return `
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:20px;background:var(--surface);border-radius:14px;border:1.5px solid var(--line)">
-      <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,var(--violet),var(--violet-light));display:grid;place-items:center;color:#fff;font-family:'Syne',sans-serif;font-size:26px;font-weight:900">${name.charAt(0).toUpperCase()}</div>
-      <div>
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900">${esc(name)}</div>
-        <div style="font-size:13px;color:var(--muted)">${currentUser.email}</div>
-        <span class="chip chip-lime" style="margin-top:6px">${level}</span>
-      </div>
-    </div>
-    <div class="form-grid">
-      <label class="field full">Nombre visible<input id="editName" value="${esc(name)}" placeholder="Tu nombre"></label>
-      <label class="field">Teléfono<input id="editPhone" value="${esc(phone)}" placeholder="+56 9..."></label>
-      <label class="field">Ciudad / Comuna<input id="editLocation" value="${esc(location)}" placeholder="Tu ubicación"></label>
-    </div>
-    <div class="level-rows" style="margin-top:20px">
-      <div class="level-row"><span class="chip chip-violet">Nuevo</span><span>Cuenta recién creada.</span></div>
-      <div class="level-row"><span class="chip chip-lime">Verificado</span><span>Identidad validada en la plataforma.</span></div>
-      <div class="level-row"><span class="chip chip-lime">Confiable</span><span>Historial positivo y buenas calificaciones.</span></div>
-      <div class="level-row"><span class="chip chip-amber">En revisión</span><span>Reporte o actividad pendiente.</span></div>
-      <div class="level-row"><span class="chip" style="background:#ffe4e9;color:#9b1a35">Bloqueado</span><span>Restringido por incumplimientos.</span></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-danger btn-sm" id="btnLogout">Cerrar sesión</button>
-      <button class="btn btn-violet" id="btnSaveProfile">💾 Guardar cambios</button>
     </div>`;
+  document.getElementById('cSend').addEventListener('click',()=>sendMsg(mid));
+  document.getElementById('cInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey)sendMsg(mid);});
+  document.getElementById('cfi').addEventListener('change',e=>selImg(e));
+  startChat(mid);
 }
 
-// ── CART CONTENT ──
-function cartContent() {
-  const items = allProducts.filter(p => savedItems.includes(p.id));
-  if (!items.length) return `<div class="empty-state"><span class="es-icon">🤍</span><p>No tienes publicaciones guardadas aún.</p></div>`;
-  return `<div class="products" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${items.map(productCard).join('')}</div>
-    <div class="notice-box" style="margin-top:16px">Guarda publicaciones para iniciar un acuerdo cuando estés listo.</div>`;
+function startChat(mid){
+  if(unsubC){unsubC();unsubC=null;}
+  if(!window._fb)return;
+  const{db,collection,query,orderBy,onSnapshot}=window._fb;
+  unsubC=onSnapshot(
+    query(collection(db,'matches',mid,'messages'),orderBy('createdAt','asc')),
+    snap=>{
+      const box=document.getElementById('cmsgs');if(!box)return;
+      if(snap.empty){box.innerHTML='<div class="cem">✉️ Sé el primero en escribir.<br><small style="color:var(--mu)">Deja claro qué ofreces y qué esperas.</small></div>';return;}
+      box.innerHTML='';
+      snap.docs.forEach(d=>{
+        const m=d.data();const me=m.senderId===CU?.uid;
+        const el=document.createElement('div');el.className='cb '+(me?'me':'them');
+        const ts=m.createdAt?.toDate?m.createdAt.toDate():new Date();
+        const t=ts.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+        el.innerHTML=(me?'':'<div class="cbn">'+esc(m.senderName||'Usuario')+'</div>')
+          +(m.imageUrl?'<img class="cbi" src="'+esc(m.imageUrl)+'" onclick="window.open(\''+esc(m.imageUrl)+'\',\'_blank\')" loading="lazy">':'')
+          +(m.text?'<div>'+esc(m.text)+'</div>':'')
+          +'<div class="cbt">'+t+'</div>';
+        box.appendChild(el);
+      });
+      box.scrollTop=box.scrollHeight;
+    },
+    err=>{
+      const box=document.getElementById('cmsgs');
+      if(box)box.innerHTML='<div class="cem" style="color:var(--dg)">⚠️ Error: '+esc(err.message)+'<br><small>Verifica las reglas de Firestore.</small></div>';
+    }
+  );
 }
 
-// ── REAL CHAT CONTENT ──
-function chatRealContent() {
-  if (!activeMatchId) return `<div class="notice-box notice-danger">Error al abrir el chat.</div>`;
-  const product = allProducts.find(p => p.id === (window._currentMatchProduct?.id));
-  return `
-    <div class="notice-box" style="margin-bottom:14px">Chat del acuerdo. Todo lo que escribas queda registrado. Sé claro y respetuoso.</div>
-    <div class="chat-box" id="liveChatBox" style="margin-bottom:12px">
-      <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px"><div class="spinner" style="margin:0 auto 8px"></div>Cargando mensajes...</div>
+async function sendMsg(mid){
+  const inp=document.getElementById('cInput');
+  const txt=inp?.value.trim()||'';
+  if(!txt&&!pendImg)return;
+  if(!CU||!window._fb)return;
+  if(badW(txt)){toast('Mensaje bloqueado por lenguaje ofensivo.');return;}
+  const btn=document.getElementById('cSend');if(btn)btn.disabled=true;
+  const{db,collection,addDoc,doc,updateDoc,serverTimestamp,st,ref,uploadBytes,getDownloadURL}=window._fb;
+  const myN=CUD?.displayName||CU.displayName||CU.email?.split('@')[0]||'Usuario';
+  try{
+    let imgUrl=null;
+    if(pendImg){
+      const r=ref(st,'chats/'+mid+'/'+Date.now()+'_'+pendImg.name);
+      const s=await uploadBytes(r,pendImg);
+      imgUrl=await getDownloadURL(s.ref);
+      pendImg=null;
+      const pw=document.getElementById('cipw');if(pw)pw.innerHTML='';
+    }
+    await addDoc(collection(db,'matches',mid,'messages'),{text:txt||'',imageUrl:imgUrl,senderId:CU.uid,senderName:myN,createdAt:serverTimestamp()});
+    await updateDoc(doc(db,'matches',mid),{lastMessage:imgUrl?'📷 Imagen':txt,lastMessageAt:serverTimestamp()});
+    if(inp)inp.value='';
+  }catch(e){console.error(e);toast('Error: '+e.message);}
+  finally{if(btn)btn.disabled=false;}
+}
+function selImg(e){
+  const f=e.target.files[0];if(!f)return;
+  if(f.size>5*1024*1024){toast('Imagen supera 5MB.');return;}
+  pendImg=f;
+  const u=URL.createObjectURL(f);
+  const pw=document.getElementById('cipw');
+  if(pw)pw.innerHTML='<div class="cip"><img src="'+u+'" alt="preview"><button onclick="window.clrImg()">×</button></div>';
+}
+window.clrImg=()=>{pendImg=null;const pw=document.getElementById('cipw');if(pw)pw.innerHTML='';const fi=document.getElementById('cfi');if(fi)fi.value='';};
+
+const MTITLES={auth:'Acceder a Truekeamas',publish:'Publicar producto o servicio',profile:'Mi perfil',cart:'Guardados',agreements:'Mis acuerdos / Mensajes',myPosts:'Mis publicaciones',shipping:'Envío seguro',rating:'Calificar acuerdo',report:'Reportar problema',admin:'Panel de Administración',help:'Ayuda'};
+
+function openMod(type){
+  const b=document.getElementById('mbox');b.className='mb'+(type==='admin'?' wide':'');
+  document.getElementById('mTitle').textContent=MTITLES[type]||'Truekeamas';
+  document.getElementById('mSub').textContent='';
+  document.getElementById('mBody').innerHTML=getC(type);
+  document.getElementById('modal').classList.add('open');
+  bindMEv(type);
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+function getC(t){
+  if(t==='auth')return authC();
+  if(t==='publish')return pubC();
+  if(t==='profile')return profC();
+  if(t==='cart')return cartC();
+  if(t==='agreements')return agreeC();
+  if(t==='myPosts')return myPostsC();
+  if(t==='rating')return ratingC();
+  if(t==='report')return `<form id="rptF" class="fg"><label class="fd">Motivo<select name="reason"><option>Usuario sospechoso</option><option>Producto engañoso</option><option>Lenguaje ofensivo</option><option>Problema de entrega</option></select></label><label class="fd">Target<input required name="target" placeholder="Nombre o producto"></label><label class="fd fl">Descripción<textarea required name="description" placeholder="Describe lo ocurrido."></textarea></label><div class="nb fl">El reporte puede dejar al usuario En revisión.</div><div class="ma fl"><button class="btn bd2" type="submit">🚨 Enviar reporte</button></div></form>`;
+  if(t==='admin')return adminC();
+  if(t==='help')return helpC();
+  return`<div class="nb nbl"><strong>En desarrollo</strong><br>Esta sección estará disponible pronto.</div>`;
+}
+
+function authC(){return`
+  <div class="at"><button class="atb active" id="tLogin" onclick="swTab('l')">Iniciar sesión</button><button class="atb" id="tReg" onclick="swTab('r')">Registrarse</button></div>
+  <div id="lForm">
+    <div class="fg"><label class="fd fl">Correo<input type="email" id="lE" placeholder="tu@correo.cl" autocomplete="email"></label><label class="fd fl">Contraseña<input type="password" id="lP" placeholder="••••••••"></label></div>
+    <div class="ma"><button class="btn bv" id="btnL" style="width:100%">Iniciar sesión</button></div>
+    <p style="text-align:center;font-size:12px;color:var(--mu);margin-top:12px">¿Administrador? <button onclick="openMod('admin')" style="color:var(--v);font-weight:700;font-size:12px">Panel Admin</button></p>
+  </div>
+  <div id="rForm" style="display:none">
+    <div class="fg">
+      <label class="fd fl">Nombre completo<input type="text" id="rN" placeholder="Ej: Camila Torres"></label>
+      <label class="fd fl">Correo<input type="email" id="rE" placeholder="tu@correo.cl"></label>
+      <label class="fd fl">Contraseña (mín. 6 caracteres)<input type="password" id="rP" placeholder="••••••••"></label>
+      <label class="fd">Teléfono<input type="tel" id="rT" placeholder="+56 9..."></label>
+      <label class="fd">Comuna<input type="text" id="rL" placeholder="Ej: La Florida"></label>
     </div>
-    <div class="chat-input-row">
-      <input id="liveChatInput" placeholder="Escribe tu propuesta (qué ofreces, cómo entregas, cuándo)...">
-      <button class="btn btn-violet btn-sm" id="sendChatBtn">Enviar</button>
-    </div>
-    <div class="modal-actions" style="margin-top:12px">
-      <button class="btn btn-outline btn-sm" data-open="shipping">📦 Envío seguro</button>
-      <button class="btn btn-outline btn-sm" data-open="report">⚠️ Reportar</button>
-      <button class="btn btn-lime btn-sm" data-open="rating">⭐ Calificar</button>
-    </div>`;
-}
+    <div class="ma"><button class="btn bl" id="btnR" style="width:100%">Crear cuenta</button></div>
+  </div>`;}
 
-// ── AGREEMENTS CONTENT ──
-function agreementsContent() {
-  if (!currentUser) return `<div class="notice-box notice-danger">Inicia sesión para ver tus acuerdos.</div>`;
-  if (!window._fb) return `<div class="notice-box">Conecta Firebase para ver tus acuerdos.</div>`;
-  let html = `<div class="matches-list" id="matchesList"><div class="spinner spinner-big" style="margin:20px auto;display:block"></div></div>`;
-  setTimeout(async () => {
-    const { db, collection, query, where, getDocs, orderBy } = window._fb;
-    const [asOwner, asRequester] = await Promise.all([
-      getDocs(query(collection(db,'matches'), where('ownerId','==',currentUser.uid))),
-      getDocs(query(collection(db,'matches'), where('requesterId','==',currentUser.uid)))
+window.swTab=t=>{
+  document.getElementById('lForm').style.display=t==='l'?'block':'none';
+  document.getElementById('rForm').style.display=t==='r'?'block':'none';
+  document.getElementById('tLogin').classList.toggle('active',t==='l');
+  document.getElementById('tReg').classList.toggle('active',t==='r');
+};
+
+function pubC(){
+  if(!CU)return`<div class="nb nbd">Debes iniciar sesión para publicar.</div><div class="ma"><button class="btn bv" data-open="auth">Iniciar sesión</button></div>`;
+  return`<form id="pubF" class="fg">
+    <label class="fd">Título<input required name="title" placeholder="Ej: Monitor 24 pulgadas"></label>
+    <label class="fd">Categoría<select name="category">${CATS.map(c=>`<option>${c.n}</option>`).join('')}<option>Servicios</option></select></label>
+    <label class="fd">Valor referencial (CLP)<input name="price" type="number" min="0" placeholder="0 = solo trueque"></label>
+    <label class="fd">Ubicación<input name="location" placeholder="Ej: Santiago, online..."></label>
+    <label class="fd fl">¿Qué buscas a cambio?<textarea required name="wants" placeholder="Ej: teclado mecánico, silla o dinero"></textarea></label>
+    <label class="fd fl">Estado del producto<textarea name="description" placeholder="Nuevo, usado, detalles importantes..."></textarea></label>
+    <div class="fl">
+      <div style="font-weight:700;font-size:13px;color:var(--is);margin-bottom:10px">📷 Fotos del producto (hasta 2)</div>
+      <div class="pua"><input type="file" id="pInput" accept="image/*" multiple><div style="font-size:32px;margin-bottom:8px">📷</div><p><strong>Haz clic o arrastra fotos aquí</strong><br>JPG, PNG, WebP · Máx. 5MB por foto</p></div>
+      <div class="pp2" id="pPrev"></div>
+      <div class="upr"><div class="upb" id="upBar"></div></div>
+    </div>
+    <div class="cg2 fl">
+      <div class="cr"><input type="checkbox" checked disabled><div class="ct"><strong>✅ Trueque activo (siempre)</strong><span>El corazón de Truekeamas.</span></div></div>
+      <label class="cr"><input type="checkbox" name="buy"><div class="ct"><strong>Permitir compra directa</strong><span>El precio referencial queda visible.</span></div></label>
+      <label class="cr"><input type="checkbox" name="mixed" checked><div class="ct"><strong>Permitir acuerdo mixto</strong><span>Producto más dinero u otro beneficio.</span></div></label>
+    </div>
+    <div class="nb fl">Truekeamas muestra tu publicación como vitrina. Estado, pago y entrega se acuerdan entre usuarios.</div>
+    <div class="ma fl">
+      <button type="button" class="btn bo" onclick="closeModal()">Cancelar</button>
+      <button class="btn bl" type="submit" id="pubBtn">📤 Publicar ahora</button>
+    </div>
+  </form>`;}
+
+function profC(){
+  if(!CU)return`<div class="nb nbd">No has iniciado sesión.</div>`;
+  const n=CUD?.displayName||CU.displayName||'Usuario';
+  return`<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:20px;background:var(--sf);border-radius:14px;border:1.5px solid var(--ln)">
+    <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,var(--v),var(--vl));display:grid;place-items:center;color:#fff;font-family:'Syne',sans-serif;font-size:26px;font-weight:900">${n.charAt(0).toUpperCase()}</div>
+    <div><div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900">${esc(n)}</div><div style="font-size:13px;color:var(--mu)">${CU.email}</div><span class="cl" style="margin-top:6px;display:inline-flex;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700">${CUD?.level||'Nuevo'}</span></div>
+  </div>
+  <div class="fg">
+    <label class="fd fl">Nombre visible<input id="eN" value="${esc(n)}" placeholder="Tu nombre"></label>
+    <label class="fd">Teléfono<input id="eT" value="${esc(CUD?.phone||'')}" placeholder="+56 9..."></label>
+    <label class="fd">Ciudad<input id="eL" value="${esc(CUD?.location||'')}" placeholder="Tu ubicación"></label>
+  </div>
+  <div class="ma"><button class="btn bd2 bsm" id="btnOut">Cerrar sesión</button><button class="btn bv" id="btnSP">💾 Guardar</button></div>`;}
+
+function cartC(){
+  const items=prods.filter(p=>saved.includes(p.id));
+  if(!items.length)return`<div class="es"><span class="ei">🤍</span><p>No tienes publicaciones guardadas.</p></div>`;
+  return`<div class="pg" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${items.map(pCard).join('')}</div>`;}
+
+function agreeC(){
+  if(!CU)return`<div class="nb nbd">Inicia sesión para ver tus acuerdos.</div>`;
+  setTimeout(()=>loadML(),100);
+  return`<div class="ml" id="mlist"><div style="text-align:center;padding:30px"><div class="sp sp2" style="margin:0 auto"></div></div></div>`;}
+
+async function loadML(){
+  const list=document.getElementById('mlist');if(!list||!window._fb)return;
+  const{db,collection,query,where,getDocs}=window._fb;
+  try{
+    const[ao,ar]=await Promise.all([
+      getDocs(query(collection(db,'matches'),where('ownerId','==',CU.uid))),
+      getDocs(query(collection(db,'matches'),where('requesterId','==',CU.uid)))
     ]);
-    const matches = [...asOwner.docs, ...asRequester.docs].map(d=>({id:d.id,...d.data()}));
-    const list = document.getElementById('matchesList');
-    if (!list) return;
-    if (!matches.length) { list.innerHTML = `<div class="empty-state"><span class="es-icon">🤝</span><p>Aún no tienes acuerdos activos.</p><button class="btn btn-violet btn-sm" data-open="vitrina">Explorar publicaciones</button></div>`; return; }
-    list.innerHTML = matches.map(m => {
-      const isOwner = m.ownerId === currentUser.uid;
-      const other = isOwner ? m.requesterName : m.ownerName;
-      return `<div class="match-card" data-open-match="${m.id}" data-product-id="${m.productId}">
-        <div class="match-card-emoji">${m.productEmoji||'📦'}</div>
-        <div class="match-card-info">
-          <div class="match-card-title">${esc(m.productTitle||'Producto')}</div>
-          <div class="match-card-sub">${isOwner?'Solicitud de':'Chat con'}: ${esc(other||'Usuario')}</div>
-        </div>
-        <span class="match-card-badge active">Activo</span>
+    const seen=new Set();
+    const ms=[...ao.docs,...ar.docs].map(d=>({id:d.id,...d.data()})).filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true;});
+    if(!ms.length){list.innerHTML='<div class="es"><span class="ei">🤝</span><p>Aún no tienes acuerdos activos.</p><button class="btn bv bsm" data-open="vitrina">Explorar publicaciones</button></div>';return;}
+    list.innerHTML=ms.map(m=>{
+      const own=m.ownerId===CU.uid;const oth=own?m.requesterName:m.ownerName;
+      const th=m.productPhoto?`<img src="${esc(m.productPhoto)}" alt="">`:m.productEmoji||'📦';
+      return`<div class="mk" data-om="${m.id}">
+        <div class="mke">${th}</div>
+        <div class="mki"><div class="mkt">${esc(m.productTitle||'Producto')}</div><div class="mks">${own?'Solicitud de':'Chat con'}: <strong>${esc(oth||'Usuario')}</strong></div>${m.lastMessage?`<div style="font-size:11px;color:var(--mu);margin-top:2px">${esc(m.lastMessage.substring(0,50))}</div>`:''}</div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--mu)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m9 18 6-6-6-6"/></svg>
       </div>`;
     }).join('');
-    list.querySelectorAll('[data-open-match]').forEach(el => {
-      el.addEventListener('click', () => {
-        const m = matches.find(x => x.id === el.dataset.openMatch);
-        if (m) {
-          const p = allProducts.find(x => x.id === m.productId) || { id: m.productId, title: m.productTitle, emoji: m.productEmoji };
-          window._currentMatchProduct = p;
-          activeMatchId = m.id;
-          closeModal();
-          setTimeout(() => openChatModal(m.id, p), 100);
+    list.querySelectorAll('[data-om]').forEach(el=>{
+      el.addEventListener('click',()=>{
+        const m=ms.find(x=>x.id===el.dataset.om);
+        if(m){
+          const p=prods.find(x=>x.id===m.productId)||{id:m.productId,title:m.productTitle,emoji:m.productEmoji,owner:m.ownerId===CU.uid?m.requesterName:m.ownerName};
+          closeModal();setTimeout(()=>openChat(m.id,p),80);
         }
       });
     });
-  }, 100);
-  return html;
+  }catch(e){list.innerHTML='<div class="nb nbd">Error: '+esc(e.message)+'</div>';}
 }
 
-// ── MY POSTS CONTENT ──
-function myPostsContent() {
-  if (!currentUser) return `<div class="notice-box notice-danger">Inicia sesión para ver tus publicaciones.</div>`;
-  const mine = allProducts.filter(p => p.ownerId === currentUser.uid && p.status !== 'deleted');
-  if (!mine.length) return `<div class="empty-state"><span class="es-icon">📝</span><p>Aún no tienes publicaciones.</p><button class="btn btn-lime btn-sm" data-open="publish">Publicar ahora</button></div>`;
-  return `<div class="myposts-list">${mine.map(p => `
-    <div class="mypost-card">
-      <div class="mypost-emoji">${p.emoji||'📦'}</div>
-      <div class="mypost-info">
-        <div class="mypost-title">${esc(p.title)}</div>
-        <div class="mypost-sub">${formatPrice(p.price)} · ${p.category}</div>
-      </div>
-      <div class="mypost-actions">
-        <button class="btn btn-danger btn-sm" data-delete-post="${p.id}">🗑️</button>
-      </div>
-    </div>`).join('')}</div>`;
-}
+function myPostsC(){
+  if(!CU)return`<div class="nb nbd">Inicia sesión.</div>`;
+  const mine=prods.filter(p=>p.ownerId===CU.uid);
+  if(!mine.length)return`<div class="es"><span class="ei">📝</span><p>Aún no tienes publicaciones.</p><button class="btn bl bsm" data-open="publish">Publicar ahora</button></div>`;
+  return`<div class="mpl">${mine.map(p=>`<div class="mpk">
+    <div class="mpi">${p.photos&&p.photos[0]?`<img src="${esc(p.photos[0])}" alt="">`:p.emoji||'📦'}</div>
+    <div class="mpif"><div class="t">${esc(p.title)}</div><div class="s">${fmtP(p.price)} · ${p.category}</div></div>
+    <button class="btn bd2 bsm" data-dp="${p.id}">🗑️</button>
+  </div>`).join('')}</div>`;}
 
-// ── SHIPPING CONTENT ──
-function shippingContent() {
-  return `
-    <form id="shippingForm" class="form-grid">
-      <label class="field">Empresa de envío<input required name="company" placeholder="Chilexpress, Starken, Correos..."></label>
-      <label class="field">Tipo de entrega<select name="kind"><option>Sucursal</option><option>Domicilio</option><option>Presencial</option></select></label>
-      <label class="field">Fecha estimada<input required name="date" type="date"></label>
-      <label class="field">Código de seguimiento<input name="tracking" placeholder="TRK-123456 (opcional)"></label>
-      <label class="field full">Notas de entrega<textarea name="notes" placeholder="Dirección, instrucciones, contacto..."></textarea></label>
-      <label class="field full">Comprobante o evidencia<input name="proof" type="file" accept="image/*,.pdf"></label>
-      <div class="notice-box full">Sube tracking y comprobante para dejar evidencia del acuerdo.</div>
-      <div class="modal-actions full"><button class="btn btn-lime" type="submit">💾 Guardar envío</button></div>
-    </form>`;
-}
+function ratingC(){
+  if(!CU)return`<div class="nb nbd">Inicia sesión para calificar.</div>`;
+  return`<form id="ratF" class="fg"><label class="fd">Puntaje<select name="stars"><option>5 ⭐⭐⭐⭐⭐</option><option>4 ⭐⭐⭐⭐</option><option>3 ⭐⭐⭐</option><option>2 ⭐⭐</option><option>1 ⭐</option></select></label><label class="fd">Recibido<select name="received"><option>Sí, con evidencia</option><option>Sí, presencial</option></select></label><label class="fd fl">Comentario respetuoso<textarea required name="comment" placeholder="Cuenta cómo fue el acuerdo."></textarea></label><div class="nb fl">El sistema bloquea insultos y lenguaje ofensivo.</div><div class="ma fl"><button class="btn bl" type="submit">⭐ Guardar calificación</button></div></form>`;}
 
-// ── RATING CONTENT ──
-function ratingContent() {
-  if (!currentUser) return `<div class="notice-box notice-danger">Inicia sesión para calificar.</div>`;
-  return `
-    <form id="ratingForm" class="form-grid">
-      <label class="field">Puntaje<select name="stars"><option>5 ⭐⭐⭐⭐⭐</option><option>4 ⭐⭐⭐⭐</option><option>3 ⭐⭐⭐</option><option>2 ⭐⭐</option><option>1 ⭐</option></select></label>
-      <label class="field">Acuerdo recibido<select name="received"><option>Sí, con evidencia</option><option>Sí, presencial</option><option>Pendiente</option></select></label>
-      <label class="field full">Comentario respetuoso<textarea required name="comment" placeholder="Cuenta cómo fue el acuerdo sin lenguaje ofensivo."></textarea></label>
-      <div class="notice-box full">El sistema bloquea insultos y lenguaje ofensivo.</div>
-      <div class="modal-actions full"><button class="btn btn-lime" type="submit">⭐ Guardar calificación</button></div>
-    </form>`;
-}
+function adminC(){return`<div id="adLogin"><div class="nb" style="margin-bottom:16px">🔒 Área restringida para administradores.</div><div class="fg"><label class="fd fl">Contraseña admin<input type="password" id="adPass" placeholder="Contraseña"></label></div><div class="ma"><button class="btn bv" id="btnAd">Acceder</button></div></div><div id="adPanel" style="display:none"></div>`;}
 
-// ── REPORT CONTENT ──
-function reportContent() {
-  return `
-    <form id="reportForm" class="form-grid">
-      <label class="field">Motivo<select name="reason"><option>Usuario sospechoso</option><option>Producto engañoso</option><option>Lenguaje ofensivo</option><option>Problema de entrega</option><option>Otro</option></select></label>
-      <label class="field">Usuario o publicación<input required name="target" placeholder="Nombre o título del producto"></label>
-      <label class="field full">Descripción<textarea required name="description" placeholder="Describe lo ocurrido con evidencia si tienes."></textarea></label>
-      <label class="field full">Evidencia (opcional)<input name="proof" type="file" accept="image/*"></label>
-      <div class="notice-box full">El reporte puede dejar al usuario En revisión. Truekeamas protege a la comunidad.</div>
-      <div class="modal-actions full"><button class="btn btn-danger" type="submit">🚨 Enviar reporte</button></div>
-    </form>`;
-}
-
-// ── ADMIN CONTENT ──
-function adminContent() {
-  return `
-    <div id="adminLogin">
-      <div class="notice-box" style="margin-bottom:16px">🔒 Área restringida. Solo para administradores de Truekeamas.</div>
-      <div class="form-grid">
-        <label class="field full">Contraseña de administrador<input type="password" id="adminPassInput" placeholder="Contraseña admin"></label>
-      </div>
-      <div class="modal-actions"><button class="btn btn-violet" id="btnAdminLogin">Acceder al panel</button></div>
-    </div>
-    <div id="adminPanel" style="display:none"></div>`;
-}
-
-async function loadAdminPanel() {
-  if (!window._fb) { document.getElementById('adminPanel').innerHTML = `<div class="notice-box notice-danger">Firebase no está configurado.</div>`; return; }
-  const { db, collection, getDocs, doc, updateDoc, deleteDoc } = window._fb;
-  document.getElementById('adminPanel').innerHTML = `<div style="text-align:center;padding:30px"><div class="spinner spinner-big" style="margin:0 auto"></div></div>`;
-  const [usersSnap, postsSnap, reportsSnap, matchesSnap] = await Promise.all([
-    getDocs(collection(db,'users')),
-    getDocs(collection(db,'products')),
-    getDocs(collection(db,'reports')),
-    getDocs(collection(db,'matches'))
-  ]);
-  const users = usersSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const posts = postsSnap.docs.map(d=>({id:d.id,...d.data()}));
-  const reports = reportsSnap.docs.map(d=>({id:d.id,...d.data()}));
-
-  let tab = 'users';
-  const render = () => {
-    document.getElementById('adminPanel').innerHTML = `
-      <div class="admin-grid">
-        <div class="admin-stat"><strong>${users.length}</strong><span>Usuarios registrados</span></div>
-        <div class="admin-stat"><strong>${posts.filter(p=>p.status!=='deleted').length}</strong><span>Publicaciones activas</span></div>
-        <div class="admin-stat"><strong>${matchesSnap.size}</strong><span>Matches creados</span></div>
-        <div class="admin-stat"><strong>${reports.length}</strong><span>Reportes pendientes</span></div>
-      </div>
-      <div class="admin-tabs">
-        <button class="admin-tab ${tab==='users'?'active':''}" onclick="window._adminTab('users')">👥 Usuarios (${users.length})</button>
-        <button class="admin-tab ${tab==='posts'?'active':''}" onclick="window._adminTab('posts')">📦 Publicaciones</button>
-        <button class="admin-tab ${tab==='reports'?'active':''}" onclick="window._adminTab('reports')">🚨 Reportes (${reports.length})</button>
-      </div>
-      ${tab==='users' ? `
-        <table class="admin-table">
-          <thead><tr><th>Usuario</th><th>Email</th><th>Nivel</th><th>Acciones</th></tr></thead>
-          <tbody>${users.map(u=>`<tr>
-            <td><strong>${esc(u.displayName||'Sin nombre')}</strong></td>
-            <td>${esc(u.email||'')}</td>
-            <td><span class="chip ${u.level==='Bloqueado'?'chip-amber':u.level==='Verificado'?'chip-lime':'chip-violet'}">${u.level||'Nuevo'}</span></td>
-            <td style="display:flex;gap:6px;flex-wrap:wrap">
-              ${['Nuevo','Verificado','Confiable','En revisión','Bloqueado'].map(l=>`<button class="btn btn-outline btn-sm" onclick="window._setUserLevel('${u.id}','${l}')">${l}</button>`).join('')}
-            </td>
-          </tr>`).join('')}</tbody>
-        </table>` :
-      tab==='posts' ? `
-        <table class="admin-table">
-          <thead><tr><th>Producto</th><th>Dueño</th><th>Categoría</th><th>Acciones</th></tr></thead>
-          <tbody>${posts.filter(p=>p.status!=='deleted').map(p=>`<tr>
-            <td><strong>${esc(p.title)}</strong></td>
-            <td>${esc(p.owner||'')}</td>
-            <td>${esc(p.category||'')}</td>
-            <td><button class="btn btn-danger btn-sm" onclick="window._deletePost('${p.id}')">🗑️ Eliminar</button></td>
-          </tr>`).join('')}</tbody>
-        </table>` :
-      `<table class="admin-table">
-          <thead><tr><th>Motivo</th><th>Target</th><th>Descripción</th></tr></thead>
-          <tbody>${reports.length?reports.map(r=>`<tr>
-            <td>${esc(r.reason||'')}</td>
-            <td>${esc(r.target||'')}</td>
-            <td>${esc(r.description||'').substring(0,80)}...</td>
-          </tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--muted)">Sin reportes</td></tr>'}</tbody>
-        </table>`}`;
+async function loadAdminPanel(){
+  if(!window._fb)return;
+  const{db,collection,getDocs,doc,updateDoc}=window._fb;
+  document.getElementById('adPanel').innerHTML='<div style="text-align:center;padding:30px"><div class="sp sp2" style="margin:0 auto"></div></div>';
+  const[uS,pS,rS,mS]=await Promise.all([getDocs(collection(db,'users')),getDocs(collection(db,'products')),getDocs(collection(db,'reports')),getDocs(collection(db,'matches'))]);
+  const us=uS.docs.map(d=>({id:d.id,...d.data()}));
+  const ps=pS.docs.map(d=>({id:d.id,...d.data()})).filter(p=>p.status!=='deleted');
+  const rs=rS.docs.map(d=>({id:d.id,...d.data()}));
+  let tab='u';
+  const render=()=>{
+    document.getElementById('adPanel').innerHTML=`
+      <div class="ag"><div class="as"><strong>${us.length}</strong><span>Usuarios</span></div><div class="as"><strong>${ps.length}</strong><span>Publicaciones</span></div><div class="as"><strong>${mS.size}</strong><span>Matches</span></div><div class="as"><strong>${rs.length}</strong><span>Reportes</span></div></div>
+      <div class="atabs"><button class="atab${tab==='u'?' active':''}" onclick="window._aT('u')">👥 Usuarios</button><button class="atab${tab==='p'?' active':''}" onclick="window._aT('p')">📦 Publicaciones</button><button class="atab${tab==='r'?' active':''}" onclick="window._aT('r')">🚨 Reportes</button></div>
+      ${tab==='u'?`<div style="overflow-x:auto"><table class="at2"><thead><tr><th>Nombre</th><th>Email</th><th>Nivel</th><th>Cambiar nivel</th></tr></thead><tbody>${us.map(u=>`<tr><td><strong>${esc(u.displayName||'Sin nombre')}</strong></td><td style="font-size:12px">${esc(u.email||'')}</td><td><span class="${u.level==='Bloqueado'?'ca':u.level==='Verificado'||u.level==='Confiable'?'cl':'cv'}" style="display:inline-flex;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700">${u.level||'Nuevo'}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap">${['Nuevo','Verificado','Confiable','En revisión','Bloqueado'].map(l=>`<button class="btn bo bsm" style="padding:4px 8px;font-size:11px" onclick="window._sL('${u.id}','${l}')">${l}</button>`).join('')}</td></tr>`).join('')}</tbody></table></div>`:
+      tab==='p'?`<div style="overflow-x:auto"><table class="at2"><thead><tr><th>Producto</th><th>Dueño</th><th>Categoría</th><th></th></tr></thead><tbody>${ps.map(p=>`<tr><td><strong>${esc(p.title)}</strong></td><td>${esc(p.owner||'')}</td><td>${esc(p.category||'')}</td><td><button class="btn bd2 bsm" onclick="window._dP('${p.id}')">🗑️</button></td></tr>`).join('')}</tbody></table></div>`:
+      `<div style="overflow-x:auto"><table class="at2"><thead><tr><th>Motivo</th><th>Target</th><th>Descripción</th></tr></thead><tbody>${rs.length?rs.map(r=>`<tr><td>${esc(r.reason||'')}</td><td>${esc(r.target||'')}</td><td>${esc((r.description||'').substring(0,60))}...</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--mu)">Sin reportes</td></tr>'}</tbody></table></div>`}`;
   };
-  window._adminTab = t => { tab = t; render(); };
-  window._setUserLevel = async (uid, level) => {
-    await updateDoc(doc(db,'users',uid), { level });
-    const u = users.find(x=>x.id===uid);
-    if(u) u.level = level;
-    render(); toast('Nivel actualizado: '+level);
-  };
-  window._deletePost = async (pid) => {
-    if(!confirm('¿Eliminar esta publicación?')) return;
-    await updateDoc(doc(db,'products',pid), { status: 'deleted' });
-    const p = posts.find(x=>x.id===pid);
-    if(p) p.status='deleted';
-    render(); toast('Publicación eliminada.');
-    await loadProducts();
-  };
+  window._aT=t=>{tab=t;render();};
+  window._sL=async(uid,lv)=>{await updateDoc(doc(db,'users',uid),{level:lv});const u=us.find(x=>x.id===uid);if(u)u.level=lv;render();toast('Nivel: '+lv);};
+  window._dP=async pid=>{if(!confirm('¿Eliminar?'))return;await updateDoc(doc(db,'products',pid),{status:'deleted'});const i=ps.findIndex(x=>x.id===pid);if(i>=0)ps.splice(i,1);render();toast('Eliminado.');prods=prods.filter(p=>p.id!==pid);renderProds();};
   render();
 }
 
-// ── HELP CONTENT ──
-function helpContent() {
-  return `
-    <div style="display:grid;gap:14px">
-      <div class="notice-box notice-lime"><strong>🔧 Configurar Firebase</strong><br>
-        1. Ve a <a href="https://console.firebase.google.com" target="_blank" style="color:var(--violet)">console.firebase.google.com</a><br>
-        2. Crea un proyecto nuevo (gratis)<br>
-        3. Agrega una app web<br>
-        4. Copia tu configuración y reemplaza los valores "TU_API_KEY" etc. en el código<br>
-        5. En Firestore: crea las colecciones <code>users</code>, <code>products</code>, <code>matches</code>, <code>reports</code><br>
-        6. En Authentication: activa "Correo / Contraseña"
-      </div>
-      <div class="notice-box"><strong>📋 Reglas de Firestore recomendadas</strong><br>
-        Permite leer publicaciones a todos, pero escribir solo a usuarios autenticados. En Firebase Console → Firestore → Rules.
-      </div>
-      <div class="notice-box"><strong>🔒 Cambiar contraseña admin</strong><br>
-        Busca en el código la línea <code>const ADMIN_PASSWORD</code> y cambia el valor.
-      </div>
-    </div>`;
-}
+function helpC(){return`<div style="display:grid;gap:14px">
+  <div class="nb nbl"><strong>🔧 Activar Firebase Storage (fotos)</strong><br>Firebase Console → Storage → Get started → Modo de prueba. Las fotos se guardan automáticamente en tu proyecto.</div>
+  <div class="nb nbl"><strong>💬 Reglas de Firestore para el chat</strong><br>Firestore → Rules → Permitir lectura/escritura en matches y la subcolección messages a usuarios autenticados.</div>
+  <div class="nb"><strong>🔒 Cambiar contraseña admin</strong><br>Busca en el código <code>const ADMIN_PASS</code> y cámbiala antes de publicar.</div>
+</div>`;}
 
-// ── BIND MODAL EVENTS ──
-function bindModalEvents(type) {
-  if (!window._fb) return;
-  const { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile,
-          collection, addDoc, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } = window._fb;
+function bindMEv(type){
+  if(!window._fb)return;
+  const{auth,db,st,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile,collection,addDoc,doc,setDoc,updateDoc,serverTimestamp,ref,uploadBytes,getDownloadURL}=window._fb;
 
-  // AUTH
-  document.getElementById('btnLogin')?.addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pass = document.getElementById('loginPassword').value;
-    if (!email || !pass) return toast('Completa todos los campos.');
-    const btn = document.getElementById('btnLogin');
-    btn.textContent = 'Entrando...'; btn.disabled = true;
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      closeModal(); toast('¡Bienvenido de vuelta!');
-    } catch(e) {
-      btn.textContent = 'Iniciar sesión'; btn.disabled = false;
-      toast(e.code === 'auth/wrong-password' ? 'Contraseña incorrecta.' : e.code === 'auth/user-not-found' ? 'Usuario no encontrado.' : 'Error al iniciar sesión.');
-    }
+  document.getElementById('btnL')?.addEventListener('click',async()=>{
+    const e=document.getElementById('lE').value.trim(),p=document.getElementById('lP').value;
+    if(!e||!p)return toast('Completa todos los campos.');
+    const btn=document.getElementById('btnL');btn.textContent='Entrando...';btn.disabled=true;
+    try{await signInWithEmailAndPassword(auth,e,p);closeModal();toast('¡Bienvenido de vuelta! 👋');}
+    catch(er){btn.textContent='Iniciar sesión';btn.disabled=false;toast(er.code==='auth/wrong-password'?'Contraseña incorrecta.':er.code==='auth/user-not-found'?'Usuario no encontrado.':'Error: '+er.message);}
   });
 
-  document.getElementById('btnRegister')?.addEventListener('click', async () => {
-    const name = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const pass = document.getElementById('regPassword').value;
-    const phone = document.getElementById('regPhone').value.trim();
-    const location = document.getElementById('regLocation').value.trim();
-    if (!name || !email || !pass) return toast('Completa nombre, correo y contraseña.');
-    if (pass.length < 6) return toast('La contraseña debe tener al menos 6 caracteres.');
-    const btn = document.getElementById('btnRegister');
-    btn.textContent = 'Creando cuenta...'; btn.disabled = true;
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(cred.user, { displayName: name });
-      await setDoc(doc(db,'users',cred.user.uid), {
-        displayName: name, email, phone, location, level: 'Nuevo',
-        createdAt: serverTimestamp()
-      });
-      await loadUserData(cred.user.uid);
-      updateUserUI();
-      closeModal(); toast('¡Cuenta creada! Bienvenido/a a Truekeamas.');
-    } catch(e) {
-      btn.textContent = 'Crear cuenta'; btn.disabled = false;
-      toast(e.code === 'auth/email-already-in-use' ? 'Este correo ya está registrado.' : 'Error al crear cuenta.');
-    }
+  document.getElementById('btnR')?.addEventListener('click',async()=>{
+    const n=document.getElementById('rN').value.trim(),e=document.getElementById('rE').value.trim(),p=document.getElementById('rP').value;
+    const t2=document.getElementById('rT').value.trim(),l=document.getElementById('rL').value.trim();
+    if(!n||!e||!p)return toast('Nombre, correo y contraseña son obligatorios.');
+    if(p.length<6)return toast('La contraseña debe tener al menos 6 caracteres.');
+    const btn=document.getElementById('btnR');btn.textContent='Creando...';btn.disabled=true;
+    try{
+      const cr=await createUserWithEmailAndPassword(auth,e,p);
+      await updateProfile(cr.user,{displayName:n});
+      await setDoc(doc(db,'users',cr.user.uid),{displayName:n,email:e,phone:t2,location:l,level:'Nuevo',createdAt:serverTimestamp()});
+      CUD={displayName:n,email:e,phone:t2,location:l,level:'Nuevo'};updUI();closeModal();toast('¡Cuenta creada! Bienvenido/a 🎉');
+    }catch(er){btn.textContent='Crear cuenta';btn.disabled=false;toast(er.code==='auth/email-already-in-use'?'Correo ya registrado.':'Error: '+er.message);}
   });
 
-  // PROFILE
-  document.getElementById('btnLogout')?.addEventListener('click', async () => {
-    await signOut(auth); currentUser = null; currentUserData = null;
-    updateUserUI(); closeModal(); toast('Sesión cerrada.');
-  });
-  document.getElementById('btnSaveProfile')?.addEventListener('click', async () => {
-    if (!currentUser) return;
-    const name = document.getElementById('editName').value.trim();
-    const phone = document.getElementById('editPhone').value.trim();
-    const location = document.getElementById('editLocation').value.trim();
-    try {
-      await updateProfile(currentUser, { displayName: name });
-      await updateDoc(doc(db,'users',currentUser.uid), { displayName: name, phone, location });
-      currentUserData = { ...currentUserData, displayName: name, phone, location };
-      updateUserUI(); toast('Perfil actualizado.');
-    } catch(e) { toast('Error al guardar.'); }
+  document.getElementById('btnOut')?.addEventListener('click',async()=>{await signOut(auth);CU=null;CUD=null;updUI();closeModal();toast('Sesión cerrada.');});
+  document.getElementById('btnSP')?.addEventListener('click',async()=>{
+    if(!CU)return;
+    const n=document.getElementById('eN').value.trim(),t2=document.getElementById('eT').value.trim(),l=document.getElementById('eL').value.trim();
+    try{await updateProfile(CU,{displayName:n});await updateDoc(doc(db,'users',CU.uid),{displayName:n,phone:t2,location:l});CUD={...CUD,displayName:n,phone:t2,location:l};updUI();toast('Perfil actualizado ✅');}
+    catch(er){toast('Error: '+er.message);}
   });
 
-  // PUBLISH
-  document.getElementById('publishForm')?.addEventListener('submit', async e => {
+  // PUBLISH with 2 photos
+  const pFiles=[];
+  document.getElementById('pInput')?.addEventListener('change',e=>{
+    const files=Array.from(e.target.files).slice(0,2-pFiles.length);
+    files.forEach(f=>{if(f.size>5*1024*1024){toast(f.name+' supera 5MB.');return;}pFiles.push(f);});
+    renderPP(pFiles);
+  });
+  function renderPP(files){
+    const c=document.getElementById('pPrev');if(!c)return;
+    c.innerHTML=files.map((f,i)=>{const u=URL.createObjectURL(f);return`<div class="ppi"><img src="${u}" alt=""><button type="button" onclick="window._rmP(${i})">×</button></div>`;}).join('');
+  }
+  window._rmP=i=>{pFiles.splice(i,1);renderPP(pFiles);};
+
+  document.getElementById('pubF')?.addEventListener('submit',async e=>{
     e.preventDefault();
-    if (!currentUser) return toast('Debes iniciar sesión.');
-    const data = new FormData(e.target);
-    const title = data.get('title')?.trim();
-    const wants = data.get('wants')?.trim();
-    if (!title || !wants) return toast('Completa título y qué buscas.');
-    const cat = data.get('category');
-    const emoji = (categories.find(c=>c.name===cat)||{emoji:'📦'}).emoji;
-    const btn = document.getElementById('publishBtn');
-    btn.textContent = 'Publicando...'; btn.disabled = true;
-    try {
-      const ref = await addDoc(collection(db,'products'), {
-        title, category: cat, emoji,
-        price: Number(data.get('price')||0),
-        location: data.get('location')||'',
-        wants, description: data.get('description')||'',
-        barter: true, buy: !!data.get('buy'), mixed: !!data.get('mixed'),
-        ownerId: currentUser.uid,
-        owner: currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
-        level: currentUserData?.level || 'Nuevo',
-        status: 'active', createdAt: serverTimestamp()
+    if(!CU)return toast('Debes iniciar sesión.');
+    const d=new FormData(e.target);
+    const ttl=d.get('title')?.trim(),wnt=d.get('wants')?.trim();
+    if(!ttl||!wnt)return toast('Completa título y qué buscas.');
+    const btn=document.getElementById('pubBtn');btn.textContent='Publicando...';btn.disabled=true;
+    const bar=document.getElementById('upBar');
+    try{
+      const urls=[];
+      for(let i=0;i<pFiles.length;i++){
+        if(bar)bar.style.width=Math.round((i/(pFiles.length||1))*80)+'%';
+        const r=ref(st,'products/'+CU.uid+'/'+Date.now()+'_'+pFiles[i].name);
+        const s=await uploadBytes(r,pFiles[i]);
+        urls.push(await getDownloadURL(s.ref));
+      }
+      if(bar)bar.style.width='90%';
+      const cat=d.get('category');
+      const em=(CATS.find(c=>c.n===cat)||{e:'📦'}).e;
+      const myN=CUD?.displayName||CU.displayName||CU.email?.split('@')[0]||'Usuario';
+      await addDoc(collection(db,'products'),{
+        title:ttl,category:cat,emoji:em,photos:urls,
+        price:Number(d.get('price')||0),location:d.get('location')||'',
+        wants:wnt,description:d.get('description')||'',
+        barter:true,buy:!!d.get('buy'),mixed:!!d.get('mixed'),
+        ownerId:CU.uid,owner:myN,level:CUD?.level||'Nuevo',
+        status:'active',createdAt:serverTimestamp()
       });
-      closeModal();
-      await loadProducts(); loadStats();
-      toast('¡Publicación creada! Ya aparece en la vitrina.');
-      smoothScroll('vitrina');
-    } catch(e) { btn.textContent = 'Publicar ahora'; btn.disabled = false; toast('Error al publicar.'); console.error(e); }
+      if(bar){bar.style.width='100%';setTimeout(()=>bar.style.width='0',800);}
+      closeModal();await loadProds();loadStats();
+      toast('¡Publicación creada'+(urls.length?' con '+urls.length+' foto(s)':'')+'! 🎉');
+      sScroll('vitrina');
+    }catch(er){btn.textContent='Publicar ahora';btn.disabled=false;if(bar)bar.style.width='0';toast('Error: '+er.message);console.error(er);}
   });
 
-  // DELETE OWN POST
-  document.querySelectorAll('[data-delete-post]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('¿Eliminar esta publicación?')) return;
-      try {
-        await updateDoc(doc(db,'products',btn.dataset.deletePost), { status: 'deleted' });
-        allProducts = allProducts.filter(p => p.id !== btn.dataset.deletePost);
-        closeModal(); renderProducts(); loadStats(); toast('Publicación eliminada.');
-      } catch(e) { toast('Error al eliminar.'); }
+  document.querySelectorAll('[data-dp]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      if(!confirm('¿Eliminar esta publicación?'))return;
+      try{await updateDoc(doc(db,'products',btn.dataset.dp),{status:'deleted'});prods=prods.filter(p=>p.id!==btn.dataset.dp);closeModal();renderProds();loadStats();toast('Publicación eliminada.');}
+      catch(er){toast('Error: '+er.message);}
     });
   });
 
-  // CHAT
-  document.getElementById('sendChatBtn')?.addEventListener('click', () => sendChatMessage(activeMatchId));
-  document.getElementById('liveChatInput')?.addEventListener('keydown', e => { if(e.key==='Enter') sendChatMessage(activeMatchId); });
-
-  // SHIPPING
-  document.getElementById('shippingForm')?.addEventListener('submit', e => {
-    e.preventDefault(); toast('Información de envío guardada en el acuerdo.'); openModal('rating');
+  document.getElementById('ratF')?.addEventListener('submit',async e=>{
+    e.preventDefault();const d=new FormData(e.target);
+    if(badW(String(d.get('comment')||'')))return toast('Comentario bloqueado.');
+    try{await addDoc(collection(db,'ratings'),{stars:d.get('stars'),comment:d.get('comment'),userId:CU?.uid,matchId:chatMID,createdAt:serverTimestamp()});}catch(er){}
+    closeModal();toast('Calificación guardada ⭐');
   });
 
-  // RATING
-  document.getElementById('ratingForm')?.addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = new FormData(e.target);
-    const comment = String(data.get('comment')||'');
-    if (hasBadWords(comment)) return toast('Comentario bloqueado por lenguaje ofensivo.');
-    if (window._fb && activeMatchId) {
-      try {
-        await addDoc(collection(db,'ratings'), {
-          matchId: activeMatchId, stars: data.get('stars'), comment,
-          userId: currentUser?.uid, createdAt: serverTimestamp()
-        });
-      } catch(e) {}
-    }
-    closeModal(); toast('¡Calificación guardada! Gracias por cuidar la comunidad.');
+  document.getElementById('rptF')?.addEventListener('submit',async e=>{
+    e.preventDefault();const d=new FormData(e.target);
+    try{await addDoc(collection(db,'reports'),{reason:d.get('reason'),target:d.get('target'),description:d.get('description'),reporterId:CU?.uid,createdAt:serverTimestamp()});}catch(er){}
+    closeModal();toast('Reporte enviado. Lo revisaremos pronto.');
   });
 
-  // REPORT
-  document.getElementById('reportForm')?.addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = new FormData(e.target);
-    if (window._fb) {
-      try {
-        await addDoc(collection(db,'reports'), {
-          reason: data.get('reason'), target: data.get('target'),
-          description: data.get('description'), reporterId: currentUser?.uid,
-          createdAt: serverTimestamp()
-        });
-      } catch(e) {}
-    }
-    closeModal(); toast('Reporte enviado. El equipo lo revisará pronto.');
-  });
-
-  // ADMIN
-  document.getElementById('btnAdminLogin')?.addEventListener('click', async () => {
-    const pass = document.getElementById('adminPassInput').value;
-    if (pass !== ADMIN_PASSWORD) { toast('Contraseña incorrecta.'); return; }
-    document.getElementById('adminLogin').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'block';
+  document.getElementById('btnAd')?.addEventListener('click',async()=>{
+    if(document.getElementById('adPass').value!==ADMIN_PASS){toast('Contraseña incorrecta.');return;}
+    document.getElementById('adLogin').style.display='none';
+    document.getElementById('adPanel').style.display='block';
     await loadAdminPanel();
   });
 }
 
-// ── TRUQUI ──
-function toggleTruqui() {
-  document.getElementById('truquiPanel').classList.toggle('open');
-}
-function handleQuickQ(q) {
-  addTcMsg(q, 'user');
-  const ans = getTruquiAnswer(q);
-  setTimeout(() => addTcMsg(ans, 'bot'), 300);
-  document.getElementById('truquiPanel').classList.add('open');
-}
-function sendTruqui() {
-  const inp = document.getElementById('truquiInput');
-  const text = inp.value.trim();
-  if (!text) return;
-  inp.value = '';
-  addTcMsg(text, 'user');
-  const ans = getTruquiAnswer(text);
-  setTimeout(() => addTcMsg(ans, 'bot'), 350);
-}
-function addTcMsg(text, role) {
-  const chat = document.getElementById('truquiChat');
-  if (!chat) return;
-  const div = document.createElement('div');
-  div.className = `tc-msg ${role}`;
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
-function getTruquiAnswer(text) {
-  if (hasBadWords(text)) return 'Cuida el lenguaje, por favor. En Truekeamas tratamos a todos con respeto.';
-  const t = normalizeStr(text);
-  if (/truequ|intercamb|barter|cambi/.test(t)) return truquiAnswers.trueque;
-  if (/public|subir|vender|crear/.test(t)) return truquiAnswers.publicar;
-  if (/match|acuerdo|negociar|propuesta/.test(t)) return truquiAnswers.match;
-  if (/segurid|seguro|ilegal|fraude|estaf|sospech/.test(t)) return truquiAnswers.seguridad;
-  if (/envio|enviar|tracking|sucursal|transporte|correo|chilexpress/.test(t)) return truquiAnswers.envio;
-  if (/calific|estrella|reputac|reseñ/.test(t)) return truquiAnswers.calificar;
-  if (/nivel|verificad|confiable|revision|bloqueado/.test(t)) return truquiAnswers.niveles;
-  return truquiAnswers.fallback;
+function updUI(){
+  const n=CU?(CUD?.displayName||CU.displayName||CU.email?.split('@')[0]||'Usuario'):'Entrar';
+  const ini=n.charAt(0).toUpperCase();
+  document.getElementById('topName').textContent=n;
+  document.getElementById('topAv').textContent=ini;
+  const su=document.getElementById('sideUI');
+  if(CU){su.style.display='block';document.getElementById('sideAv').textContent=ini;document.getElementById('sideName').textContent=n;document.getElementById('sideLvl').textContent=CUD?.level||'Nuevo';}
+  else su.style.display='none';
+  document.getElementById('cartC').textContent=saved.length;
 }
 
-// ── UTILS ──
-function hasBadWords(text) {
-  return /(idiota|imbecil|estupido|mierda|puta|weon|culiao|maricon|basura|conchetumare|ctm)/i.test(normalizeStr(text));
+function handleQ(q){addTC(q,'user');setTimeout(()=>addTC(getTQA(q),'bot'),300);document.getElementById('truquiPanel').classList.add('open');}
+function sendTQ(){const inp=document.getElementById('tInput');const t=inp.value.trim();if(!t)return;inp.value='';addTC(t,'user');setTimeout(()=>addTC(getTQA(t),'bot'),350);}
+function addTC(text,role){const c=document.getElementById('tchat');if(!c)return;const d=document.createElement('div');d.className='tcm '+role;d.textContent=text;c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function getTQA(text){
+  if(badW(text))return'Cuida el lenguaje, por favor. Tratémonos con respeto.';
+  const t=norm(text);
+  if(/truequ|intercamb|cambi/.test(t))return TQA.trueque;
+  if(/public|subir|foto|imagen/.test(t))return TQA.publicar;
+  if(/match|acuerdo|propuesta|chat/.test(t))return TQA.match;
+  if(/segurid|fraude|estaf|sospech/.test(t))return TQA.seguridad;
+  return TQA.fallback;
 }
-function normalizeStr(t) { return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
-function esc(str) { return String(str||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
-let toastTimer;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('visible');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('visible'), 3200);
-}
+function badW(t){return/(idiota|imbecil|estupido|mierda|puta|weon|culiao|maricon|basura|conchetumare|ctm)/i.test(norm(t));}
+function norm(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+let toastT;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('v');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('v'),3500);}
 </script>
 </body>
 </html>
