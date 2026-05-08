@@ -6,14 +6,24 @@
 <title>Truekeamas | Cambia. Ahorra. Conecta.</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script type="module">
-import{initializeApp}from"https://www.gstatic.com/firehbasejs/10.12.0/firebase-app.js";
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,updateProfile}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import{getFirestore,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import{getStorage,ref,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 const cfg={apiKey:"AIzaSyDH4TQbvRym1fkIIFwPpssU5qBENCM-GSk",authDomain:"truekeamas.firebaseapp.com",projectId:"truekeamas",storageBucket:"truekeamas.firebasestorage.app",messagingSenderId:"873643507138",appId:"1:873643507138:web:7eacc2a7972639b196aa5b"};
 const app=initializeApp(cfg);
-window._fb={auth:getAuth(app),db:getFirestore(app),st:getStorage(app),createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,updateProfile,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp,ref,uploadBytes,getDownloadURL};
+window._fb={auth:getAuth(app),db:getFirestore(app),createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,updateProfile,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp};
 window.dispatchEvent(new Event('fb-ready'));
+</script>
+<script>
+window.uploadToCloudinary=async function(file){
+  const fd=new FormData();
+  fd.append('file',file);
+  fd.append('upload_preset','truekeamas');
+  const r=await fetch('https://api.cloudinary.com/v1_1/dnkvgg0zi/image/upload',{method:'POST',body:fd});
+  const d=await r.json();
+  if(d.secure_url)return d.secure_url;
+  throw new Error(d.error?.message||'Upload failed');
+};
 </script>
 <style>
 :root{--v:#4B1FA7;--vl:#7B4FD9;--lm:#AAEB2E;--ld:#8DC425;--ink:#0F0C1E;--is:#2A2540;--mu:#6E6889;--sf:#F7F5FF;--cd:#fff;--ln:#E8E2F6;--dg:#E03358;--am:#F5B932;--sc:0 12px 40px rgba(75,31,167,.10);--sd:0 24px 56px rgba(75,31,167,.18)}
@@ -627,9 +637,7 @@ async function sendMsg(mid){
   try{
     let imgUrl=null;
     if(pendImg){
-      const r=ref(st,'chats/'+mid+'/'+Date.now()+'_'+pendImg.name);
-      const s=await uploadBytes(r,pendImg);
-      imgUrl=await getDownloadURL(s.ref);
+      imgUrl=await window.uploadToCloudinary(pendImg);
       pendImg=null;
       const pw=document.getElementById('cipw');if(pw)pw.innerHTML='';
     }
@@ -830,7 +838,7 @@ function helpC(){return`<div style="display:grid;gap:14px">
 
 function bindMEv(type){
   if(!window._fb)return;
-  const{auth,db,st,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile,collection,addDoc,doc,setDoc,updateDoc,serverTimestamp,ref,uploadBytes,getDownloadURL}=window._fb;
+  const{auth,db,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile,collection,addDoc,doc,setDoc,updateDoc,serverTimestamp,ref,uploadBytes,getDownloadURL}=window._fb;
 
   document.getElementById('btnL')?.addEventListener('click',async()=>{
     const e=document.getElementById('lE').value.trim(),p=document.getElementById('lP').value;
@@ -887,9 +895,7 @@ function bindMEv(type){
       const urls=[];
       for(let i=0;i<pFiles.length;i++){
         if(bar)bar.style.width=Math.round((i/(pFiles.length||1))*80)+'%';
-        const r=ref(st,'products/'+CU.uid+'/'+Date.now()+'_'+pFiles[i].name);
-        const s=await uploadBytes(r,pFiles[i]);
-        urls.push(await getDownloadURL(s.ref));
+        urls.push(await window.uploadToCloudinary(pFiles[i]));
       }
       if(bar)bar.style.width='90%';
       const cat=d.get('category');
