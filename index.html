@@ -1,2551 +1,1570 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
-  <meta charset="UTF-8" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Truekeamas | Cambia. Ahorra. Conecta.</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <!-- Firebase SDK — Proyecto: truekeamas -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc,
+             query, where, orderBy, onSnapshot, serverTimestamp, limit }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ─── CONFIGURACIÓN FIREBASE TRUEKEAMAS ───
+    const firebaseConfig = {
+      apiKey: "AIzaSyDH4TQbvRym1fkIIFwPpssU5qBENCM-GSk",
+      authDomain: "truekeamas.firebaseapp.com",
+      projectId: "truekeamas",
+      storageBucket: "truekeamas.firebasestorage.app",
+      messagingSenderId: "873643507138",
+      appId: "1:873643507138:web:7eacc2a7972639b196aa5b",
+      measurementId: "G-6CS5K1RZ6M"
+    };
+    // ─────────────────────────────────────────
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    window._fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+      onAuthStateChanged, signOut, updateProfile, collection, addDoc, getDocs, doc, getDoc,
+      setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit };
+    window.dispatchEvent(new Event('fb-ready'));
+  </script>
+
   <style>
-
     :root {
-
       --violet: #4B1FA7;
-
       --violet-light: #7B4FD9;
-
       --lime: #AAEB2E;
-
       --lime-dark: #8DC425;
-
       --ink: #0F0C1E;
-
       --ink-soft: #2A2540;
-
       --muted: #6E6889;
-
       --surface: #F7F5FF;
-
       --card: #FFFFFF;
-
       --line: #E8E2F6;
-
       --danger: #E03358;
-
       --amber: #F5B932;
-
       --shadow-card: 0 12px 40px rgba(75,31,167,.10);
-
       --shadow-deep: 0 24px 56px rgba(75,31,167,.18);
-
     }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; font-size: 16px; }
-
-    body {
-
-      font-family: 'DM Sans', sans-serif;
-
-      background: var(--surface);
-
-      color: var(--ink);
-
-      overflow-x: hidden;
-
-      min-height: 100vh;
-
-    }
-
-    button, input, select, textarea { font: inherit; }
-
-    button { cursor: pointer; border: none; background: none; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth;font-size:16px}
+    body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--ink);overflow-x:hidden;min-height:100vh}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer;border:none;background:none}
 
     /* ── LAYOUT ── */
-
-    .app { display: grid; grid-template-columns: 240px 1fr 300px; min-height: 100vh; }
+    .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 
     /* ── SIDEBAR ── */
-
-    .sidebar {
-
-      position: sticky; top: 0; height: 100vh;
-
-      background: var(--card); border-right: 1px solid var(--line);
-
-      padding: 24px 16px; display: flex; flex-direction: column; gap: 0;
-
-      z-index: 20; overflow-y: auto;
-
-    }
-
-    .brand {
-
-      display: flex; align-items: center; gap: 12px;
-
-      padding-bottom: 24px; border-bottom: 1px solid var(--line); margin-bottom: 20px;
-
-    }
-
-    .brand-logo {
-
-      width: 48px; height: 48px; border-radius: 14px;
-
-      background: linear-gradient(135deg, var(--violet), #9B6FE0);
-
-      display: grid; place-items: center; flex-shrink: 0;
-
-      box-shadow: 0 8px 20px rgba(75,31,167,.3);
-
-    }
-
-    .brand-logo svg { width: 26px; height: 26px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-
-    .brand-text h1 { font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 900; color: var(--violet); letter-spacing: -0.5px; }
-
-    .brand-text p { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 1px; }
-
-    .nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-
-    .nav-item {
-
-      display: flex; align-items: center; gap: 10px;
-
-      padding: 11px 13px; border-radius: 10px;
-
-      color: var(--ink-soft); font-weight: 700; font-size: 14px;
-
-      transition: all .18s ease; width: 100%; text-align: left;
-
-    }
-
-    .nav-item:hover, .nav-item.active {
-
-      background: linear-gradient(135deg, rgba(75,31,167,.08), rgba(170,235,46,.06));
-
-      color: var(--violet);
-
-    }
-
-    .nav-item.active { background: linear-gradient(135deg, rgba(75,31,167,.12), rgba(170,235,46,.08)); }
-
-    .nav-icon {
-
-      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-
-      display: grid; place-items: center;
-
-      background: var(--surface);
-
-      transition: all .18s ease;
-
-    }
-
-    .nav-item:hover .nav-icon, .nav-item.active .nav-icon {
-
-      background: linear-gradient(135deg, var(--violet), var(--violet-light));
-
-      box-shadow: 0 6px 14px rgba(75,31,167,.25);
-
-    }
-
-    .nav-icon svg { width: 17px; height: 17px; stroke: var(--muted); stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke .18s; }
-
-    .nav-item:hover .nav-icon svg, .nav-item.active .nav-icon svg { stroke: #fff; }
-
-    .nav-divider { height: 1px; background: var(--line); margin: 10px 0; }
+    .sidebar{position:sticky;top:0;height:100vh;background:var(--card);border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;z-index:20;overflow-y:auto}
+    .brand{display:flex;align-items:center;gap:12px;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:20px}
+    .brand-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--violet),#9B6FE0);display:grid;place-items:center;flex-shrink:0;box-shadow:0 8px 20px rgba(75,31,167,.3)}
+    .brand-logo svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+    .brand-text h1{font-family:'Syne',sans-serif;font-size:19px;font-weight:900;color:var(--violet);letter-spacing:-.5px}
+    .brand-text p{font-size:11px;color:var(--muted);font-weight:500;margin-top:1px}
+    .nav{display:flex;flex-direction:column;gap:4px;flex:1}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;color:var(--ink-soft);font-weight:700;font-size:14px;transition:all .18s ease;width:100%;text-align:left}
+    .nav-item:hover,.nav-item.active{background:linear-gradient(135deg,rgba(75,31,167,.1),rgba(170,235,46,.06));color:var(--violet)}
+    .nav-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;background:var(--surface);transition:all .18s ease}
+    .nav-item:hover .nav-icon,.nav-item.active .nav-icon{background:linear-gradient(135deg,var(--violet),var(--violet-light));box-shadow:0 6px 14px rgba(75,31,167,.25)}
+    .nav-icon svg{width:17px;height:17px;stroke:var(--muted);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s}
+    .nav-item:hover .nav-icon svg,.nav-item.active .nav-icon svg{stroke:#fff}
+    .nav-divider{height:1px;background:var(--line);margin:10px 0}
+    .nav-user-info{margin-top:auto;padding-top:16px;border-top:1px solid var(--line)}
+    .nav-user-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--surface)}
+    .nav-user-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--violet-light));display:grid;place-items:center;color:#fff;font-weight:900;font-size:15px;flex-shrink:0}
+    .nav-user-name{font-weight:700;font-size:13px;color:var(--ink-soft)}
+    .nav-user-level{font-size:11px;color:var(--muted)}
 
     /* ── MAIN ── */
-
-    .main { min-width: 0; padding: 0 28px 60px; }
+    .main{min-width:0;padding:0 28px 60px}
 
     /* ── TOPBAR ── */
-
-    .topbar {
-
-      position: sticky; top: 0; z-index: 10;
-
-      background: linear-gradient(135deg, var(--violet) 0%, var(--violet-light) 100%);
-
-      margin: 0 -28px 28px; padding: 16px 28px;
-
-      display: flex; align-items: center; gap: 16px;
-
-      box-shadow: 0 8px 30px rgba(75,31,167,.25);
-
-    }
-
-    .search-wrap { position: relative; flex: 1; max-width: 560px; }
-
-    .search-wrap input {
-
-      width: 100%; padding: 12px 46px 12px 18px;
-
-      border-radius: 12px; border: 0; outline: 0;
-
-      background: rgba(255,255,255,.95);
-
-      color: var(--ink); font-size: 14px;
-
-      box-shadow: 0 4px 16px rgba(0,0,0,.1);
-
-    }
-
-    .search-wrap input::placeholder { color: var(--muted); }
-
-    .search-btn {
-
-      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-
-      width: 32px; height: 32px; border-radius: 8px;
-
-      background: var(--violet); display: grid; place-items: center;
-
-    }
-
-    .search-btn svg { width: 15px; height: 15px; stroke: #fff; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-
-    .top-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-
-    .top-btn {
-
-      display: flex; align-items: center; gap: 8px;
-
-      padding: 9px 14px; border-radius: 10px;
-
-      background: rgba(255,255,255,.15); color: #fff;
-
-      font-weight: 700; font-size: 13px; border: 1px solid rgba(255,255,255,.2);
-
-      transition: background .15s;
-
-    }
-
-    .top-btn:hover { background: rgba(255,255,255,.25); }
-
-    .top-btn svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-
-    .badge-dot {
-
-      min-width: 20px; height: 20px; padding: 0 6px;
-
-      border-radius: 10px; background: var(--lime); color: var(--ink);
-
-      font-size: 11px; font-weight: 900; display: grid; place-items: center;
-
-    }
-
-    .profile-btn {
-
-      display: flex; align-items: center; gap: 9px;
-
-      padding: 7px 14px 7px 7px; border-radius: 12px;
-
-      background: rgba(255,255,255,.15); color: #fff; font-weight: 700; font-size: 13px;
-
-      border: 1px solid rgba(255,255,255,.2);
-
-    }
-
-    .profile-avatar {
-
-      width: 30px; height: 30px; border-radius: 8px;
-
-      background: linear-gradient(135deg, var(--lime), #7BDB2E);
-
-      display: grid; place-items: center; font-size: 14px;
-
-    }
+    .topbar{position:sticky;top:0;z-index:10;background:linear-gradient(135deg,var(--violet) 0%,var(--violet-light) 100%);margin:0 -28px 28px;padding:16px 28px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 30px rgba(75,31,167,.25)}
+    .search-wrap{position:relative;flex:1;max-width:560px}
+    .search-wrap input{width:100%;padding:12px 46px 12px 18px;border-radius:12px;border:0;outline:0;background:rgba(255,255,255,.95);color:var(--ink);font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+    .search-wrap input::placeholder{color:var(--muted)}
+    .search-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:8px;background:var(--violet);display:grid;place-items:center}
+    .search-btn svg{width:15px;height:15px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .top-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+    .top-btn{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.2);transition:background .15s}
+    .top-btn:hover{background:rgba(255,255,255,.25)}
+    .top-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .badge-dot{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--lime);color:var(--ink);font-size:11px;font-weight:900;display:grid;place-items:center}
+    .profile-btn{display:flex;align-items:center;gap:9px;padding:7px 14px 7px 7px;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.2)}
+    .profile-avatar-top{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--lime),#7BDB2E);display:grid;place-items:center;font-size:13px;font-weight:900;color:var(--ink)}
 
     /* ── HERO ── */
-
-    .hero {
-
-      border-radius: 20px; overflow: hidden;
-
-      background: linear-gradient(135deg, var(--ink) 0%, var(--ink-soft) 55%, #3A1A78 100%);
-
-      padding: 52px 52px 44px;
-
-      display: grid; grid-template-columns: 1fr 380px; gap: 40px; align-items: center;
-
-      box-shadow: var(--shadow-deep);
-
-      position: relative;
-
-    }
-
-    .hero::before {
-
-      content: '';
-
-      position: absolute; inset: 0;
-
-      background: radial-gradient(circle at 80% 30%, rgba(170,235,46,.12) 0%, transparent 50%),
-
-                  radial-gradient(circle at 20% 80%, rgba(123,79,217,.2) 0%, transparent 40%);
-
-      pointer-events: none;
-
-    }
-
-    .hero-content { position: relative; z-index: 1; }
-
-    .hero-label {
-
-      display: inline-flex; align-items: center; gap: 8px;
-
-      background: rgba(170,235,46,.15); border: 1px solid rgba(170,235,46,.3);
-
-      border-radius: 8px; padding: 6px 12px; margin-bottom: 20px;
-
-      color: var(--lime); font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
-
-    }
-
-    .hero-label::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--lime); animation: pulse 2s infinite; }
-
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
-
-    .hero h2 {
-
-      font-family: 'Syne', sans-serif; font-size: clamp(32px, 3.5vw, 50px);
-
-      font-weight: 900; line-height: 1.06; color: #fff; letter-spacing: -1px;
-
-      margin-bottom: 16px;
-
-    }
-
-    .hero h2 em { color: var(--lime); font-style: normal; }
-
-    .hero p { color: rgba(255,255,255,.7); font-size: 16px; line-height: 1.6; max-width: 440px; margin-bottom: 28px; }
-
-    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-
-    .btn {
-
-      display: inline-flex; align-items: center; gap: 9px;
-
-      padding: 13px 22px; border-radius: 12px; font-weight: 700; font-size: 14px;
-
-      transition: all .18s ease; text-decoration: none;
-
-    }
-
-    .btn svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-
-    .btn-lime { background: var(--lime); color: var(--ink); box-shadow: 0 8px 24px rgba(170,235,46,.35); }
-
-    .btn-lime:hover { background: var(--lime-dark); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(170,235,46,.4); }
-
-    .btn-ghost { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.2); }
-
-    .btn-ghost:hover { background: rgba(255,255,255,.2); transform: translateY(-2px); }
-
-    .btn-violet { background: var(--violet); color: #fff; box-shadow: 0 8px 24px rgba(75,31,167,.3); }
-
-    .btn-violet:hover { background: var(--violet-light); transform: translateY(-2px); }
-
-    .btn-outline { background: #fff; color: var(--violet); border: 2px solid var(--line); }
-
-    .btn-outline:hover { border-color: var(--violet); transform: translateY(-1px); }
-
-    .btn-danger { background: var(--danger); color: #fff; box-shadow: 0 8px 24px rgba(224,51,88,.25); }
-
-    .btn-danger:hover { opacity: .88; transform: translateY(-1px); }
-
-    .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-
-    .stat-card {
-
-      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
-
-      border-radius: 14px; padding: 16px 14px; backdrop-filter: blur(8px);
-
-    }
-
-    .stat-card strong {
-
-      display: block; font-family: 'Syne', sans-serif;
-
-      font-size: 26px; font-weight: 900; color: var(--lime); line-height: 1;
-
-      margin-bottom: 4px;
-
-    }
-
-    .stat-card span { font-size: 12px; color: rgba(255,255,255,.65); font-weight: 500; line-height: 1.3; }
-
-    .hero-visual { position: relative; z-index: 1; }
-
-    .phone-card {
-
-      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
-
-      border-radius: 20px; padding: 20px;
-
-      backdrop-filter: blur(12px); overflow: hidden;
-
-      animation: floatY 3.5s ease-in-out infinite;
-
-    }
-
-    @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-    .phone-mockup { display: grid; gap: 12px; }
-
-    .swap-row { display: flex; align-items: center; gap: 12px; }
-
-    .swap-item {
-
-      flex: 1; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
-
-      border-radius: 12px; padding: 14px; text-align: center;
-
-    }
-
-    .swap-emoji { font-size: 32px; display: block; margin-bottom: 4px; }
-
-    .swap-label { font-size: 11px; color: rgba(255,255,255,.8); font-weight: 700; }
-
-    .swap-value { font-size: 13px; color: var(--lime); font-weight: 900; margin-top: 2px; }
-
-    .swap-arrow {
-
-      width: 36px; height: 36px; border-radius: 50%;
-
-      background: var(--lime); color: var(--ink);
-
-      display: grid; place-items: center; font-size: 18px; font-weight: 900; flex-shrink: 0;
-
-    }
-
-    .match-badge {
-
-      background: rgba(170,235,46,.15); border: 1px solid rgba(170,235,46,.3);
-
-      border-radius: 10px; padding: 10px 14px;
-
-      display: flex; align-items: center; gap: 10px; color: #fff;
-
-    }
-
-    .match-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); animation: pulse 1.5s infinite; flex-shrink: 0; }
-
-    .match-text { font-size: 12px; font-weight: 700; }
-
-    .match-sub { font-size: 11px; color: rgba(255,255,255,.6); }
+    .hero{border-radius:20px;overflow:hidden;background:linear-gradient(135deg,var(--ink) 0%,var(--ink-soft) 55%,#3A1A78 100%);padding:52px 52px 44px;display:grid;grid-template-columns:1fr 380px;gap:40px;align-items:center;box-shadow:var(--shadow-deep);position:relative}
+    .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 30%,rgba(170,235,46,.12) 0%,transparent 50%),radial-gradient(circle at 20% 80%,rgba(123,79,217,.2) 0%,transparent 40%);pointer-events:none}
+    .hero-content{position:relative;z-index:1}
+    .hero-label{display:inline-flex;align-items:center;gap:8px;background:rgba(170,235,46,.15);border:1px solid rgba(170,235,46,.3);border-radius:8px;padding:6px 12px;margin-bottom:20px;color:var(--lime);font-size:12px;font-weight:700;letter-spacing:.5px}
+    .hero-label::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .hero h2{font-family:'Syne',sans-serif;font-size:clamp(32px,3.5vw,50px);font-weight:900;line-height:1.06;color:#fff;letter-spacing:-1px;margin-bottom:16px}
+    .hero h2 em{color:var(--lime);font-style:normal}
+    .hero p{color:rgba(255,255,255,.7);font-size:16px;line-height:1.6;max-width:440px;margin-bottom:28px}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px}
+    .stat-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px 14px;backdrop-filter:blur(8px)}
+    .stat-card strong{display:block;font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:var(--lime);line-height:1;margin-bottom:4px}
+    .stat-card span{font-size:12px;color:rgba(255,255,255,.65);font-weight:500;line-height:1.3}
+    .hero-visual{position:relative;z-index:1}
+    .phone-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:20px;backdrop-filter:blur(12px);animation:floatY 3.5s ease-in-out infinite}
+    @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    .phone-mockup{display:grid;gap:12px}
+    .swap-row{display:flex;align-items:center;gap:12px}
+    .swap-item{flex:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:center}
+    .swap-emoji{font-size:32px;display:block;margin-bottom:4px}
+    .swap-label{font-size:11px;color:rgba(255,255,255,.8);font-weight:700}
+    .swap-value{font-size:13px;color:var(--lime);font-weight:900;margin-top:2px}
+    .swap-arrow{width:36px;height:36px;border-radius:50%;background:var(--lime);color:var(--ink);display:grid;place-items:center;font-size:18px;font-weight:900;flex-shrink:0}
+    .match-badge{background:rgba(170,235,46,.15);border:1px solid rgba(170,235,46,.3);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;color:#fff}
+    .match-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);animation:pulse 1.5s infinite;flex-shrink:0}
+    .match-text{font-size:12px;font-weight:700}
+    .match-sub{font-size:11px;color:rgba(255,255,255,.6)}
+
+    /* ── BTNS ── */
+    .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:12px;font-weight:700;font-size:14px;transition:all .18s ease;text-decoration:none;justify-content:center}
+    .btn svg{width:17px;height:17px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .btn-lime{background:var(--lime);color:var(--ink);box-shadow:0 8px 24px rgba(170,235,46,.35)}
+    .btn-lime:hover{background:var(--lime-dark);transform:translateY(-2px)}
+    .btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
+    .btn-ghost:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
+    .btn-violet{background:var(--violet);color:#fff;box-shadow:0 8px 24px rgba(75,31,167,.3)}
+    .btn-violet:hover{background:var(--violet-light);transform:translateY(-2px)}
+    .btn-outline{background:#fff;color:var(--violet);border:2px solid var(--line)}
+    .btn-outline:hover{border-color:var(--violet);transform:translateY(-1px)}
+    .btn-danger{background:var(--danger);color:#fff;box-shadow:0 8px 24px rgba(224,51,88,.25)}
+    .btn-danger:hover{opacity:.88;transform:translateY(-1px)}
+    .btn-sm{padding:8px 14px;font-size:13px;border-radius:9px;min-height:36px}
+
+    /* ── SECTIONS ── */
+    .section{margin-top:32px}
+    .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .section-head h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.3px}
+    .link-btn{color:var(--violet);font-weight:700;font-size:14px}
+    .link-btn:hover{opacity:.7}
 
     /* ── CATEGORIES ── */
+    .cat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+    .cat-item{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .18s ease;font-weight:700;font-size:13px;color:var(--ink-soft)}
+    .cat-item:hover,.cat-item.active{border-color:var(--violet);background:rgba(75,31,167,.05);color:var(--violet);transform:translateY(-2px);box-shadow:0 8px 20px rgba(75,31,167,.1)}
+    .cat-emoji{width:46px;height:46px;border-radius:12px;font-size:22px;display:grid;place-items:center;background:linear-gradient(135deg,var(--surface),#EDE8FF)}
 
-    .section { margin-top: 32px; }
-
-    .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-
-    .section-head h3 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
-
-    .link-btn { color: var(--violet); font-weight: 700; font-size: 14px; transition: opacity .15s; }
-
-    .link-btn:hover { opacity: .7; }
-
-    .cat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
-
-    .cat-item {
-
-      background: var(--card); border: 1.5px solid var(--line); border-radius: 14px;
-
-      padding: 16px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px;
-
-      cursor: pointer; transition: all .18s ease; font-weight: 700; font-size: 13px; color: var(--ink-soft);
-
-    }
-
-    .cat-item:hover, .cat-item.active {
-
-      border-color: var(--violet); background: rgba(75,31,167,.05);
-
-      color: var(--violet); transform: translateY(-2px);
-
-      box-shadow: 0 8px 20px rgba(75,31,167,.1);
-
-    }
-
-    .cat-emoji {
-
-      width: 46px; height: 46px; border-radius: 12px; font-size: 22px;
-
-      display: grid; place-items: center;
-
-      background: linear-gradient(135deg, var(--surface), #EDE8FF);
-
-    }
-
-    .cat-item.active .cat-emoji { background: linear-gradient(135deg, rgba(75,31,167,.15), rgba(170,235,46,.1)); }
-
-    /* ── PRODUCTS GRID ── */
-
-    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-
-    select.filter-select, input.mini-input {
-
-      height: 40px; border: 1.5px solid var(--line); border-radius: 10px;
-
-      padding: 0 14px; background: var(--card); color: var(--ink); outline: none;
-
-      font-size: 13px; font-weight: 600; min-width: 160px; transition: border-color .15s;
-
-    }
-
-    select.filter-select:focus, input.mini-input:focus { border-color: var(--violet); }
-
-    .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
-
-    .product-card {
-
-      background: var(--card); border: 1.5px solid var(--line); border-radius: 16px;
-
-      overflow: hidden; display: flex; flex-direction: column;
-
-      box-shadow: var(--shadow-card); transition: all .2s ease;
-
-    }
-
-    .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-deep); border-color: rgba(75,31,167,.2); }
-
-    .product-img {
-
-      height: 160px; display: grid; place-items: center;
-
-      background: linear-gradient(135deg, #F5F2FF, #EDE8FF);
-
-      font-size: 56px; position: relative;
-
-    }
-
-    .product-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-
-    .product-body h4 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; }
-
-    .chips { display: flex; flex-wrap: wrap; gap: 5px; }
-
-    .chip {
-
-      display: inline-flex; align-items: center;
-
-      padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700;
-
-    }
-
-    .chip-lime { background: rgba(170,235,46,.2); color: #4A6D00; }
-
-    .chip-violet { background: rgba(75,31,167,.1); color: var(--violet); }
-
-    .chip-amber { background: rgba(245,185,50,.15); color: #8A5B00; }
-
-    .product-meta { font-size: 12px; color: var(--muted); font-weight: 500; line-height: 1.4; }
-
-    .product-price { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 900; color: var(--violet); }
-
-    .product-wants { font-size: 12px; color: var(--muted); font-weight: 600; line-height: 1.35; }
-
-    .product-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
-
-    .product-actions .btn { min-height: 36px; padding: 0 10px; font-size: 12px; border-radius: 9px; justify-content: center; }
+    /* ── PRODUCTS ── */
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    select.filter-select{height:40px;border:1.5px solid var(--line);border-radius:10px;padding:0 14px;background:var(--card);color:var(--ink);outline:none;font-size:13px;font-weight:600;min-width:160px}
+    .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:16px}
+    .product-card{background:var(--card);border:1.5px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-card);transition:all .2s ease}
+    .product-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-deep);border-color:rgba(75,31,167,.2)}
+    .product-img{height:160px;display:grid;place-items:center;background:linear-gradient(135deg,#F5F2FF,#EDE8FF);font-size:56px;position:relative;overflow:hidden}
+    .product-img img{width:100%;height:100%;object-fit:cover}
+    .product-body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
+    .product-body h4{font-family:'Syne',sans-serif;font-size:16px;font-weight:800}
+    .chips{display:flex;flex-wrap:wrap;gap:5px}
+    .chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700}
+    .chip-lime{background:rgba(170,235,46,.2);color:#4A6D00}
+    .chip-violet{background:rgba(75,31,167,.1);color:var(--violet)}
+    .chip-amber{background:rgba(245,185,50,.15);color:#8A5B00}
+    .product-meta{font-size:12px;color:var(--muted);font-weight:500;line-height:1.4}
+    .product-price{font-family:'Syne',sans-serif;font-size:17px;font-weight:900;color:var(--violet)}
+    .product-wants{font-size:12px;color:var(--muted);font-weight:600;line-height:1.35}
+    .product-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+    .own-badge{font-size:11px;color:var(--muted);font-style:italic;padding:4px 0}
 
     /* ── PROCESS ── */
-
-    .process-section {
-
-      background: var(--card); border: 1.5px solid var(--line); border-radius: 20px;
-
-      padding: 32px; margin-top: 32px; box-shadow: var(--shadow-card);
-
-    }
-
-    .process-section h3 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 900; margin-bottom: 8px; }
-
-    .process-section > p { color: var(--muted); font-size: 15px; margin-bottom: 24px; max-width: 600px; }
-
-    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-
-    .step {
-
-      border: 1.5px solid var(--line); border-radius: 14px; padding: 20px;
-
-      background: var(--surface);
-
-    }
-
-    .step-num {
-
-      width: 40px; height: 40px; border-radius: 10px; margin-bottom: 14px;
-
-      display: grid; place-items: center; font-family: 'Syne', sans-serif;
-
-      font-size: 18px; font-weight: 900;
-
-    }
-
-    .step-num.violet { background: linear-gradient(135deg, var(--violet), var(--violet-light)); color: #fff; }
-
-    .step-num.lime { background: linear-gradient(135deg, var(--lime), var(--lime-dark)); color: var(--ink); }
-
-    .step h5 { font-weight: 800; font-size: 15px; margin-bottom: 6px; }
-
-    .step p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .process-section{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:32px;margin-top:32px;box-shadow:var(--shadow-card)}
+    .process-section h3{font-family:'Syne',sans-serif;font-size:22px;font-weight:900;margin-bottom:8px}
+    .process-section>p{color:var(--muted);font-size:15px;margin-bottom:24px;max-width:600px}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+    .step{border:1.5px solid var(--line);border-radius:14px;padding:20px;background:var(--surface)}
+    .step-num{width:40px;height:40px;border-radius:10px;margin-bottom:14px;display:grid;place-items:center;font-family:'Syne',sans-serif;font-size:18px;font-weight:900}
+    .step-num.violet{background:linear-gradient(135deg,var(--violet),var(--violet-light));color:#fff}
+    .step-num.lime{background:linear-gradient(135deg,var(--lime),var(--lime-dark));color:var(--ink)}
+    .step h5{font-weight:800;font-size:15px;margin-bottom:6px}
+    .step p{font-size:13px;color:var(--muted);line-height:1.5}
 
     /* ── TRUST BAND ── */
-
-    .trust-band { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 24px; }
-
-    .trust-item {
-
-      background: var(--card); border: 1.5px solid var(--line); border-radius: 14px;
-
-      padding: 18px; box-shadow: var(--shadow-card);
-
-    }
-
-    .trust-icon {
-
-      width: 38px; height: 38px; border-radius: 10px; margin-bottom: 12px;
-
-      display: grid; place-items: center;
-
-      background: linear-gradient(135deg, rgba(75,31,167,.1), rgba(170,235,46,.08));
-
-    }
-
-    .trust-icon svg { width: 18px; height: 18px; stroke: var(--violet); stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-
-    .trust-item h5 { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
-
-    .trust-item p { font-size: 12px; color: var(--muted); line-height: 1.5; }
-
-    /* ── RIGHT PANEL ── */
-
-    .right-panel {
-
-      position: sticky; top: 0; height: 100vh;
-
-      background: var(--card); border-left: 1px solid var(--line);
-
-      display: flex; flex-direction: column; overflow: hidden;
-
-    }
-
-    .panel-header {
-
-      background: linear-gradient(135deg, var(--violet), var(--violet-light));
-
-      padding: 18px 18px 16px; display: flex; align-items: center; gap: 12px;
-
-      flex-shrink: 0;
-
-    }
-
-    .panel-avatar {
-
-      width: 44px; height: 44px; border-radius: 12px;
-
-      background: rgba(255,255,255,.2); border: 2px solid rgba(255,255,255,.3);
-
-      display: grid; place-items: center; font-size: 22px; flex-shrink: 0;
-
-    }
-
-    .panel-info h4 { color: #fff; font-weight: 800; font-size: 15px; }
-
-    .panel-info p { color: rgba(255,255,255,.75); font-size: 12px; font-weight: 500; }
-
-    .online-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--lime); margin-right: 5px; animation: pulse 2s infinite; }
-
-    .panel-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-
-    .truqui-bubble {
-
-      background: linear-gradient(135deg, var(--violet), var(--violet-light));
-
-      border-radius: 14px 14px 14px 4px; padding: 14px;
-
-      color: #fff; font-size: 13px; line-height: 1.55; font-weight: 500;
-
-    }
-
-    .truqui-bubble b { display: block; margin-bottom: 4px; font-weight: 800; font-size: 14px; }
-
-    .quick-actions { display: grid; gap: 8px; }
-
-    .quick-btn {
-
-      display: flex; align-items: center; gap: 10px;
-
-      padding: 11px 13px; border-radius: 11px; border: 1.5px solid var(--line);
-
-      background: var(--surface); text-align: left;
-
-      font-weight: 700; font-size: 13px; color: var(--ink-soft);
-
-      transition: all .15s ease;
-
-    }
-
-    .quick-btn:hover { border-color: var(--violet); color: var(--violet); background: rgba(75,31,167,.04); transform: translateX(2px); }
-
-    .quick-icon {
-
-      width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
-
-      display: grid; place-items: center; font-size: 14px;
-
-    }
-
-    .chat-log { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
-
-    .chat-msg {
-
-      padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.42; max-width: 90%;
-
-    }
-
-    .chat-msg.bot { background: var(--surface); border: 1px solid var(--line); color: var(--ink-soft); align-self: flex-start; border-top-left-radius: 4px; }
-
-    .chat-msg.user { background: var(--violet); color: #fff; align-self: flex-end; border-top-right-radius: 4px; }
-
-    .panel-input {
-
-      display: grid; grid-template-columns: 1fr 42px; gap: 8px;
-
-      padding: 14px; border-top: 1px solid var(--line); flex-shrink: 0;
-
-    }
-
-    .panel-input input {
-
-      border: 1.5px solid var(--line); border-radius: 10px; padding: 0 13px;
-
-      min-width: 0; outline: none; font-size: 13px; transition: border-color .15s;
-
-    }
-
-    .panel-input input:focus { border-color: var(--violet); }
-
-    .send-btn {
-
-      width: 42px; height: 42px; border-radius: 10px;
-
-      background: var(--violet); display: grid; place-items: center;
-
-      box-shadow: 0 6px 16px rgba(75,31,167,.3); transition: all .15s;
-
-    }
-
-    .send-btn:hover { background: var(--violet-light); transform: scale(1.05); }
-
-    .send-btn svg { width: 17px; height: 17px; stroke: #fff; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .trust-band{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+    .trust-item{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow-card)}
+    .trust-icon{width:38px;height:38px;border-radius:10px;margin-bottom:12px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(75,31,167,.1),rgba(170,235,46,.08))}
+    .trust-icon svg{width:18px;height:18px;stroke:var(--violet);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .trust-item h5{font-weight:800;font-size:14px;margin-bottom:6px}
+    .trust-item p{font-size:12px;color:var(--muted);line-height:1.5}
 
     /* ── MODAL ── */
-
-    .modal-overlay {
-
-      position: fixed; inset: 0; background: rgba(15,12,30,.6);
-
-      z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
-
-      backdrop-filter: blur(4px);
-
-    }
-
-    .modal-overlay.open { display: flex; }
-
-    .modal-box {
-
-      background: var(--card); border-radius: 20px;
-
-      width: min(700px, 100%); max-height: 85vh; overflow-y: auto;
-
-      box-shadow: 0 40px 80px rgba(15,12,30,.3);
-
-      animation: slideUp .25s ease;
-
-    }
-
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-    .modal-head {
-
-      display: flex; align-items: center; justify-content: space-between;
-
-      padding: 22px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0;
-
-      background: var(--card); z-index: 1;
-
-    }
-
-    .modal-head h3 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 900; }
-
-    .close-btn {
-
-      width: 36px; height: 36px; border-radius: 10px; background: var(--surface);
-
-      display: grid; place-items: center; color: var(--muted); font-size: 20px; font-weight: 700;
-
-      transition: all .15s;
-
-    }
-
-    .close-btn:hover { background: var(--line); color: var(--ink); }
-
-    .modal-body { padding: 24px; }
+    .modal-overlay{position:fixed;inset:0;background:rgba(15,12,30,.6);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--card);border-radius:20px;width:min(700px,100%);max-height:85vh;overflow-y:auto;box-shadow:0 40px 80px rgba(15,12,30,.3);animation:slideUp .25s ease}
+    .modal-box.wide{width:min(900px,100%)}
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;padding:22px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:1}
+    .modal-head h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:900}
+    .close-btn{width:36px;height:36px;border-radius:10px;background:var(--surface);display:grid;place-items:center;color:var(--muted);font-size:20px;font-weight:700;transition:all .15s}
+    .close-btn:hover{background:var(--line);color:var(--ink)}
+    .modal-body{padding:24px}
 
     /* ── FORMS ── */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .form-grid .full{grid-column:1/-1}
+    label.field{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px;color:var(--ink-soft)}
+    label.field input,label.field select,label.field textarea{border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;background:var(--surface);color:var(--ink);outline:none;font-size:14px;transition:border-color .15s}
+    label.field input:focus,label.field select:focus,label.field textarea:focus{border-color:var(--violet);background:#fff}
+    label.field textarea{min-height:90px;resize:vertical}
+    .notice-box{background:rgba(75,31,167,.06);border:1.5px solid rgba(75,31,167,.15);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--violet);font-weight:600;line-height:1.5}
+    .notice-lime{background:rgba(170,235,46,.1);border-color:rgba(170,235,46,.3);color:#3D5900}
+    .notice-danger{background:rgba(224,51,88,.06);border-color:rgba(224,51,88,.2);color:var(--danger)}
+    .check-group{display:flex;flex-direction:column;gap:10px}
+    .check-row{display:flex;align-items:flex-start;gap:12px;padding:13px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface)}
+    .check-row input[type="checkbox"]{width:18px;height:18px;margin-top:2px;accent-color:var(--violet);flex-shrink:0}
+    .check-row-text strong{display:block;font-weight:800;font-size:14px;margin-bottom:2px}
+    .check-row-text span{font-size:12px;color:var(--muted)}
+    .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap}
 
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-    .form-grid .full { grid-column: 1 / -1; }
-
-    label.field { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 13px; color: var(--ink-soft); }
-
-    label.field input, label.field select, label.field textarea {
-
-      border: 1.5px solid var(--line); border-radius: 10px;
-
-      padding: 11px 14px; background: var(--surface); color: var(--ink);
-
-      outline: none; font-size: 14px; transition: border-color .15s;
-
-    }
-
-    label.field input:focus, label.field select:focus, label.field textarea:focus { border-color: var(--violet); background: #fff; }
-
-    label.field textarea { min-height: 90px; resize: vertical; }
-
-    .notice-box {
-
-      background: rgba(75,31,167,.06); border: 1.5px solid rgba(75,31,167,.15);
-
-      border-radius: 12px; padding: 14px 16px;
-
-      font-size: 13px; color: var(--violet); font-weight: 600; line-height: 1.5;
-
-    }
-
-    .notice-lime {
-
-      background: rgba(170,235,46,.1); border: 1.5px solid rgba(170,235,46,.3);
-
-      color: #3D5900;
-
-    }
-
-    .check-group { display: flex; flex-direction: column; gap: 10px; }
-
-    .check-row {
-
-      display: flex; align-items: flex-start; gap: 12px;
-
-      padding: 13px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface);
-
-    }
-
-    .check-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--violet); flex-shrink: 0; }
-
-    .check-row-text strong { display: block; font-weight: 800; font-size: 14px; margin-bottom: 2px; }
-
-    .check-row-text span { font-size: 12px; color: var(--muted); }
-
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    /* ── AUTH TABS ── */
+    .auth-tabs{display:flex;gap:0;margin-bottom:24px;border-radius:12px;overflow:hidden;border:1.5px solid var(--line)}
+    .auth-tab{flex:1;padding:12px;font-weight:700;font-size:14px;background:var(--surface);color:var(--muted);transition:all .15s;border:none}
+    .auth-tab.active{background:var(--violet);color:#fff}
 
     /* ── CHAT MODAL ── */
-
-    .chat-box { border: 1.5px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); min-height: 200px; display: flex; flex-direction: column; gap: 10px; }
-
-    .chat-bubble { padding: 10px 13px; border-radius: 12px; font-size: 13px; line-height: 1.4; max-width: 80%; }
-
-    .chat-bubble.them { background: #fff; border: 1px solid var(--line); color: var(--ink-soft); align-self: flex-start; }
-
-    .chat-bubble.me { background: var(--violet); color: #fff; align-self: flex-end; }
+    .chat-box{border:1.5px solid var(--line);border-radius:12px;padding:14px;background:var(--surface);min-height:260px;max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+    .chat-bubble{padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.4;max-width:80%}
+    .chat-bubble.them{background:#fff;border:1px solid var(--line);color:var(--ink-soft);align-self:flex-start;border-top-left-radius:4px}
+    .chat-bubble.me{background:var(--violet);color:#fff;align-self:flex-end;border-top-right-radius:4px}
+    .chat-bubble .cb-name{font-size:10px;opacity:.65;margin-bottom:3px;font-weight:700}
+    .chat-bubble .cb-time{font-size:10px;opacity:.5;margin-top:3px;text-align:right}
+    .chat-input-row{display:flex;gap:8px;margin-top:12px}
+    .chat-input-row input{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;outline:none;font-size:14px}
+    .chat-input-row input:focus{border-color:var(--violet)}
 
     /* ── LEVELS ── */
+    .level-rows{display:grid;gap:8px;margin-top:12px}
+    .level-row{display:flex;align-items:center;gap:12px;padding:11px;border:1.5px solid var(--line);border-radius:10px;font-size:13px}
 
-    .level-rows { display: grid; gap: 8px; margin-top: 12px; }
+    /* ── ADMIN PANEL ── */
+    .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+    .admin-stat{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:18px}
+    .admin-stat strong{display:block;font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--violet)}
+    .admin-stat span{font-size:13px;color:var(--muted)}
+    .admin-table{width:100%;border-collapse:collapse;font-size:13px}
+    .admin-table th{text-align:left;padding:10px 12px;background:var(--surface);font-weight:700;color:var(--ink-soft);border-bottom:2px solid var(--line)}
+    .admin-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+    .admin-table tr:hover td{background:var(--surface)}
+    .admin-tabs{display:flex;gap:8px;margin-bottom:18px}
+    .admin-tab{padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;border:1.5px solid var(--line);color:var(--muted);background:var(--surface);transition:all .15s}
+    .admin-tab.active{background:var(--violet);color:#fff;border-color:var(--violet)}
 
-    .level-row { display: flex; align-items: center; gap: 12px; padding: 11px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 13px; }
+    /* ── FLOATING TRUQUI ── */
+    .truqui-fab{position:fixed;right:20px;bottom:28px;z-index:90;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--violet),var(--violet-light));box-shadow:0 12px 30px rgba(75,31,167,.4);display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;transition:transform .2s;border:none;animation:floatY 3s ease-in-out infinite}
+    .truqui-fab:hover{transform:scale(1.1) translateY(-4px)}
+    .truqui-fab .notif-ring{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:var(--lime);border:2px solid #fff;animation:pulse 2s infinite}
+
+    .truqui-panel{position:fixed;right:20px;bottom:100px;z-index:89;width:340px;max-height:520px;background:var(--card);border-radius:20px;box-shadow:0 24px 60px rgba(75,31,167,.2);border:1.5px solid var(--line);display:none;flex-direction:column;animation:slideUp .2s ease}
+    .truqui-panel.open{display:flex}
+    .truqui-panel-head{background:linear-gradient(135deg,var(--violet),var(--violet-light));padding:16px;border-radius:18px 18px 0 0;display:flex;align-items:center;gap:10px}
+    .truqui-panel-head h4{color:#fff;font-weight:800;font-size:15px;flex:1}
+    .truqui-panel-head p{color:rgba(255,255,255,.75);font-size:11px;font-weight:500}
+    .truqui-close{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.2);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:700;flex-shrink:0}
+    .truqui-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+    .truqui-intro{background:linear-gradient(135deg,var(--violet),var(--violet-light));border-radius:12px 12px 12px 4px;padding:12px;color:#fff;font-size:13px;line-height:1.5}
+    .truqui-intro b{display:block;margin-bottom:3px;font-size:14px}
+    .quick-grid{display:grid;gap:6px}
+    .quick-btn{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);text-align:left;font-weight:700;font-size:12px;color:var(--ink-soft);transition:all .15s}
+    .quick-btn:hover{border-color:var(--violet);color:var(--violet);transform:translateX(2px)}
+    .truqui-chat{display:flex;flex-direction:column;gap:7px;max-height:180px;overflow-y:auto}
+    .tc-msg{padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.42;max-width:90%}
+    .tc-msg.bot{background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);align-self:flex-start;border-top-left-radius:3px}
+    .tc-msg.user{background:var(--violet);color:#fff;align-self:flex-end;border-top-right-radius:3px}
+    .truqui-input-row{display:grid;grid-template-columns:1fr 38px;gap:8px;padding:12px;border-top:1px solid var(--line)}
+    .truqui-input-row input{border:1.5px solid var(--line);border-radius:9px;padding:0 12px;min-width:0;outline:none;font-size:13px;height:38px}
+    .truqui-input-row input:focus{border-color:var(--violet)}
+    .truqui-send{width:38px;height:38px;border-radius:9px;background:var(--violet);display:grid;place-items:center;transition:all .15s}
+    .truqui-send:hover{background:var(--violet-light);transform:scale(1.05)}
+    .truqui-send svg{width:15px;height:15px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 
     /* ── BOTTOM NAV ── */
-
-    .bottom-nav {
-
-      display: none; position: fixed; bottom: 0; left: 0; right: 0;
-
-      height: 66px; background: var(--card); border-top: 1px solid var(--line);
-
-      z-index: 50; grid-template-columns: repeat(5, 1fr);
-
-      box-shadow: 0 -8px 20px rgba(75,31,167,.1);
-
-    }
-
-    .bottom-nav-btn {
-
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-
-      gap: 3px; color: var(--muted); font-size: 11px; font-weight: 700; padding: 6px 4px;
-
-    }
-
-    .bottom-nav-btn.active { color: var(--violet); }
-
-    .bottom-nav-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-
-    /* ── FAB ── */
-
-    .fab {
-
-      display: none; position: fixed; right: 18px; bottom: 80px;
-
-      width: 58px; height: 58px; border-radius: 16px; z-index: 40;
-
-      background: linear-gradient(135deg, var(--violet), var(--violet-light));
-
-      box-shadow: 0 12px 30px rgba(75,31,167,.35);
-
-      align-items: center; justify-content: center; font-size: 26px;
-
-      animation: floatY 3s ease-in-out infinite;
-
-    }
+    .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:66px;background:var(--card);border-top:1px solid var(--line);z-index:50;grid-template-columns:repeat(5,1fr);box-shadow:0 -8px 20px rgba(75,31,167,.1)}
+    .bottom-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:11px;font-weight:700;padding:6px 4px}
+    .bottom-nav-btn.active{color:var(--violet)}
+    .bottom-nav-btn svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 
     /* ── TOAST ── */
-
-    .toast {
-
-      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(16px);
-
-      opacity: 0; pointer-events: none; z-index: 200;
-
-      background: var(--ink); color: #fff; border-radius: 12px;
-
-      padding: 13px 20px; font-weight: 700; font-size: 14px;
-
-      box-shadow: var(--shadow-deep); transition: all .22s ease;
-
-      max-width: min(90vw, 480px); text-align: center;
-
-    }
-
-    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);opacity:0;pointer-events:none;z-index:200;background:var(--ink);color:#fff;border-radius:12px;padding:13px 20px;font-weight:700;font-size:14px;box-shadow:var(--shadow-deep);transition:all .22s ease;max-width:min(90vw,480px);text-align:center}
+    .toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 
     /* ── EMPTY STATE ── */
+    .empty-state{grid-column:1/-1;text-align:center;padding:60px 20px;border:2px dashed var(--line);border-radius:16px;color:var(--muted);font-weight:600}
+    .empty-state .es-icon{font-size:48px;margin-bottom:12px;display:block}
+    .empty-state p{font-size:15px;margin-bottom:16px}
 
-    .empty-state {
+    /* ── SPINNER ── */
+    .spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(75,31,167,.2);border-top-color:var(--violet);border-radius:50%;animation:spin .7s linear infinite}
+    .spinner-big{width:40px;height:40px;border-width:4px}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
-      grid-column: 1 / -1; text-align: center; padding: 40px 20px;
+    /* ── MATCHES LIST ── */
+    .matches-list{display:grid;gap:12px}
+    .match-card{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:14px;align-items:center;transition:all .15s;cursor:pointer}
+    .match-card:hover{border-color:var(--violet);box-shadow:var(--shadow-card)}
+    .match-card-emoji{font-size:32px;width:52px;height:52px;background:var(--card);border-radius:12px;display:grid;place-items:center;flex-shrink:0;border:1px solid var(--line)}
+    .match-card-info{flex:1;min-width:0}
+    .match-card-title{font-weight:800;font-size:15px;color:var(--ink-soft)}
+    .match-card-sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .match-card-badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0}
+    .match-card-badge.active{background:rgba(170,235,46,.2);color:#3D5900}
+    .match-card-badge.pending{background:rgba(245,185,50,.15);color:#8A5B00}
 
-      border: 2px dashed var(--line); border-radius: 16px; color: var(--muted); font-weight: 600;
-
-    }
+    /* ── PUBLICATIONS USER ── */
+    .myposts-list{display:grid;gap:12px}
+    .mypost-card{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:12px;align-items:center}
+    .mypost-emoji{font-size:28px;width:48px;height:48px;background:var(--card);border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);flex-shrink:0}
+    .mypost-info{flex:1;min-width:0}
+    .mypost-title{font-weight:800;font-size:15px}
+    .mypost-sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .mypost-actions{display:flex;gap:8px;flex-shrink:0}
 
     /* ── RESPONSIVE ── */
-
-    @media (max-width: 1180px) {
-
-      .app { grid-template-columns: 220px 1fr; }
-
-      .right-panel { display: none; }
-
-      .fab { display: flex; }
-
+    @media(max-width:1180px){.app{grid-template-columns:220px 1fr}}
+    @media(max-width:860px){
+      body{padding-bottom:70px}
+      .app{display:block}
+      .sidebar{display:none}
+      .main{padding:0 16px 40px}
+      .topbar{margin:0 -16px 20px;padding:12px 16px;flex-wrap:wrap}
+      .top-actions{display:none}
+      .hero{grid-template-columns:1fr;padding:32px 24px 28px}
+      .hero-visual{display:none}
+      .cat-grid{grid-template-columns:repeat(3,1fr)}
+      .products{grid-template-columns:repeat(2,1fr)}
+      .steps{grid-template-columns:1fr 1fr}
+      .trust-band{grid-template-columns:1fr 1fr}
+      .bottom-nav{display:grid}
+      .form-grid{grid-template-columns:1fr}
+      .truqui-panel{width:calc(100vw - 32px);right:16px}
     }
-
-    @media (max-width: 860px) {
-
-      body { padding-bottom: 70px; }
-
-      .app { display: block; }
-
-      .sidebar { display: none; }
-
-      .main { padding: 0 16px 40px; }
-
-      .topbar { margin: 0 -16px 20px; padding: 12px 16px; flex-wrap: wrap; }
-
-      .top-actions { display: none; }
-
-      .hero { grid-template-columns: 1fr; padding: 32px 24px 28px; }
-
-      .hero-visual { display: none; }
-
-      .hero-stats { grid-template-columns: repeat(3, 1fr); }
-
-      .cat-grid { grid-template-columns: repeat(3, 1fr); }
-
-      .products { grid-template-columns: repeat(2, 1fr); }
-
-      .steps { grid-template-columns: 1fr 1fr; }
-
-      .trust-band { grid-template-columns: 1fr 1fr; }
-
-      .bottom-nav { display: grid; }
-
-      .form-grid { grid-template-columns: 1fr; }
-
+    @media(max-width:540px){
+      .hero{padding:24px 18px}
+      .hero h2{font-size:28px}
+      .cat-grid{grid-template-columns:repeat(2,1fr)}
+      .products{grid-template-columns:1fr}
+      .steps{grid-template-columns:1fr}
+      .trust-band{grid-template-columns:1fr}
+      .admin-grid{grid-template-columns:1fr}
     }
-
-    @media (max-width: 540px) {
-
-      .hero { padding: 24px 18px; }
-
-      .hero h2 { font-size: 28px; }
-
-      .hero-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-
-      .stat-card strong { font-size: 20px; }
-
-      .cat-grid { grid-template-columns: repeat(2, 1fr); }
-
-      .products { grid-template-columns: 1fr; }
-
-      .steps { grid-template-columns: 1fr; }
-
-      .trust-band { grid-template-columns: 1fr; }
-
-    }
-
   </style>
-
 </head>
-
 <body>
 
 <div class="app">
-
   <!-- SIDEBAR -->
-
   <aside class="sidebar">
-
     <div class="brand">
-
       <div class="brand-logo">
-
         <svg viewBox="0 0 24 24"><path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z"/></svg>
-
       </div>
-
       <div class="brand-text">
-
         <h1>Truekeamas</h1>
-
         <p>Cambia. Ahorra. Conecta.</p>
-
       </div>
-
     </div>
-
     <nav class="nav" id="sideNav"></nav>
-
+    <div class="nav-user-info" id="sideUserInfo" style="display:none">
+      <div class="nav-user-card">
+        <div class="nav-user-avatar" id="sideUserAvatar">?</div>
+        <div>
+          <div class="nav-user-name" id="sideUserName">—</div>
+          <div class="nav-user-level" id="sideUserLevel">—</div>
+        </div>
+      </div>
+    </div>
   </aside>
 
   <!-- MAIN -->
-
   <main class="main">
-
-    <!-- TOPBAR -->
-
     <header class="topbar">
-
       <div class="search-wrap">
-
         <input id="searchInput" type="search" placeholder="Buscar productos, usuarios o servicios..." autocomplete="off">
-
         <button class="search-btn" id="searchBtn">
-
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-
         </button>
-
       </div>
-
       <div class="top-actions">
-
         <button class="top-btn" data-open="chat">
-
           <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/></svg>
-
-          Mensajes
-
+          Mensajes <span class="badge-dot" id="msgCount" style="display:none">0</span>
         </button>
-
-        <button class="top-btn" data-open="notifications">
-
-          <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
-
-          Notificaciones
-
-        </button>
-
         <button class="top-btn" data-open="cart">
-
           <svg viewBox="0 0 24 24"><path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
-
-          Carrito
-
-          <span class="badge-dot" id="cartCount">0</span>
-
+          Guardados <span class="badge-dot" id="cartCount">0</span>
         </button>
-
-        <button class="profile-btn" data-open="profile">
-
-          <div class="profile-avatar">&#x1F464;</div>
-
-          <span id="userNameTop">Invitado</span>
-
+        <button class="profile-btn" id="topProfileBtn">
+          <div class="profile-avatar-top" id="topAvatar">?</div>
+          <span id="userNameTop">Entrar</span>
         </button>
-
       </div>
-
     </header>
 
     <!-- HERO -->
-
     <section class="hero" id="inicio">
-
       <div class="hero-content">
-
-        <div class="hero-label">&#x2726; Plataforma de Trueque Digital</div>
-
+        <div class="hero-label">✦ Plataforma de Trueque Digital</div>
         <h2>Intercambia lo que tienes por lo que <em>necesitas</em></h2>
-
         <p>Truekeamas conecta personas para hacer trueques, compras secundarias o acuerdos mixtos dentro de una experiencia simple, segura y guiada.</p>
-
         <div class="hero-actions">
-
           <button class="btn btn-lime" data-scroll="vitrina">
-
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-
             Explorar productos
-
           </button>
-
           <button class="btn btn-ghost" data-open="publish">
-
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-
             Publicar ahora
-
           </button>
-
         </div>
-
-        <div class="hero-stats" style="margin-top: 28px;">
-
-          <div class="stat-card"><strong>100%</strong><span>Trueque activo por defecto</span></div>
-
-          <div class="stat-card"><strong>3</strong><span>Formas de acuerdo seguras</span></div>
-
-          <div class="stat-card"><strong>5</strong><span>Niveles de confianza</span></div>
-
+        <div class="hero-stats">
+          <div class="stat-card"><strong id="statPosts">—</strong><span>Publicaciones activas</span></div>
+          <div class="stat-card"><strong id="statUsers">—</strong><span>Usuarios registrados</span></div>
+          <div class="stat-card"><strong id="statMatches">—</strong><span>Matches realizados</span></div>
         </div>
-
       </div>
-
       <div class="hero-visual">
-
         <div class="phone-card">
-
           <div class="phone-mockup">
-
             <div class="swap-row">
-
               <div class="swap-item">
-
-                <span class="swap-emoji">&#x1F4F1;</span>
-
-                <div class="swap-label">Tu ofreces</div>
-
-                <div class="swap-value">iPhone 12</div>
-
+                <span class="swap-emoji">📱</span>
+                <div class="swap-label">Tú ofreces</div>
+                <div class="swap-value">Tu producto</div>
               </div>
-
-              <div class="swap-arrow">&#x21C4;</div>
-
+              <div class="swap-arrow">⇄</div>
               <div class="swap-item">
-
-                <span class="swap-emoji">&#x1F4BB;</span>
-
+                <span class="swap-emoji">💻</span>
                 <div class="swap-label">Recibes</div>
-
-                <div class="swap-value">Notebook</div>
-
+                <div class="swap-value">Lo que buscas</div>
               </div>
-
             </div>
-
             <div class="match-badge">
-
               <div class="match-dot"></div>
-
               <div>
-
-                <div class="match-text">&#x00A1;Match encontrado!</div>
-
-                <div class="match-sub">Andres &#x2014; Confiable &#x2605;&#x2605;&#x2605;&#x2605;&#x2605;</div>
-
+                <div class="match-text">¡Match en tiempo real!</div>
+                <div class="match-sub">Chat interno protegido</div>
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </section>
 
     <!-- CATEGORIES -->
-
     <section class="section" id="categorias">
-
       <div class="section-head">
-
-        <h3>Categorias populares</h3>
-
+        <h3>Categorías populares</h3>
         <button class="link-btn" id="clearFilters">Ver todas</button>
-
       </div>
-
       <div class="cat-grid" id="categoryGrid"></div>
-
     </section>
 
     <!-- VITRINA -->
-
     <section class="section" id="vitrina">
-
       <div class="section-head">
-
-        <h3>Publicaciones destacadas</h3>
-
+        <h3>Publicaciones</h3>
         <div class="toolbar">
-
           <select class="filter-select" id="modeFilter">
-
             <option value="all">Todos los acuerdos</option>
-
-            <option value="barter">Trueque activo</option>
-
+            <option value="barter">Trueque</option>
             <option value="buy">Compra directa</option>
-
             <option value="mixed">Acuerdo mixto</option>
-
           </select>
-
           <select class="filter-select" id="levelFilter">
-
             <option value="all">Todos los niveles</option>
-
             <option value="Nuevo">Nuevo</option>
-
             <option value="Verificado">Verificado</option>
-
             <option value="Confiable">Confiable</option>
-
           </select>
-
         </div>
-
       </div>
-
-      <div class="products" id="productGrid"></div>
-
+      <div class="products" id="productGrid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <span class="es-icon">🔄</span>
+          <p>Cargando publicaciones...</p>
+          <div class="spinner spinner-big" style="margin:0 auto"></div>
+        </div>
+      </div>
     </section>
 
     <!-- HOW IT WORKS -->
-
     <section class="process-section">
-
       <h3>Un flujo claro para acordar con confianza</h3>
-
-      <p>Disenado como una vitrina profesional: Truekeamas facilita el encuentro, el registro del acuerdo y las evidencias, sin ser responsable directa de productos, pagos o transporte.</p>
-
+      <p>Truekeamas facilita el encuentro, el registro del acuerdo y las evidencias.</p>
       <div class="steps">
-
-        <div class="step">
-
-          <div class="step-num violet">01</div>
-
-          <h5>Verifica tu perfil</h5>
-
-          <p>Crea tu cuenta, valida identidad y muestra tu nivel de usuario antes de acordar.</p>
-
-        </div>
-
-        <div class="step">
-
-          <div class="step-num lime">02</div>
-
-          <h5>Publica con trueque activo</h5>
-
-          <p>El trueque queda siempre disponible. Puedes sumar compra directa o acuerdo mixto.</p>
-
-        </div>
-
-        <div class="step">
-
-          <div class="step-num violet">03</div>
-
-          <h5>Haz match y conversa</h5>
-
-          <p>Deja condiciones, entrega y evidencia dentro del chat interno de la plataforma.</p>
-
-        </div>
-
-        <div class="step">
-
-          <div class="step-num lime">04</div>
-
-          <h5>Entrega y califica</h5>
-
-          <p>Sube tracking, comprobante y califica cuando exista recepcion o evidencia.</p>
-
-        </div>
-
+        <div class="step"><div class="step-num violet">01</div><h5>Regístrate</h5><p>Crea tu cuenta, valida identidad y muestra tu nivel de usuario antes de acordar.</p></div>
+        <div class="step"><div class="step-num lime">02</div><h5>Publica</h5><p>El trueque queda siempre disponible. Puedes sumar compra directa o acuerdo mixto.</p></div>
+        <div class="step"><div class="step-num violet">03</div><h5>Haz Match</h5><p>Envía una propuesta, se abre un chat real. Deja evidencia del acuerdo dentro de la plataforma.</p></div>
+        <div class="step"><div class="step-num lime">04</div><h5>Califica</h5><p>Sube comprobante y califica cuando exista recepción o evidencia de entrega.</p></div>
       </div>
-
     </section>
 
-    <!-- TRUST BAND -->
-
     <div class="trust-band">
-
       <div class="trust-item">
-
         <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-5"/></svg></div>
-
-        <h5>Seguridad primero</h5>
-
-        <p>Verificacion, reportes con evidencia y acuerdos registrados dentro de la plataforma.</p>
-
+        <h5>Seguridad primero</h5><p>Verificación, reportes con evidencia y acuerdos registrados dentro de la plataforma.</p>
       </div>
-
       <div class="trust-item">
-
         <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="m12 2 3 6 6.5.9-4.7 4.6 1.1 6.5L12 17l-5.9 3 1.1-6.5-4.7-4.6L9 8l3-6Z"/></svg></div>
-
-        <h5>Reputacion visible</h5>
-
-        <p>Los niveles Nuevo, Verificado, Confiable, En revision y Bloqueado ayudan a decidir mejor.</p>
-
+        <h5>Reputación visible</h5><p>Niveles Nuevo, Verificado y Confiable para tomar mejores decisiones.</p>
       </div>
-
       <div class="trust-item">
-
         <div class="trust-icon"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
-
-        <h5>Acuerdos protegidos</h5>
-
-        <p>Truekeamas actua como vitrina e intermediaria. Los usuarios acuerdan condiciones, pagos y transporte.</p>
-
+        <h5>Acuerdos protegidos</h5><p>Los usuarios acuerdan condiciones, pagos y transporte dentro del chat interno.</p>
       </div>
-
       <div class="trust-item">
-
         <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M20.8 8.6c0 5.2-8.8 10.4-8.8 10.4S3.2 13.8 3.2 8.6A4.7 4.7 0 0 1 12 6.3a4.7 4.7 0 0 1 8.8 2.3Z"/></svg></div>
-
-        <h5>Comunidad</h5>
-
-        <p>Comentarios respetuosos, lenguaje moderado y calificacion posterior a la recepcion.</p>
-
+        <h5>Comunidad</h5><p>Comentarios respetuosos y calificación posterior a la recepción.</p>
       </div>
-
     </div>
-
   </main>
-
-  <!-- RIGHT PANEL (Truqui) -->
-
-  <aside class="right-panel" id="desktopPanel">
-
-    <div class="panel-header">
-
-      <div class="panel-avatar">&#x1F916;</div>
-
-      <div class="panel-info">
-
-        <h4>Truqui</h4>
-
-        <p><span class="online-dot"></span>Tu asistente virtual</p>
-
-      </div>
-
-    </div>
-
-    <div class="panel-body" id="panelBody">
-
-      <div class="truqui-bubble">
-
-        <b>&#x1F44B; &#x00A1;Hola! Soy Truqui</b>
-
-        Puedes explorar productos, publicar algo para trueque o iniciar una seleccion. El trueque siempre esta activo por defecto.
-
-      </div>
-
-      <div class="quick-actions">
-
-        <button class="quick-btn" data-truqui-topic="barter">
-
-          <div class="quick-icon">&#x21BB;</div> &#x00BF;Como funciona el trueque?
-
-        </button>
-
-        <button class="quick-btn" data-truqui-topic="publish">
-
-          <div class="quick-icon">&#x1F4DD;</div> Como publicar
-
-        </button>
-
-        <button class="quick-btn" data-truqui-topic="shipping">
-
-          <div class="quick-icon">&#x1F4E6;</div> Envio seguro
-
-        </button>
-
-        <button class="quick-btn" data-truqui-topic="security">
-
-          <div class="quick-icon">&#x1F510;</div> Seguridad
-
-        </button>
-
-        <button class="quick-btn" data-truqui-topic="report">
-
-          <div class="quick-icon">&#x26A0;&#xFE0F;</div> Reportar problema
-
-        </button>
-
-      </div>
-
-      <div class="chat-log" id="panelChatLog">
-
-        <div class="chat-msg bot">Hola, soy Truqui. Preguntame por publicar, explorar, match, envio seguro, seguridad o calificaciones.</div>
-
-      </div>
-
-    </div>
-
-    <div class="panel-input">
-
-      <input id="panelInput" placeholder="Escribe tu mensaje..." />
-
-      <button class="send-btn" id="panelSend">
-
-        <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg>
-
-      </button>
-
-    </div>
-
-  </aside>
-
 </div>
 
 <!-- BOTTOM NAV -->
-
 <nav class="bottom-nav" id="bottomNav">
-
-  <button class="bottom-nav-btn active" data-nav="inicio">
-
-    <svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-
-    Inicio
-
-  </button>
-
-  <button class="bottom-nav-btn" data-nav="vitrina">
-
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-
-    Explorar
-
-  </button>
-
-  <button class="bottom-nav-btn" data-open="publish">
-
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-
-    Publicar
-
-  </button>
-
-  <button class="bottom-nav-btn" data-open="chat">
-
-    <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/></svg>
-
-    Mensajes
-
-  </button>
-
-  <button class="bottom-nav-btn" data-open="profile">
-
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-
-    Perfil
-
-  </button>
-
+  <button class="bottom-nav-btn active" data-nav="inicio"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>Inicio</button>
+  <button class="bottom-nav-btn" data-nav="vitrina"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Explorar</button>
+  <button class="bottom-nav-btn" data-open="publish"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Publicar</button>
+  <button class="bottom-nav-btn" data-open="chat"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/></svg>Mensajes</button>
+  <button class="bottom-nav-btn" id="mobileProfileBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Perfil</button>
 </nav>
 
-<!-- FAB -->
+<!-- FLOATING TRUQUI -->
+<button class="truqui-fab" id="truquiFab" aria-label="Abrir Truqui">
+  🤖<span class="notif-ring"></span>
+</button>
 
-<button class="fab" id="truquiFab" aria-label="Abrir Truqui">&#x1F916;</button>
+<div class="truqui-panel" id="truquiPanel">
+  <div class="truqui-panel-head">
+    <div style="font-size:24px">🤖</div>
+    <div style="flex:1">
+      <h4>Truqui</h4>
+      <p>● Tu asistente virtual</p>
+    </div>
+    <button class="truqui-close" id="truquiClose">×</button>
+  </div>
+  <div class="truqui-body">
+    <div class="truqui-intro">
+      <b>👋 ¡Hola! Soy Truqui</b>
+      Puedo ayudarte con el trueque, publicaciones, envíos, seguridad y más. ¡Escríbeme!
+    </div>
+    <div class="quick-grid">
+      <button class="quick-btn" data-q="trueque">↻ ¿Cómo funciona el trueque?</button>
+      <button class="quick-btn" data-q="publicar">📝 Cómo publicar</button>
+      <button class="quick-btn" data-q="match">🤝 Cómo hacer match</button>
+      <button class="quick-btn" data-q="seguridad">🔐 Seguridad</button>
+    </div>
+    <div class="truqui-chat" id="truquiChat">
+      <div class="tc-msg bot">Hola, soy Truqui. Pregúntame lo que quieras sobre Truekeamas.</div>
+    </div>
+  </div>
+  <div class="truqui-input-row">
+    <input id="truquiInput" placeholder="Escribe tu pregunta...">
+    <button class="truqui-send" id="truquiSend">
+      <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg>
+    </button>
+  </div>
+</div>
 
 <!-- MODAL -->
-
 <div class="modal-overlay" id="modal">
-
-  <div class="modal-box">
-
+  <div class="modal-box" id="modalBox">
     <div class="modal-head">
-
       <h3 id="modalTitle"></h3>
-
-      <button class="close-btn" id="closeModal">&#x00D7;</button>
-
+      <button class="close-btn" id="closeModal">×</button>
     </div>
-
     <div class="modal-body" id="modalBody"></div>
-
   </div>
-
 </div>
 
 <!-- TOAST -->
-
 <div class="toast" id="toast"></div>
 
 <script>
+// ══════════════════════════════════════════════════
+//  TRUEKEAMAS — APP PRINCIPAL
+//  Base de datos: Firebase Firestore
+//  Auth: Firebase Auth (email/password)
+//  Admin: contraseña fija (cambiar en producción)
+// ══════════════════════════════════════════════════
 
-// ── DATA ──
+const ADMIN_PASSWORD = 'truekeamas2024admin'; // ← Cambia esto en producción
 
 const categories = [
-
-  { name: 'Tecnologia', emoji: '&#x1F4F1;' },
-
-  { name: 'Hogar', emoji: '&#x1F6CB;&#xFE0F;' },
-
-  { name: 'Deportes', emoji: '&#x26BD;' },
-
-  { name: 'Moda', emoji: '&#x1F455;' },
-
-  { name: 'Libros', emoji: '&#x1F4D8;' },
-
-  { name: 'Juguetes', emoji: '&#x1F9F8;' }
-
+  { name: 'Tecnología', emoji: '📱' },
+  { name: 'Hogar', emoji: '🛋️' },
+  { name: 'Deportes', emoji: '⚽' },
+  { name: 'Moda', emoji: '👕' },
+  { name: 'Libros', emoji: '📘' },
+  { name: 'Juguetes', emoji: '🧸' }
 ];
-
-let products = [
-
-  { id: 1, title: 'iPhone 12', owner: 'Camila', category: 'Tecnologia', emoji: '&#x1F4F1;', level: 'Verificado', price: 210000, barter: true, buy: false, mixed: true, wants: 'Notebook, tablet o dinero complementario', location: 'Santiago Centro' },
-
-  { id: 2, title: 'Bicicleta MTB', owner: 'Andres', category: 'Deportes', emoji: '&#x1F6B2;', level: 'Confiable', price: 120000, barter: true, buy: true, mixed: true, wants: 'Guitarra, consola o venta directa', location: 'La Florida' },
-
-  { id: 3, title: 'Sofa 2 cuerpos', owner: 'Daniela', category: 'Hogar', emoji: '&#x1F6CB;&#xFE0F;', level: 'Verificado', price: 0, barter: true, buy: false, mixed: false, wants: 'Mesa de centro o mueble pequeno', location: 'Providencia' },
-
-  { id: 4, title: 'Guitarra acustica', owner: 'Felipe', category: 'Hogar', emoji: '&#x1F3B8;', level: 'Nuevo', price: 80000, barter: true, buy: true, mixed: true, wants: 'Bicicleta, microfono o dinero', location: 'Nunoa' },
-
-  { id: 5, title: 'Coleccion de libros', owner: 'Maria', category: 'Libros', emoji: '&#x1F4DA;', level: 'Confiable', price: 35000, barter: true, buy: true, mixed: false, wants: 'Libros de diseno o compra directa', location: 'Maipu' },
-
-  { id: 6, title: 'Chaqueta urbana', owner: 'Tomas', category: 'Moda', emoji: '&#x1F9E5;', level: 'Verificado', price: 25000, barter: true, buy: false, mixed: true, wants: 'Zapatillas o acuerdo mixto', location: 'Las Condes' },
-
-  { id: 7, title: 'Set de juguetes', owner: 'Paula', category: 'Juguetes', emoji: '&#x1F9F8;', level: 'Confiable', price: 18000, barter: true, buy: true, mixed: false, wants: 'Cuentos infantiles o compra directa', location: 'Penalolen' },
-
-  { id: 8, title: 'Servicio diseno logo', owner: 'Renata', category: 'Tecnologia', emoji: '&#x1F3A8;', level: 'Verificado', price: 60000, barter: true, buy: true, mixed: true, wants: 'Fotografia, difusion o pago parcial', location: 'Online' }
-
-];
-
-let user = { name: 'Invitado', level: 'Nuevo', verified: false, created: false };
-
-let cart = [];
-
-let activeCategory = 'all';
-
-let activeProduct = null;
-
-// ── TRUQUI ANSWERS ──
 
 const truquiAnswers = {
-
-  inicio: 'Truekeamas es una vitrina digital para cambiar, ahorrar y conectar.',
-
-  explorar: 'Para explorar usa el buscador, filtra por categoria y revisa el nivel del usuario.',
-
-  publicar: 'Para publicar: el trueque queda activo siempre. Completa nombre, categoria y valor referencial.',
-
-  match: 'El match ocurre cuando otro usuario se interesa. Conversa dentro de Truekeamas y deja registro.',
-
-  chat: 'El chat interno sirve para dejar registro. Deja claro que entregas, estado del producto, lugar y fecha.',
-
-  shipping: 'Envio seguro: registra empresa, sucursal o domicilio, fecha estimada, codigo de seguimiento y comprobante.',
-
-  security: 'Seguridad: No se permiten armas, drogas ni ilegales. Reporta con evidencia si ves algo sospechoso.',
-
-  rating: 'Calificaciones: usa estrellas, escribe un comentario respetuoso. La reputacion ayuda a otros usuarios.',
-
-  levels: 'Niveles: Nuevo, Verificado, Confiable, En revision, Bloqueado.',
-
-  cart: 'El carrito sirve para guardar productos de interes y comparar antes de iniciar un trueque.',
-
-  report: 'Para reportar: indica usuario o publicacion, explica el motivo y adjunta evidencia.',
-
-  fallback: 'Puedes preguntarme por: trueque, publicar, envio seguro, seguridad, carrito, match o calificaciones.'
-
+  trueque: 'El trueque es el corazón de Truekeamas. Publicas tu producto, otro usuario se interesa y hace clic en "Match". Se abre un chat real donde acuerdan los detalles del intercambio.',
+  publicar: 'Para publicar: 1) Inicia sesión o regístrate. 2) Haz clic en "Publicar ahora". 3) Completa título, categoría, valor referencial y qué buscas a cambio. 4) ¡Listo! Tu publicación aparece en la vitrina real.',
+  match: 'Para hacer match: ve a una publicación que te interese y haz clic en "Match". Se crea un chat privado con el dueño. Desde ahí coordinan el intercambio y dejan registro de todo.',
+  seguridad: 'Seguridad: No compartas datos bancarios en el chat. Prefiere entregas presenciales en lugares públicos. Usa el botón "Reportar" si algo parece sospechoso. Tus mensajes quedan registrados en la plataforma.',
+  envio: 'Envío seguro: coordina empresa de envío, sucursal, fecha estimada y código de seguimiento dentro del chat. Sube el comprobante antes de confirmar la entrega.',
+  calificar: 'Las calificaciones se habilitan después de que ambas partes confirman el acuerdo. Usa entre 1 y 5 estrellas y deja un comentario respetuoso para ayudar a la comunidad.',
+  niveles: 'Niveles de usuario: Nuevo (cuenta recién creada), Verificado (identidad validada), Confiable (buen historial), En revisión (caso pendiente), Bloqueado (restringido).',
+  fallback: '¡Buena pregunta! Puedes preguntarme sobre: cómo funciona el trueque, cómo publicar, cómo hacer match, seguridad, envío seguro o niveles de usuario.'
 };
 
-// ── SIDEBAR NAV ITEMS ──
-
 const navItems = [
-
   { label: 'Inicio', id: 'inicio', icon: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>' },
-
   { label: 'Explorar', id: 'vitrina', icon: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>' },
-
   { label: 'Publicar', id: 'publish', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>' },
-
   { label: 'Mis acuerdos', id: 'agreements', icon: '<path d="M8 12h8"/><path d="m14 9 3 3-3 3"/><path d="M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z"/>' },
-
-  { label: 'Favoritos', id: 'favorites', icon: '<path d="M20.8 8.6c0 5.2-8.8 10.4-8.8 10.4S3.2 13.8 3.2 8.6A4.7 4.7 0 0 1 12 6.3a4.7 4.7 0 0 1 8.8 2.3Z"/>' },
-
-  { label: 'Carrito', id: 'cart', icon: '<path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>' },
-
+  { label: 'Guardados', id: 'cart', icon: '<path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>' },
   { label: 'Mis publicaciones', id: 'myPosts', icon: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>' },
-
-  { label: 'Mensajes', id: 'chat', icon: '<path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/>' },
-
-  { label: 'Notificaciones', id: 'notifications', icon: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>' },
-
   { label: 'Mi perfil', id: 'profile', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' },
-
-  { label: 'Configuracion', id: 'settings', icon: '<circle cx="12" cy="12" r="3"/>' },
-
   { label: 'Ayuda', id: 'help', icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.5 2c-1.1.8-2 1.4-2 3"/><path d="M12 17h.01"/>' }
-
 ];
 
-// ── INIT ──
+// ── STATE ──
+let currentUser = null;
+let currentUserData = null;
+let savedItems = JSON.parse(localStorage.getItem('tk_saved') || '[]');
+let activeCategory = 'all';
+let activeMatchId = null;
+let unsubscribeChat = null;
+let allProducts = [];
 
-function init() {
+// ── FIREBASE READY ──
+window.addEventListener('fb-ready', () => {
+  const { onAuthStateChanged } = window._fb;
+  const { auth } = window._fb;
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    if (user) {
+      await loadUserData(user.uid);
+    } else {
+      currentUserData = null;
+    }
+    updateUserUI();
+  });
+  init();
+});
 
+// Si Firebase no carga (sin configurar), mostramos modo demo
+setTimeout(() => {
+  if (!window._fb) {
+    showFirebaseSetupNotice();
+    initOffline();
+  }
+}, 3000);
+
+function showFirebaseSetupNotice() {
+  const notice = document.createElement('div');
+  notice.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#F5B932;color:#0F0C1E;padding:12px 20px;text-align:center;font-weight:700;font-size:14px;z-index:999;';
+  notice.innerHTML = '⚠️ Para activar la base de datos real, configura Firebase en el código (busca "TU_API_KEY"). <a href="https://console.firebase.google.com" target="_blank" style="color:var(--violet);text-decoration:underline">Ir a Firebase Console</a>';
+  document.body.prepend(notice);
+}
+
+function initOffline() {
   renderNav();
-
   renderCategories();
-
-  renderProducts();
-
-  bindEvents();
-
+  document.getElementById('productGrid').innerHTML = `
+    <div class="empty-state" style="grid-column:1/-1">
+      <span class="es-icon">🔧</span>
+      <p>Conecta Firebase para ver publicaciones reales</p>
+      <button class="btn btn-violet btn-sm" onclick="openModal('help')">Ver instrucciones</button>
+    </div>`;
   updateUserUI();
+}
 
+// ── INIT ──
+async function init() {
+  renderNav();
+  renderCategories();
+  bindEvents();
+  updateUserUI();
+  await Promise.all([loadProducts(), loadStats()]);
 }
 
 // ── RENDER NAV ──
-
 function renderNav() {
-
   const nav = document.getElementById('sideNav');
-
   nav.innerHTML = navItems.map((item, i) => `
-
     <button class="nav-item ${i === 0 ? 'active' : ''}" data-nav="${item.id}">
-
       <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${item.icon}</svg></div>
-
       ${item.label}
-
     </button>
-
   `).join('') + '<div class="nav-divider"></div>';
-
 }
 
 // ── RENDER CATEGORIES ──
-
 function renderCategories() {
-
-  const grid = document.getElementById('categoryGrid');
-
-  grid.innerHTML = categories.map(c => `
-
+  document.getElementById('categoryGrid').innerHTML = categories.map(c => `
     <button class="cat-item ${activeCategory === c.name ? 'active' : ''}" data-category="${c.name}">
-
-      <div class="cat-emoji">${c.emoji}</div>
-
-      ${c.name}
-
+      <div class="cat-emoji">${c.emoji}</div>${c.name}
     </button>
-
   `).join('');
+}
 
+// ── LOAD PRODUCTS (Firebase) ──
+async function loadProducts() {
+  if (!window._fb) return;
+  const { db, collection, getDocs, query, orderBy, where } = window._fb;
+  try {
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderProducts();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('productGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><span class="es-icon">📭</span><p>No hay publicaciones aún. ¡Sé el primero en publicar!</p><button class="btn btn-violet btn-sm" data-open="publish">Publicar ahora</button></div>`;
+  }
+}
+
+// ── LOAD STATS ──
+async function loadStats() {
+  if (!window._fb) return;
+  const { db, collection, getDocs } = window._fb;
+  try {
+    const [postsSnap, usersSnap, matchesSnap] = await Promise.all([
+      getDocs(collection(db, 'products')),
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'matches'))
+    ]);
+    document.getElementById('statPosts').textContent = postsSnap.size;
+    document.getElementById('statUsers').textContent = usersSnap.size;
+    document.getElementById('statMatches').textContent = matchesSnap.size;
+  } catch(e) {}
+}
+
+// ── LOAD USER DATA ──
+async function loadUserData(uid) {
+  if (!window._fb) return;
+  const { db, doc, getDoc } = window._fb;
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    currentUserData = snap.exists() ? snap.data() : null;
+  } catch(e) {}
 }
 
 // ── RENDER PRODUCTS ──
-
 function renderProducts() {
-
   const query = document.getElementById('searchInput').value.trim().toLowerCase();
-
   const mode = document.getElementById('modeFilter').value;
-
   const level = document.getElementById('levelFilter').value;
-
-  const filtered = products.filter(p => {
-
+  const filtered = allProducts.filter(p => {
+    if (p.status === 'deleted') return false;
     const byQuery = !query || [p.title, p.owner, p.category, p.wants, p.location].join(' ').toLowerCase().includes(query);
-
     const byCategory = activeCategory === 'all' || p.category === activeCategory;
-
     const byMode = mode === 'all' || (mode === 'barter' && p.barter) || (mode === 'buy' && p.buy) || (mode === 'mixed' && p.mixed);
-
     const byLevel = level === 'all' || p.level === level;
-
     return byQuery && byCategory && byMode && byLevel;
-
   });
-
   const grid = document.getElementById('productGrid');
-
-  grid.innerHTML = filtered.length
-
-    ? filtered.map(productCard).join('')
-
-    : '<div class="empty-state">No encontramos publicaciones con esos filtros.</div>';
-
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state"><span class="es-icon">🔍</span><p>No encontramos publicaciones con esos filtros.</p><button class="btn btn-violet btn-sm" onclick="clearFilters()">Ver todas</button></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(productCard).join('');
 }
 
-function formatPrice(value) {
-
-  if (!value) return 'Solo trueque';
-
-  return '$' + value.toLocaleString('es-CL');
-
+function formatPrice(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : 'Solo trueque'; }
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60) return 'ahora';
+  if (diff < 3600) return Math.floor(diff/60) + 'm';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h';
+  return Math.floor(diff/86400) + 'd';
 }
 
 function productCard(p) {
-
+  const isOwn = currentUser && p.ownerId === currentUser.uid;
   return `
-
     <article class="product-card">
-
-      <div class="product-img">${p.emoji}</div>
-
+      <div class="product-img">${p.emoji || '📦'}</div>
       <div class="product-body">
-
         <div class="chips">
-
           <span class="chip chip-lime">Trueque</span>
-
           ${p.buy ? '<span class="chip chip-violet">Compra</span>' : ''}
-
           ${p.mixed ? '<span class="chip chip-amber">Mixto</span>' : ''}
-
         </div>
-
-        <h4>${p.title}</h4>
-
-        <div class="product-meta">por <strong>${p.owner}</strong> · ${p.level}<br>${p.location}</div>
-
+        <h4>${esc(p.title)}</h4>
+        <div class="product-meta">por <strong>${esc(p.owner || 'Usuario')}</strong> · ${p.level || 'Nuevo'}<br>${esc(p.location || '')}</div>
         <div class="product-price">${formatPrice(p.price)}</div>
-
-        <div class="product-wants">Busca: ${p.wants}</div>
-
+        <div class="product-wants">Busca: ${esc(p.wants || '')}</div>
         <div class="product-actions">
-
-          <button class="btn btn-outline" data-cart="${p.id}">Agregar</button>
-
-          <button class="btn btn-violet" data-match="${p.id}">Match</button>
-
+          ${isOwn
+            ? `<span class="own-badge" style="grid-column:1/-1">✏️ Tu publicación</span>`
+            : `<button class="btn btn-outline btn-sm" data-save="${p.id}" title="Guardar">
+                ${savedItems.includes(p.id) ? '❤️ Guardado' : '🤍 Guardar'}
+              </button>
+              <button class="btn btn-violet btn-sm" data-match="${p.id}">🤝 Match</button>`
+          }
         </div>
-
       </div>
-
-    </article>
-
-  `;
-
+    </article>`;
 }
 
-// ── BIND EVENTS ──
-
+// ── EVENTS ──
 function bindEvents() {
-
   document.body.addEventListener('click', e => {
-
     const nav = e.target.closest('[data-nav]');
-
     const open = e.target.closest('[data-open]');
-
     const scroll = e.target.closest('[data-scroll]');
-
-    const category = e.target.closest('[data-category]');
-
-    const cartBtn = e.target.closest('[data-cart]');
-
-    const matchBtn = e.target.closest('[data-match]');
-
-    const topic = e.target.closest('[data-truqui-topic]');
+    const cat = e.target.closest('[data-category]');
+    const save = e.target.closest('[data-save]');
+    const match = e.target.closest('[data-match]');
+    const q = e.target.closest('[data-q]');
 
     if (nav) handleNav(nav.dataset.nav);
-
     if (open) openModal(open.dataset.open);
-
-    if (scroll) scrollTo(scroll.dataset.scroll);
-
-    if (category) { activeCategory = category.dataset.category; renderCategories(); renderProducts(); }
-
-    if (cartBtn) addToCart(Number(cartBtn.dataset.cart));
-
-    if (matchBtn) { activeProduct = products.find(p => p.id === Number(matchBtn.dataset.match)); openModal('chat'); }
-
-    if (topic) handleTruquiTopic(topic.dataset.truquiTopic);
-
+    if (scroll) smoothScroll(scroll.dataset.scroll);
+    if (cat) { activeCategory = cat.dataset.category; renderCategories(); renderProducts(); }
+    if (save) toggleSave(save.dataset.save);
+    if (match) handleMatch(match.dataset.match);
+    if (q) handleQuickQ(q.dataset.q);
   });
 
-  document.getElementById('closeModal').addEventListener('click', closeModal);
-
-  document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
-
+  document.getElementById('closeModal').addEventListener('click', () => { closeModal(); if(unsubscribeChat){ unsubscribeChat(); unsubscribeChat=null; } });
+  document.getElementById('modal').addEventListener('click', e => { if(e.target.id==='modal'){ closeModal(); if(unsubscribeChat){unsubscribeChat();unsubscribeChat=null;} } });
   document.getElementById('searchInput').addEventListener('input', renderProducts);
-
   document.getElementById('searchBtn').addEventListener('click', renderProducts);
-
   document.getElementById('modeFilter').addEventListener('change', renderProducts);
-
   document.getElementById('levelFilter').addEventListener('change', renderProducts);
-
   document.getElementById('clearFilters').addEventListener('click', clearFilters);
+  document.getElementById('topProfileBtn').addEventListener('click', () => openModal(currentUser ? 'profile' : 'auth'));
+  document.getElementById('mobileProfileBtn')?.addEventListener('click', () => openModal(currentUser ? 'profile' : 'auth'));
 
-  document.getElementById('truquiFab').addEventListener('click', () => openModal('truqui'));
-
-  document.getElementById('panelSend').addEventListener('click', sendPanelMessage);
-
-  document.getElementById('panelInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendPanelMessage(); });
-
-}
-
-function clearFilters() {
-
-  activeCategory = 'all';
-
-  document.getElementById('searchInput').value = '';
-
-  document.getElementById('modeFilter').value = 'all';
-
-  document.getElementById('levelFilter').value = 'all';
-
-  renderCategories();
-
-  renderProducts();
-
-}
-
-function scrollTo(id) {
-
-  const el = document.getElementById(id);
-
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
-
+  // Truqui
+  document.getElementById('truquiFab').addEventListener('click', toggleTruqui);
+  document.getElementById('truquiClose').addEventListener('click', () => document.getElementById('truquiPanel').classList.remove('open'));
+  document.getElementById('truquiSend').addEventListener('click', sendTruqui);
+  document.getElementById('truquiInput').addEventListener('keydown', e => { if(e.key==='Enter') sendTruqui(); });
 }
 
 function handleNav(id) {
-
   document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === id));
-
-  if (['inicio', 'vitrina', 'categorias'].includes(id)) {
-
-    scrollTo(id);
-
-  } else {
-
-    openModal(id);
-
-  }
-
+  if (['inicio','vitrina','categorias'].includes(id)) smoothScroll(id);
+  else openModal(id);
 }
 
-// ── CART ──
+function smoothScroll(id) { document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
 
-function addToCart(id) {
-
-  if (!cart.includes(id)) cart.push(id);
-
-  document.getElementById('cartCount').textContent = cart.length;
-
-  toast('Producto agregado a tu seleccion.');
-
+function clearFilters() {
+  activeCategory = 'all';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('modeFilter').value = 'all';
+  document.getElementById('levelFilter').value = 'all';
+  renderCategories();
+  renderProducts();
 }
 
 // ── USER UI ──
-
 function updateUserUI() {
-
-  document.getElementById('userNameTop').textContent = user.name;
-
+  const name = currentUser ? (currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario') : 'Entrar';
+  const initials = name.charAt(0).toUpperCase();
+  document.getElementById('userNameTop').textContent = name;
+  document.getElementById('topAvatar').textContent = initials;
+  const si = document.getElementById('sideUserInfo');
+  if (currentUser) {
+    si.style.display = 'block';
+    document.getElementById('sideUserAvatar').textContent = initials;
+    document.getElementById('sideUserName').textContent = name;
+    document.getElementById('sideUserLevel').textContent = currentUserData?.level || 'Nuevo';
+  } else { si.style.display = 'none'; }
+  document.getElementById('cartCount').textContent = savedItems.length;
 }
 
-// ── MODAL ──
-
-const modalTitles = {
-
-  publish: 'Publicar producto o servicio',
-
-  profile: 'Crear usuario y verificar identidad',
-
-  cart: 'Carrito - Mi seleccion',
-
-  chat: 'Chat interno del acuerdo',
-
-  agreements: 'Mis acuerdos',
-
-  favorites: 'Favoritos guardados',
-
-  myPosts: 'Mis publicaciones',
-
-  notifications: 'Centro de actividad',
-
-  settings: 'Preferencias',
-
-  help: 'Ayuda y seguridad',
-
-  shipping: 'Configurar envio seguro',
-
-  rating: 'Calificar acuerdo',
-
-  report: 'Reportar problema',
-
-  truqui: 'Truqui - Tu asistente virtual'
-
-};
-
-function openModal(type) {
-
-  document.getElementById('modalTitle').textContent = modalTitles[type] || 'Truekeamas';
-
-  document.getElementById('modalBody').innerHTML = getModalContent(type);
-
-  document.getElementById('modal').classList.add('open');
-
-  bindModalEvents(type);
-
+// ── TOGGLE SAVE ──
+function toggleSave(id) {
+  if (!currentUser) { toast('Inicia sesión para guardar publicaciones.'); openModal('auth'); return; }
+  if (savedItems.includes(id)) savedItems = savedItems.filter(x => x !== id);
+  else savedItems.push(id);
+  localStorage.setItem('tk_saved', JSON.stringify(savedItems));
+  document.getElementById('cartCount').textContent = savedItems.length;
+  renderProducts();
+  toast(savedItems.includes(id) ? 'Publicación guardada.' : 'Publicación eliminada de guardados.');
 }
 
-function closeModal() {
-
-  document.getElementById('modal').classList.remove('open');
-
-}
-
-function getModalContent(type) {
-
-  switch (type) {
-
-    case 'profile': return profileContent();
-
-    case 'publish': return publishContent();
-
-    case 'cart': return cartContent();
-
-    case 'chat': return chatContent();
-
-    case 'shipping': return shippingContent();
-
-    case 'rating': return ratingContent();
-
-    case 'report': return reportContent();
-
-    case 'truqui': return truquiContent();
-
-    default: return genericContent('Como funciona Truekeamas', 'Publicas, haces match, mantienes el acuerdo en el chat interno, eliges entrega y calificas cuando existe recepcion o evidencia.', '<button class="btn btn-outline" data-open="report">Reportar problema</button>');
-
+// ── MATCH ──
+async function handleMatch(productId) {
+  if (!currentUser) { toast('Debes iniciar sesión para hacer match.'); openModal('auth'); return; }
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+  if (product.ownerId === currentUser.uid) { toast('No puedes hacer match con tu propia publicación.'); return; }
+  if (!window._fb) { toast('Conecta Firebase para usar el match real.'); return; }
+  const { db, collection, addDoc, query, where, getDocs, serverTimestamp } = window._fb;
+  // Check if match already exists
+  const q = query(collection(db, 'matches'),
+    where('productId', '==', productId),
+    where('requesterId', '==', currentUser.uid));
+  const existing = await getDocs(q);
+  if (!existing.empty) {
+    const matchId = existing.docs[0].id;
+    openChatModal(matchId, product);
+    return;
   }
-
+  // Create match
+  try {
+    const ref = await addDoc(collection(db, 'matches'), {
+      productId, productTitle: product.title, productEmoji: product.emoji || '📦',
+      ownerId: product.ownerId, ownerName: product.owner,
+      requesterId: currentUser.uid, requesterName: currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
+      status: 'active', createdAt: serverTimestamp()
+    });
+    // Stats
+    loadStats();
+    toast('¡Match creado! Se abrió tu chat con ' + product.owner);
+    openChatModal(ref.id, product);
+  } catch(e) { console.error(e); toast('Error al crear el match. Intenta de nuevo.'); }
 }
 
-function genericContent(title, text, actions) {
-
-  return `<div class="notice-box notice-lime"><strong>${title}</strong><br>${text}</div><div class="modal-actions">${actions}</div>`;
-
+// ── CHAT MODAL ──
+function openChatModal(matchId, product) {
+  activeMatchId = matchId;
+  openModal('chat_real');
+  // After render, setup listener
+  setTimeout(() => setupChatListener(matchId, product), 200);
 }
 
-function profileContent() {
+function setupChatListener(matchId, product) {
+  if (!window._fb) return;
+  if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
+  const { db, collection, onSnapshot, query, orderBy } = window._fb;
+  const chatBox = document.getElementById('liveChatBox');
+  if (!chatBox) return;
+  const q = query(collection(db, 'matches', matchId, 'messages'), orderBy('createdAt', 'asc'));
+  unsubscribeChat = onSnapshot(q, snap => {
+    chatBox.innerHTML = '';
+    snap.docs.forEach(d => {
+      const m = d.data();
+      const isMe = m.senderId === currentUser?.uid;
+      const div = document.createElement('div');
+      div.className = `chat-bubble ${isMe ? 'me' : 'them'}`;
+      div.innerHTML = `${!isMe ? `<div class="cb-name">${esc(m.senderName)}</div>` : ''}<div>${esc(m.text)}</div><div class="cb-time">${timeAgo(m.createdAt)}</div>`;
+      chatBox.appendChild(div);
+    });
+    chatBox.scrollTop = chatBox.scrollHeight;
+    if (snap.empty) {
+      chatBox.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Inicia la conversación. Deja claro qué ofreces y qué esperas recibir.</div>`;
+    }
+  });
+}
 
+async function sendChatMessage(matchId) {
+  const input = document.getElementById('liveChatInput');
+  const text = input?.value.trim();
+  if (!text || !currentUser || !window._fb) return;
+  if (hasBadWords(text)) { toast('Mensaje bloqueado por lenguaje ofensivo.'); return; }
+  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  try {
+    await addDoc(collection(db, 'matches', matchId, 'messages'), {
+      text, senderId: currentUser.uid,
+      senderName: currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
+      createdAt: serverTimestamp()
+    });
+    input.value = '';
+  } catch(e) { toast('Error al enviar mensaje.'); }
+}
+
+// ── MODAL SYSTEM ──
+function openModal(type) {
+  const titles = {
+    auth: 'Acceder a Truekeamas', publish: 'Publicar producto o servicio',
+    profile: 'Mi perfil', cart: 'Publicaciones guardadas', chat_real: 'Chat del acuerdo',
+    agreements: 'Mis acuerdos', myPosts: 'Mis publicaciones', shipping: 'Envío seguro',
+    rating: 'Calificar acuerdo', report: 'Reportar problema', admin: '🔒 Panel de Administración',
+    help: 'Ayuda', notifications: 'Notificaciones', settings: 'Configuración'
+  };
+  document.getElementById('modalTitle').textContent = titles[type] || 'Truekeamas';
+  document.getElementById('modalBox').className = 'modal-box' + (type === 'admin' ? ' wide' : '');
+  document.getElementById('modalBody').innerHTML = getContent(type);
+  document.getElementById('modal').classList.add('open');
+  bindModalEvents(type);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function getContent(type) {
+  if (type === 'auth') return authContent();
+  if (type === 'publish') return publishContent();
+  if (type === 'profile') return profileContent();
+  if (type === 'cart') return cartContent();
+  if (type === 'chat_real') return chatRealContent();
+  if (type === 'agreements') return agreementsContent();
+  if (type === 'myPosts') return myPostsContent();
+  if (type === 'shipping') return shippingContent();
+  if (type === 'rating') return ratingContent();
+  if (type === 'report') return reportContent();
+  if (type === 'admin') return adminContent();
+  if (type === 'help') return helpContent();
+  return `<div class="notice-box notice-lime"><strong>Sección en desarrollo</strong><br>Esta sección estará disponible pronto.</div>`;
+}
+
+// ── AUTH CONTENT ──
+function authContent() {
   return `
-
-    <div class="form-grid">
-
-      <label class="field">Nombre<input id="profileName" value="${user.created ? user.name : ''}" placeholder="Ej: Camila"></label>
-
-      <label class="field">Correo<input id="profileEmail" type="email" placeholder="correo@ejemplo.cl"></label>
-
-      <label class="field">Documento de identidad<select id="profileDoc"><option>Cedula chilena</option><option>Pasaporte</option></select></label>
-
-      <label class="field">Telefono<input id="profilePhone" placeholder="+56 9 1234 5678"></label>
-
-      <label class="field full">Direccion referencial<input id="profileAddress" placeholder="Comuna o ciudad"></label>
-
-      <div class="notice-box full">Truekeamas solicita verificacion para aumentar confianza, pero cada usuario es responsable de revisar productos, pagos y transporte.</div>
-
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="showTab('login')">Iniciar sesión</button>
+      <button class="auth-tab" id="tabRegister" onclick="showTab('register')">Registrarse</button>
     </div>
-
-    <div class="level-rows" style="margin-top:20px">
-
-      <div class="level-row"><span class="chip chip-violet">Nuevo</span><span>Cuenta recien creada.</span></div>
-
-      <div class="level-row"><span class="chip chip-lime">Verificado</span><span>Identidad validada en la plataforma.</span></div>
-
-      <div class="level-row"><span class="chip chip-lime">Confiable</span><span>Historial positivo y buenas calificaciones.</span></div>
-
-      <div class="level-row"><span class="chip chip-amber">En revision</span><span>Reporte o actividad pendiente.</span></div>
-
-      <div class="level-row"><span class="chip" style="background:#ffe4e9;color:#9b1a35">Bloqueado</span><span>Usuario restringido por incumplimientos.</span></div>
-
+    <div id="loginForm">
+      <div class="form-grid">
+        <label class="field full">Correo electrónico<input type="email" id="loginEmail" placeholder="tu@correo.cl" autocomplete="email"></label>
+        <label class="field full">Contraseña<input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"></label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-violet" id="btnLogin" style="width:100%">Iniciar sesión</button>
+      </div>
+      <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">¿Eres administrador? <button onclick="openModal('admin')" style="color:var(--violet);font-weight:700;font-size:12px">Panel Admin</button></p>
     </div>
-
-    <div class="modal-actions">
-
-      <button class="btn btn-outline" id="btnCreateUser">Crear usuario</button>
-
-      <button class="btn btn-violet" id="btnVerifyUser">Verificar identidad</button>
-
+    <div id="registerForm" style="display:none">
+      <div class="form-grid">
+        <label class="field full">Nombre completo<input type="text" id="regName" placeholder="Ej: Camila Torres"></label>
+        <label class="field full">Correo electrónico<input type="email" id="regEmail" placeholder="tu@correo.cl" autocomplete="email"></label>
+        <label class="field full">Contraseña (mínimo 6 caracteres)<input type="password" id="regPassword" placeholder="••••••••"></label>
+        <label class="field full">Teléfono (opcional)<input type="tel" id="regPhone" placeholder="+56 9 1234 5678"></label>
+        <label class="field full">Comuna<input type="text" id="regLocation" placeholder="Ej: Santiago, La Florida..."></label>
+      </div>
+      <div class="notice-box full" style="margin-top:8px">Al registrarte aceptas que Truekeamas facilita el contacto pero no es responsable de productos, pagos ni transporte.</div>
+      <div class="modal-actions">
+        <button class="btn btn-lime" id="btnRegister" style="width:100%">Crear cuenta</button>
+      </div>
     </div>
-
   `;
-
 }
 
+function showTab(tab) {
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+}
+
+// ── PUBLISH CONTENT ──
 function publishContent() {
-
+  if (!currentUser) return `<div class="notice-box notice-danger">Debes iniciar sesión para publicar.</div><div class="modal-actions"><button class="btn btn-violet" data-open="auth">Iniciar sesión</button></div>`;
   return `
-
     <form id="publishForm" class="form-grid">
-
-      <label class="field">Titulo<input required name="title" placeholder="Ej: Monitor 24 pulgadas"></label>
-
-      <label class="field">Categoria<select name="category">${categories.map(c => `<option>${c.name}</option>`).join('')}<option>Servicios</option></select></label>
-
+      <label class="field">Título<input required name="title" placeholder="Ej: Monitor 24 pulgadas"></label>
+      <label class="field">Categoría<select name="category">${categories.map(c=>`<option>${c.name}</option>`).join('')}<option>Servicios</option></select></label>
       <label class="field">Valor referencial (CLP)<input name="price" type="number" min="0" placeholder="0 para solo trueque"></label>
-
-      <label class="field">Ubicacion<input name="location" placeholder="Comuna o modalidad online"></label>
-
-      <label class="field full">Que buscas a cambio?<textarea required name="wants" placeholder="Ej: teclado mecanico, silla o dinero complementario"></textarea></label>
-
+      <label class="field">Ubicación<input name="location" placeholder="Ej: Santiago, online..."></label>
+      <label class="field full">¿Qué buscas a cambio?<textarea required name="wants" placeholder="Ej: teclado mecánico, silla o dinero complementario"></textarea></label>
+      <label class="field full">Descripción del estado<textarea name="description" placeholder="Describe el estado actual del producto (nuevo, usado, detalles importantes...)"></textarea></label>
       <div class="check-group full">
-
-        <div class="check-row">
-
-          <input type="checkbox" checked disabled>
-
-          <div class="check-row-text"><strong>Trueque activo por defecto</strong><span>Esta opcion no se desactiva.</span></div>
-
-        </div>
-
-        <label class="check-row">
-
-          <input type="checkbox" name="buy">
-
-          <div class="check-row-text"><strong>Permitir compra directa</strong><span>El precio queda como referencia.</span></div>
-
-        </label>
-
-        <label class="check-row">
-
-          <input type="checkbox" name="mixed" checked>
-
-          <div class="check-row-text"><strong>Permitir acuerdo mixto</strong><span>Producto mas dinero u otro beneficio.</span></div>
-
-        </label>
-
+        <div class="check-row"><input type="checkbox" checked disabled><div class="check-row-text"><strong>✅ Trueque activo (siempre activado)</strong><span>El corazón de Truekeamas.</span></div></div>
+        <label class="check-row"><input type="checkbox" name="buy"><div class="check-row-text"><strong>Permitir compra directa</strong><span>El precio referencial queda visible.</span></div></label>
+        <label class="check-row"><input type="checkbox" name="mixed" checked><div class="check-row-text"><strong>Permitir acuerdo mixto</strong><span>Producto más dinero u otro beneficio.</span></div></label>
       </div>
-
-      <div class="notice-box full">Truekeamas muestra tu publicacion como vitrina. El estado, pago y entrega deben ser acordados entre usuarios.</div>
-
+      <div class="notice-box full">Truekeamas muestra tu publicación como vitrina. Estado, pago y entrega se acuerdan entre usuarios.</div>
       <div class="modal-actions full">
-
-        <button type="button" class="btn btn-outline" data-open="shipping">Configurar envio</button>
-
-        <button class="btn btn-lime" type="submit">Publicar</button>
-
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-lime" type="submit" id="publishBtn">📤 Publicar ahora</button>
       </div>
-
-    </form>
-
-  `;
-
+    </form>`;
 }
 
-function cartContent() {
-
-  const items = cart.map(id => products.find(p => p.id === id)).filter(Boolean);
-
-  if (!items.length) return '<div class="empty-state">Tu seleccion esta vacia. Agrega productos desde la vitrina.</div>';
-
-  return `<div class="products" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">${items.map(productCard).join('')}</div>
-
-    <div class="notice-box" style="margin-top:16px">Los productos seleccionados pueden iniciar un match.</div>
-
-    <div class="modal-actions"><button class="btn btn-violet" data-open="chat">Iniciar acuerdo</button></div>`;
-
-}
-
-function chatContent() {
-
-  const title = activeProduct ? activeProduct.title : 'Producto seleccionado';
-
+// ── PROFILE CONTENT ──
+function profileContent() {
+  if (!currentUser) return `<div class="notice-box notice-danger">No has iniciado sesión.</div>`;
+  const name = currentUserData?.displayName || currentUser.displayName || 'Usuario';
+  const level = currentUserData?.level || 'Nuevo';
+  const phone = currentUserData?.phone || '';
+  const location = currentUserData?.location || '';
   return `
-
-    <div class="notice-box">Acuerdo interno por: <strong>${title}</strong>. Los usuarios son responsables de verificar y cumplir lo acordado.</div>
-
-    <div class="chat-box" id="chatBox" style="margin:16px 0;display:flex;flex-direction:column;gap:10px">
-
-      <div class="chat-bubble them">Hola, sigue disponible para trueque?</div>
-
-      <div class="chat-bubble me">Si. Busco una oferta equivalente o un acuerdo mixto.</div>
-
-      <div class="chat-bubble them">Perfecto. Dejemos aqui el detalle de entrega y evidencia.</div>
-
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:20px;background:var(--surface);border-radius:14px;border:1.5px solid var(--line)">
+      <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,var(--violet),var(--violet-light));display:grid;place-items:center;color:#fff;font-family:'Syne',sans-serif;font-size:26px;font-weight:900">${name.charAt(0).toUpperCase()}</div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900">${esc(name)}</div>
+        <div style="font-size:13px;color:var(--muted)">${currentUser.email}</div>
+        <span class="chip chip-lime" style="margin-top:6px">${level}</span>
+      </div>
     </div>
-
-    <div style="display:flex;gap:8px">
-
-      <input id="chatInput" style="flex:1;border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;outline:none;font-size:14px" placeholder="Escribe una propuesta clara y respetuosa...">
-
+    <div class="form-grid">
+      <label class="field full">Nombre visible<input id="editName" value="${esc(name)}" placeholder="Tu nombre"></label>
+      <label class="field">Teléfono<input id="editPhone" value="${esc(phone)}" placeholder="+56 9..."></label>
+      <label class="field">Ciudad / Comuna<input id="editLocation" value="${esc(location)}" placeholder="Tu ubicación"></label>
     </div>
-
+    <div class="level-rows" style="margin-top:20px">
+      <div class="level-row"><span class="chip chip-violet">Nuevo</span><span>Cuenta recién creada.</span></div>
+      <div class="level-row"><span class="chip chip-lime">Verificado</span><span>Identidad validada en la plataforma.</span></div>
+      <div class="level-row"><span class="chip chip-lime">Confiable</span><span>Historial positivo y buenas calificaciones.</span></div>
+      <div class="level-row"><span class="chip chip-amber">En revisión</span><span>Reporte o actividad pendiente.</span></div>
+      <div class="level-row"><span class="chip" style="background:#ffe4e9;color:#9b1a35">Bloqueado</span><span>Restringido por incumplimientos.</span></div>
+    </div>
     <div class="modal-actions">
-
-      <button class="btn btn-outline" data-open="shipping">Envio seguro</button>
-
-      <button class="btn btn-outline" data-open="report">Reportar</button>
-
-      <button class="btn btn-violet" id="sendChatBtn">Enviar</button>
-
-    </div>
-
-  `;
-
+      <button class="btn btn-danger btn-sm" id="btnLogout">Cerrar sesión</button>
+      <button class="btn btn-violet" id="btnSaveProfile">💾 Guardar cambios</button>
+    </div>`;
 }
 
+// ── CART CONTENT ──
+function cartContent() {
+  const items = allProducts.filter(p => savedItems.includes(p.id));
+  if (!items.length) return `<div class="empty-state"><span class="es-icon">🤍</span><p>No tienes publicaciones guardadas aún.</p></div>`;
+  return `<div class="products" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${items.map(productCard).join('')}</div>
+    <div class="notice-box" style="margin-top:16px">Guarda publicaciones para iniciar un acuerdo cuando estés listo.</div>`;
+}
+
+// ── REAL CHAT CONTENT ──
+function chatRealContent() {
+  if (!activeMatchId) return `<div class="notice-box notice-danger">Error al abrir el chat.</div>`;
+  const product = allProducts.find(p => p.id === (window._currentMatchProduct?.id));
+  return `
+    <div class="notice-box" style="margin-bottom:14px">Chat del acuerdo. Todo lo que escribas queda registrado. Sé claro y respetuoso.</div>
+    <div class="chat-box" id="liveChatBox" style="margin-bottom:12px">
+      <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px"><div class="spinner" style="margin:0 auto 8px"></div>Cargando mensajes...</div>
+    </div>
+    <div class="chat-input-row">
+      <input id="liveChatInput" placeholder="Escribe tu propuesta (qué ofreces, cómo entregas, cuándo)...">
+      <button class="btn btn-violet btn-sm" id="sendChatBtn">Enviar</button>
+    </div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-outline btn-sm" data-open="shipping">📦 Envío seguro</button>
+      <button class="btn btn-outline btn-sm" data-open="report">⚠️ Reportar</button>
+      <button class="btn btn-lime btn-sm" data-open="rating">⭐ Calificar</button>
+    </div>`;
+}
+
+// ── AGREEMENTS CONTENT ──
+function agreementsContent() {
+  if (!currentUser) return `<div class="notice-box notice-danger">Inicia sesión para ver tus acuerdos.</div>`;
+  if (!window._fb) return `<div class="notice-box">Conecta Firebase para ver tus acuerdos.</div>`;
+  let html = `<div class="matches-list" id="matchesList"><div class="spinner spinner-big" style="margin:20px auto;display:block"></div></div>`;
+  setTimeout(async () => {
+    const { db, collection, query, where, getDocs, orderBy } = window._fb;
+    const [asOwner, asRequester] = await Promise.all([
+      getDocs(query(collection(db,'matches'), where('ownerId','==',currentUser.uid))),
+      getDocs(query(collection(db,'matches'), where('requesterId','==',currentUser.uid)))
+    ]);
+    const matches = [...asOwner.docs, ...asRequester.docs].map(d=>({id:d.id,...d.data()}));
+    const list = document.getElementById('matchesList');
+    if (!list) return;
+    if (!matches.length) { list.innerHTML = `<div class="empty-state"><span class="es-icon">🤝</span><p>Aún no tienes acuerdos activos.</p><button class="btn btn-violet btn-sm" data-open="vitrina">Explorar publicaciones</button></div>`; return; }
+    list.innerHTML = matches.map(m => {
+      const isOwner = m.ownerId === currentUser.uid;
+      const other = isOwner ? m.requesterName : m.ownerName;
+      return `<div class="match-card" data-open-match="${m.id}" data-product-id="${m.productId}">
+        <div class="match-card-emoji">${m.productEmoji||'📦'}</div>
+        <div class="match-card-info">
+          <div class="match-card-title">${esc(m.productTitle||'Producto')}</div>
+          <div class="match-card-sub">${isOwner?'Solicitud de':'Chat con'}: ${esc(other||'Usuario')}</div>
+        </div>
+        <span class="match-card-badge active">Activo</span>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('[data-open-match]').forEach(el => {
+      el.addEventListener('click', () => {
+        const m = matches.find(x => x.id === el.dataset.openMatch);
+        if (m) {
+          const p = allProducts.find(x => x.id === m.productId) || { id: m.productId, title: m.productTitle, emoji: m.productEmoji };
+          window._currentMatchProduct = p;
+          activeMatchId = m.id;
+          closeModal();
+          setTimeout(() => openChatModal(m.id, p), 100);
+        }
+      });
+    });
+  }, 100);
+  return html;
+}
+
+// ── MY POSTS CONTENT ──
+function myPostsContent() {
+  if (!currentUser) return `<div class="notice-box notice-danger">Inicia sesión para ver tus publicaciones.</div>`;
+  const mine = allProducts.filter(p => p.ownerId === currentUser.uid && p.status !== 'deleted');
+  if (!mine.length) return `<div class="empty-state"><span class="es-icon">📝</span><p>Aún no tienes publicaciones.</p><button class="btn btn-lime btn-sm" data-open="publish">Publicar ahora</button></div>`;
+  return `<div class="myposts-list">${mine.map(p => `
+    <div class="mypost-card">
+      <div class="mypost-emoji">${p.emoji||'📦'}</div>
+      <div class="mypost-info">
+        <div class="mypost-title">${esc(p.title)}</div>
+        <div class="mypost-sub">${formatPrice(p.price)} · ${p.category}</div>
+      </div>
+      <div class="mypost-actions">
+        <button class="btn btn-danger btn-sm" data-delete-post="${p.id}">🗑️</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+// ── SHIPPING CONTENT ──
 function shippingContent() {
-
   return `
-
     <form id="shippingForm" class="form-grid">
-
-      <label class="field">Empresa de envio<input required name="company" placeholder="Chilexpress, Starken, Correos..."></label>
-
-      <label class="field">Tipo de entrega<select name="kind"><option>Sucursal</option><option>Domicilio</option></select></label>
-
+      <label class="field">Empresa de envío<input required name="company" placeholder="Chilexpress, Starken, Correos..."></label>
+      <label class="field">Tipo de entrega<select name="kind"><option>Sucursal</option><option>Domicilio</option><option>Presencial</option></select></label>
       <label class="field">Fecha estimada<input required name="date" type="date"></label>
-
-      <label class="field">Codigo de seguimiento<input required name="tracking" placeholder="TRK-123456"></label>
-
-      <label class="field full">Comprobante o evidencia<input name="proof" type="file"></label>
-
-      <div class="notice-box full">Con envio seguro, sube tracking, fecha y comprobante.</div>
-
-      <div class="modal-actions full"><button class="btn btn-lime" type="submit">Guardar envio seguro</button></div>
-
-    </form>
-
-  `;
-
+      <label class="field">Código de seguimiento<input name="tracking" placeholder="TRK-123456 (opcional)"></label>
+      <label class="field full">Notas de entrega<textarea name="notes" placeholder="Dirección, instrucciones, contacto..."></textarea></label>
+      <label class="field full">Comprobante o evidencia<input name="proof" type="file" accept="image/*,.pdf"></label>
+      <div class="notice-box full">Sube tracking y comprobante para dejar evidencia del acuerdo.</div>
+      <div class="modal-actions full"><button class="btn btn-lime" type="submit">💾 Guardar envío</button></div>
+    </form>`;
 }
 
+// ── RATING CONTENT ──
 function ratingContent() {
-
+  if (!currentUser) return `<div class="notice-box notice-danger">Inicia sesión para calificar.</div>`;
   return `
-
     <form id="ratingForm" class="form-grid">
-
-      <label class="field">Puntaje<select name="stars"><option>5 estrellas</option><option>4 estrellas</option><option>3 estrellas</option><option>2 estrellas</option><option>1 estrella</option></select></label>
-
-      <label class="field">Acuerdo recibido<select name="received"><option>Si, con evidencia</option><option>Si, presencial</option></select></label>
-
-      <label class="field full">Comentario respetuoso<textarea required name="comment" placeholder="Cuenta como fue el acuerdo sin lenguaje ofensivo."></textarea></label>
-
-      <div class="notice-box full">El sistema bloquea insultos antes de publicar comentarios.</div>
-
-      <div class="modal-actions full"><button class="btn btn-lime" type="submit">Guardar calificacion</button></div>
-
-    </form>
-
-  `;
-
+      <label class="field">Puntaje<select name="stars"><option>5 ⭐⭐⭐⭐⭐</option><option>4 ⭐⭐⭐⭐</option><option>3 ⭐⭐⭐</option><option>2 ⭐⭐</option><option>1 ⭐</option></select></label>
+      <label class="field">Acuerdo recibido<select name="received"><option>Sí, con evidencia</option><option>Sí, presencial</option><option>Pendiente</option></select></label>
+      <label class="field full">Comentario respetuoso<textarea required name="comment" placeholder="Cuenta cómo fue el acuerdo sin lenguaje ofensivo."></textarea></label>
+      <div class="notice-box full">El sistema bloquea insultos y lenguaje ofensivo.</div>
+      <div class="modal-actions full"><button class="btn btn-lime" type="submit">⭐ Guardar calificación</button></div>
+    </form>`;
 }
 
+// ── REPORT CONTENT ──
 function reportContent() {
-
   return `
-
     <form id="reportForm" class="form-grid">
-
-      <label class="field">Motivo<select name="reason"><option>Usuario sospechoso</option><option>Producto enganoso</option><option>Lenguaje ofensivo</option><option>Problema de entrega</option></select></label>
-
-      <label class="field">Usuario o publicacion<input required name="target" placeholder="Nombre o producto"></label>
-
-      <label class="field full">Descripcion<textarea required name="description" placeholder="Describe lo ocurrido y adjunta evidencia."></textarea></label>
-
-      <label class="field full">Evidencia<input name="proof" type="file"></label>
-
-      <div class="notice-box full">El reporte puede dejar al usuario En revision.</div>
-
-      <div class="modal-actions full"><button class="btn btn-danger" type="submit">Enviar reporte</button></div>
-
-    </form>
-
-  `;
-
+      <label class="field">Motivo<select name="reason"><option>Usuario sospechoso</option><option>Producto engañoso</option><option>Lenguaje ofensivo</option><option>Problema de entrega</option><option>Otro</option></select></label>
+      <label class="field">Usuario o publicación<input required name="target" placeholder="Nombre o título del producto"></label>
+      <label class="field full">Descripción<textarea required name="description" placeholder="Describe lo ocurrido con evidencia si tienes."></textarea></label>
+      <label class="field full">Evidencia (opcional)<input name="proof" type="file" accept="image/*"></label>
+      <div class="notice-box full">El reporte puede dejar al usuario En revisión. Truekeamas protege a la comunidad.</div>
+      <div class="modal-actions full"><button class="btn btn-danger" type="submit">🚨 Enviar reporte</button></div>
+    </form>`;
 }
 
-function truquiContent() {
-
+// ── ADMIN CONTENT ──
+function adminContent() {
   return `
-
-    <div class="truqui-bubble" style="border-radius:14px;margin-bottom:14px">
-
-      <b>Soy Truqui, tu asistente virtual</b>
-
-      Puedo ayudarte con el trueque, publicaciones, envios, seguridad y mas.
-
+    <div id="adminLogin">
+      <div class="notice-box" style="margin-bottom:16px">🔒 Área restringida. Solo para administradores de Truekeamas.</div>
+      <div class="form-grid">
+        <label class="field full">Contraseña de administrador<input type="password" id="adminPassInput" placeholder="Contraseña admin"></label>
+      </div>
+      <div class="modal-actions"><button class="btn btn-violet" id="btnAdminLogin">Acceder al panel</button></div>
     </div>
+    <div id="adminPanel" style="display:none"></div>`;
+}
 
-    <div class="quick-actions" style="display:grid;gap:8px;margin-bottom:14px">
+async function loadAdminPanel() {
+  if (!window._fb) { document.getElementById('adminPanel').innerHTML = `<div class="notice-box notice-danger">Firebase no está configurado.</div>`; return; }
+  const { db, collection, getDocs, doc, updateDoc, deleteDoc } = window._fb;
+  document.getElementById('adminPanel').innerHTML = `<div style="text-align:center;padding:30px"><div class="spinner spinner-big" style="margin:0 auto"></div></div>`;
+  const [usersSnap, postsSnap, reportsSnap, matchesSnap] = await Promise.all([
+    getDocs(collection(db,'users')),
+    getDocs(collection(db,'products')),
+    getDocs(collection(db,'reports')),
+    getDocs(collection(db,'matches'))
+  ]);
+  const users = usersSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const posts = postsSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const reports = reportsSnap.docs.map(d=>({id:d.id,...d.data()}));
 
-      <button class="quick-btn" data-truqui-topic="barter"><div class="quick-icon">&#x21BB;</div>Como funciona el trueque?</button>
+  let tab = 'users';
+  const render = () => {
+    document.getElementById('adminPanel').innerHTML = `
+      <div class="admin-grid">
+        <div class="admin-stat"><strong>${users.length}</strong><span>Usuarios registrados</span></div>
+        <div class="admin-stat"><strong>${posts.filter(p=>p.status!=='deleted').length}</strong><span>Publicaciones activas</span></div>
+        <div class="admin-stat"><strong>${matchesSnap.size}</strong><span>Matches creados</span></div>
+        <div class="admin-stat"><strong>${reports.length}</strong><span>Reportes pendientes</span></div>
+      </div>
+      <div class="admin-tabs">
+        <button class="admin-tab ${tab==='users'?'active':''}" onclick="window._adminTab('users')">👥 Usuarios (${users.length})</button>
+        <button class="admin-tab ${tab==='posts'?'active':''}" onclick="window._adminTab('posts')">📦 Publicaciones</button>
+        <button class="admin-tab ${tab==='reports'?'active':''}" onclick="window._adminTab('reports')">🚨 Reportes (${reports.length})</button>
+      </div>
+      ${tab==='users' ? `
+        <table class="admin-table">
+          <thead><tr><th>Usuario</th><th>Email</th><th>Nivel</th><th>Acciones</th></tr></thead>
+          <tbody>${users.map(u=>`<tr>
+            <td><strong>${esc(u.displayName||'Sin nombre')}</strong></td>
+            <td>${esc(u.email||'')}</td>
+            <td><span class="chip ${u.level==='Bloqueado'?'chip-amber':u.level==='Verificado'?'chip-lime':'chip-violet'}">${u.level||'Nuevo'}</span></td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap">
+              ${['Nuevo','Verificado','Confiable','En revisión','Bloqueado'].map(l=>`<button class="btn btn-outline btn-sm" onclick="window._setUserLevel('${u.id}','${l}')">${l}</button>`).join('')}
+            </td>
+          </tr>`).join('')}</tbody>
+        </table>` :
+      tab==='posts' ? `
+        <table class="admin-table">
+          <thead><tr><th>Producto</th><th>Dueño</th><th>Categoría</th><th>Acciones</th></tr></thead>
+          <tbody>${posts.filter(p=>p.status!=='deleted').map(p=>`<tr>
+            <td><strong>${esc(p.title)}</strong></td>
+            <td>${esc(p.owner||'')}</td>
+            <td>${esc(p.category||'')}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="window._deletePost('${p.id}')">🗑️ Eliminar</button></td>
+          </tr>`).join('')}</tbody>
+        </table>` :
+      `<table class="admin-table">
+          <thead><tr><th>Motivo</th><th>Target</th><th>Descripción</th></tr></thead>
+          <tbody>${reports.length?reports.map(r=>`<tr>
+            <td>${esc(r.reason||'')}</td>
+            <td>${esc(r.target||'')}</td>
+            <td>${esc(r.description||'').substring(0,80)}...</td>
+          </tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--muted)">Sin reportes</td></tr>'}</tbody>
+        </table>`}`;
+  };
+  window._adminTab = t => { tab = t; render(); };
+  window._setUserLevel = async (uid, level) => {
+    await updateDoc(doc(db,'users',uid), { level });
+    const u = users.find(x=>x.id===uid);
+    if(u) u.level = level;
+    render(); toast('Nivel actualizado: '+level);
+  };
+  window._deletePost = async (pid) => {
+    if(!confirm('¿Eliminar esta publicación?')) return;
+    await updateDoc(doc(db,'products',pid), { status: 'deleted' });
+    const p = posts.find(x=>x.id===pid);
+    if(p) p.status='deleted';
+    render(); toast('Publicación eliminada.');
+    await loadProducts();
+  };
+  render();
+}
 
-      <button class="quick-btn" data-truqui-topic="publish"><div class="quick-icon">&#x1F4DD;</div>Como publicar</button>
-
-      <button class="quick-btn" data-truqui-topic="shipping"><div class="quick-icon">&#x1F4E6;</div>Envio seguro</button>
-
-      <button class="quick-btn" data-truqui-topic="security"><div class="quick-icon">&#x1F510;</div>Seguridad</button>
-
-    </div>
-
-    <div class="chat-log" id="modalChatLog" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-
-      <div class="chat-msg bot">Hola, soy Truqui. En que puedo ayudarte?</div>
-
-    </div>
-
-    <div style="display:flex;gap:8px">
-
-      <input id="modalTruquiInput" style="flex:1;border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;outline:none;font-size:14px" placeholder="Escribe tu mensaje...">
-
-      <button class="send-btn" id="modalTruquiSend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button>
-
-    </div>
-
-  `;
-
+// ── HELP CONTENT ──
+function helpContent() {
+  return `
+    <div style="display:grid;gap:14px">
+      <div class="notice-box notice-lime"><strong>🔧 Configurar Firebase</strong><br>
+        1. Ve a <a href="https://console.firebase.google.com" target="_blank" style="color:var(--violet)">console.firebase.google.com</a><br>
+        2. Crea un proyecto nuevo (gratis)<br>
+        3. Agrega una app web<br>
+        4. Copia tu configuración y reemplaza los valores "TU_API_KEY" etc. en el código<br>
+        5. En Firestore: crea las colecciones <code>users</code>, <code>products</code>, <code>matches</code>, <code>reports</code><br>
+        6. En Authentication: activa "Correo / Contraseña"
+      </div>
+      <div class="notice-box"><strong>📋 Reglas de Firestore recomendadas</strong><br>
+        Permite leer publicaciones a todos, pero escribir solo a usuarios autenticados. En Firebase Console → Firestore → Rules.
+      </div>
+      <div class="notice-box"><strong>🔒 Cambiar contraseña admin</strong><br>
+        Busca en el código la línea <code>const ADMIN_PASSWORD</code> y cambia el valor.
+      </div>
+    </div>`;
 }
 
 // ── BIND MODAL EVENTS ──
-
 function bindModalEvents(type) {
+  if (!window._fb) return;
+  const { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile,
+          collection, addDoc, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } = window._fb;
 
-  const createBtn = document.getElementById('btnCreateUser');
-
-  const verifyBtn = document.getElementById('btnVerifyUser');
-
-  if (createBtn) createBtn.addEventListener('click', () => {
-
-    const name = document.getElementById('profileName').value.trim() || 'Camila';
-
-    user = { ...user, name, created: true, level: 'Nuevo' };
-
-    updateUserUI();
-
-    toast('Usuario creado. Tu nivel actual es Nuevo.');
-
+  // AUTH
+  document.getElementById('btnLogin')?.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    if (!email || !pass) return toast('Completa todos los campos.');
+    const btn = document.getElementById('btnLogin');
+    btn.textContent = 'Entrando...'; btn.disabled = true;
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      closeModal(); toast('¡Bienvenido de vuelta!');
+    } catch(e) {
+      btn.textContent = 'Iniciar sesión'; btn.disabled = false;
+      toast(e.code === 'auth/wrong-password' ? 'Contraseña incorrecta.' : e.code === 'auth/user-not-found' ? 'Usuario no encontrado.' : 'Error al iniciar sesión.');
+    }
   });
 
-  if (verifyBtn) verifyBtn.addEventListener('click', () => {
-
-    const name = document.getElementById('profileName').value.trim() || user.name;
-
-    user = { ...user, name, created: true, verified: true, level: 'Verificado' };
-
-    updateUserUI();
-
-    toast('Identidad verificada. Nivel actualizado a Verificado.');
-
+  document.getElementById('btnRegister')?.addEventListener('click', async () => {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPassword').value;
+    const phone = document.getElementById('regPhone').value.trim();
+    const location = document.getElementById('regLocation').value.trim();
+    if (!name || !email || !pass) return toast('Completa nombre, correo y contraseña.');
+    if (pass.length < 6) return toast('La contraseña debe tener al menos 6 caracteres.');
+    const btn = document.getElementById('btnRegister');
+    btn.textContent = 'Creando cuenta...'; btn.disabled = true;
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(cred.user, { displayName: name });
+      await setDoc(doc(db,'users',cred.user.uid), {
+        displayName: name, email, phone, location, level: 'Nuevo',
+        createdAt: serverTimestamp()
+      });
+      await loadUserData(cred.user.uid);
+      updateUserUI();
+      closeModal(); toast('¡Cuenta creada! Bienvenido/a a Truekeamas.');
+    } catch(e) {
+      btn.textContent = 'Crear cuenta'; btn.disabled = false;
+      toast(e.code === 'auth/email-already-in-use' ? 'Este correo ya está registrado.' : 'Error al crear cuenta.');
+    }
   });
 
-  const publishForm = document.getElementById('publishForm');
+  // PROFILE
+  document.getElementById('btnLogout')?.addEventListener('click', async () => {
+    await signOut(auth); currentUser = null; currentUserData = null;
+    updateUserUI(); closeModal(); toast('Sesión cerrada.');
+  });
+  document.getElementById('btnSaveProfile')?.addEventListener('click', async () => {
+    if (!currentUser) return;
+    const name = document.getElementById('editName').value.trim();
+    const phone = document.getElementById('editPhone').value.trim();
+    const location = document.getElementById('editLocation').value.trim();
+    try {
+      await updateProfile(currentUser, { displayName: name });
+      await updateDoc(doc(db,'users',currentUser.uid), { displayName: name, phone, location });
+      currentUserData = { ...currentUserData, displayName: name, phone, location };
+      updateUserUI(); toast('Perfil actualizado.');
+    } catch(e) { toast('Error al guardar.'); }
+  });
 
-  if (publishForm) publishForm.addEventListener('submit', e => {
-
+  // PUBLISH
+  document.getElementById('publishForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-
-    const data = new FormData(publishForm);
-
+    if (!currentUser) return toast('Debes iniciar sesión.');
+    const data = new FormData(e.target);
+    const title = data.get('title')?.trim();
+    const wants = data.get('wants')?.trim();
+    if (!title || !wants) return toast('Completa título y qué buscas.');
     const cat = data.get('category');
+    const emoji = (categories.find(c=>c.name===cat)||{emoji:'📦'}).emoji;
+    const btn = document.getElementById('publishBtn');
+    btn.textContent = 'Publicando...'; btn.disabled = true;
+    try {
+      const ref = await addDoc(collection(db,'products'), {
+        title, category: cat, emoji,
+        price: Number(data.get('price')||0),
+        location: data.get('location')||'',
+        wants, description: data.get('description')||'',
+        barter: true, buy: !!data.get('buy'), mixed: !!data.get('mixed'),
+        ownerId: currentUser.uid,
+        owner: currentUserData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
+        level: currentUserData?.level || 'Nuevo',
+        status: 'active', createdAt: serverTimestamp()
+      });
+      closeModal();
+      await loadProducts(); loadStats();
+      toast('¡Publicación creada! Ya aparece en la vitrina.');
+      smoothScroll('vitrina');
+    } catch(e) { btn.textContent = 'Publicar ahora'; btn.disabled = false; toast('Error al publicar.'); console.error(e); }
+  });
 
-    const emoji = (categories.find(c => c.name === cat) || { emoji: '&#x1F9E9;' }).emoji;
-
-    products.unshift({
-
-      id: Date.now(), title: data.get('title'), owner: user.created ? user.name : 'Invitado',
-
-      category: cat, emoji, level: user.level, price: Number(data.get('price') || 0),
-
-      barter: true, buy: Boolean(data.get('buy')), mixed: Boolean(data.get('mixed')),
-
-      wants: data.get('wants'), location: data.get('location') || 'Por acordar'
-
+  // DELETE OWN POST
+  document.querySelectorAll('[data-delete-post]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar esta publicación?')) return;
+      try {
+        await updateDoc(doc(db,'products',btn.dataset.deletePost), { status: 'deleted' });
+        allProducts = allProducts.filter(p => p.id !== btn.dataset.deletePost);
+        closeModal(); renderProducts(); loadStats(); toast('Publicación eliminada.');
+      } catch(e) { toast('Error al eliminar.'); }
     });
-
-    closeModal();
-
-    renderProducts();
-
-    toast('Publicacion creada. El trueque quedo activo por defecto.');
-
-    scrollTo('vitrina');
-
   });
 
-  const sendChatBtn = document.getElementById('sendChatBtn');
+  // CHAT
+  document.getElementById('sendChatBtn')?.addEventListener('click', () => sendChatMessage(activeMatchId));
+  document.getElementById('liveChatInput')?.addEventListener('keydown', e => { if(e.key==='Enter') sendChatMessage(activeMatchId); });
 
-  if (sendChatBtn) sendChatBtn.addEventListener('click', () => {
-
-    const input = document.getElementById('chatInput');
-
-    const val = input.value.trim();
-
-    if (!val) return;
-
-    if (hasBadWords(val)) return toast('Mensaje bloqueado por lenguaje ofensivo. Usa un tono respetuoso.');
-
-    const box = document.getElementById('chatBox');
-
-    const bubble = document.createElement('div');
-
-    bubble.className = 'chat-bubble me';
-
-    bubble.textContent = val;
-
-    box.appendChild(bubble);
-
-    input.value = '';
-
-    box.scrollTop = box.scrollHeight;
-
+  // SHIPPING
+  document.getElementById('shippingForm')?.addEventListener('submit', e => {
+    e.preventDefault(); toast('Información de envío guardada en el acuerdo.'); openModal('rating');
   });
 
-  const shippingForm = document.getElementById('shippingForm');
-
-  if (shippingForm) shippingForm.addEventListener('submit', e => {
-
+  // RATING
+  document.getElementById('ratingForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-
-    toast('Envio seguro guardado con tracking y comprobante.');
-
-    openModal('rating');
-
+    const data = new FormData(e.target);
+    const comment = String(data.get('comment')||'');
+    if (hasBadWords(comment)) return toast('Comentario bloqueado por lenguaje ofensivo.');
+    if (window._fb && activeMatchId) {
+      try {
+        await addDoc(collection(db,'ratings'), {
+          matchId: activeMatchId, stars: data.get('stars'), comment,
+          userId: currentUser?.uid, createdAt: serverTimestamp()
+        });
+      } catch(e) {}
+    }
+    closeModal(); toast('¡Calificación guardada! Gracias por cuidar la comunidad.');
   });
 
-  const ratingForm = document.getElementById('ratingForm');
-
-  if (ratingForm) ratingForm.addEventListener('submit', e => {
-
+  // REPORT
+  document.getElementById('reportForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-
-    const data = new FormData(ratingForm);
-
-    if (hasBadWords(String(data.get('comment') || ''))) return toast('Comentario bloqueado por lenguaje ofensivo.');
-
-    closeModal();
-
-    toast('Calificacion guardada. Gracias por cuidar la comunidad.');
-
+    const data = new FormData(e.target);
+    if (window._fb) {
+      try {
+        await addDoc(collection(db,'reports'), {
+          reason: data.get('reason'), target: data.get('target'),
+          description: data.get('description'), reporterId: currentUser?.uid,
+          createdAt: serverTimestamp()
+        });
+      } catch(e) {}
+    }
+    closeModal(); toast('Reporte enviado. El equipo lo revisará pronto.');
   });
 
-  const reportForm = document.getElementById('reportForm');
-
-  if (reportForm) reportForm.addEventListener('submit', e => {
-
-    e.preventDefault();
-
-    closeModal();
-
-    toast('Reporte enviado con evidencia. El caso queda En revision.');
-
+  // ADMIN
+  document.getElementById('btnAdminLogin')?.addEventListener('click', async () => {
+    const pass = document.getElementById('adminPassInput').value;
+    if (pass !== ADMIN_PASSWORD) { toast('Contraseña incorrecta.'); return; }
+    document.getElementById('adminLogin').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    await loadAdminPanel();
   });
-
-  const modalSend = document.getElementById('modalTruquiSend');
-
-  const modalInput = document.getElementById('modalTruquiInput');
-
-  if (modalSend) modalSend.addEventListener('click', () => sendModalTruqui());
-
-  if (modalInput) modalInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendModalTruqui(); });
-
 }
 
-function sendModalTruqui() {
-
-  const input = document.getElementById('modalTruquiInput');
-
-  const log = document.getElementById('modalChatLog');
-
-  if (!input || !log) return;
-
-  const text = input.value.trim();
-
+// ── TRUQUI ──
+function toggleTruqui() {
+  document.getElementById('truquiPanel').classList.toggle('open');
+}
+function handleQuickQ(q) {
+  addTcMsg(q, 'user');
+  const ans = getTruquiAnswer(q);
+  setTimeout(() => addTcMsg(ans, 'bot'), 300);
+  document.getElementById('truquiPanel').classList.add('open');
+}
+function sendTruqui() {
+  const inp = document.getElementById('truquiInput');
+  const text = inp.value.trim();
   if (!text) return;
-
-  input.value = '';
-
-  addChatMsg(log, text, 'user');
-
-  const answer = getTruquiAnswer(text);
-
-  setTimeout(() => addChatMsg(log, answer, 'bot'), 400);
-
+  inp.value = '';
+  addTcMsg(text, 'user');
+  const ans = getTruquiAnswer(text);
+  setTimeout(() => addTcMsg(ans, 'bot'), 350);
 }
-
-function addChatMsg(log, text, role) {
-
+function addTcMsg(text, role) {
+  const chat = document.getElementById('truquiChat');
+  if (!chat) return;
   const div = document.createElement('div');
-
-  div.className = `chat-msg ${role}`;
-
+  div.className = `tc-msg ${role}`;
   div.textContent = text;
-
-  log.appendChild(div);
-
-  log.scrollTop = log.scrollHeight;
-
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
-
-// ── TRUQUI PANEL ──
-
-function handleTruquiTopic(topic) {
-
-  const promptMap = { barter: 'trueque', security: 'seguridad', publish: 'publicar', shipping: 'envio', report: 'reportar' };
-
-  const answer = getTruquiAnswer(promptMap[topic] || topic);
-
-  addPanelMsg(answer, 'bot');
-
-  if (topic === 'report') openModal('report');
-
-}
-
-function sendPanelMessage() {
-
-  const input = document.getElementById('panelInput');
-
-  const text = input.value.trim();
-
-  if (!text) return;
-
-  input.value = '';
-
-  const log = document.getElementById('panelChatLog');
-
-  addChatMsg(log, text, 'user');
-
-  const answer = getTruquiAnswer(text);
-
-  setTimeout(() => addChatMsg(log, answer, 'bot'), 400);
-
-}
-
-function addPanelMsg(text, role) {
-
-  const log = document.getElementById('panelChatLog');
-
-  if (log) addChatMsg(log, text, role);
-
-}
-
 function getTruquiAnswer(text) {
-
-  if (hasBadWords(text)) return 'Te ayudo, pero cuida el lenguaje. No se permiten insultos en Truekeamas.';
-
+  if (hasBadWords(text)) return 'Cuida el lenguaje, por favor. En Truekeamas tratamos a todos con respeto.';
   const t = normalizeStr(text);
-
-  if (/truequ|intercamb|barter/.test(t)) return truquiAnswers.publicar;
-
-  if (/explor|buscar|categoria|filtro/.test(t)) return truquiAnswers.explorar;
-
-  if (/public|subir|vender/.test(t)) return truquiAnswers.publicar;
-
-  if (/match|acuerdo|negociar/.test(t)) return truquiAnswers.match;
-
-  if (/chat|mensaje|conversar/.test(t)) return truquiAnswers.chat;
-
-  if (/envio|tracking|sucursal|transport/.test(t)) return truquiAnswers.shipping;
-
-  if (/segurid|ilegal|arma|droga|sospech/.test(t)) return truquiAnswers.security;
-
-  if (/calific|estrella|reputac/.test(t)) return truquiAnswers.rating;
-
-  if (/nivel|verificad|confiable|revision|bloqueado/.test(t)) return truquiAnswers.levels;
-
-  if (/carrito|seleccion|favorito/.test(t)) return truquiAnswers.cart;
-
-  if (/report|denunciar|problema/.test(t)) return truquiAnswers.report;
-
+  if (/truequ|intercamb|barter|cambi/.test(t)) return truquiAnswers.trueque;
+  if (/public|subir|vender|crear/.test(t)) return truquiAnswers.publicar;
+  if (/match|acuerdo|negociar|propuesta/.test(t)) return truquiAnswers.match;
+  if (/segurid|seguro|ilegal|fraude|estaf|sospech/.test(t)) return truquiAnswers.seguridad;
+  if (/envio|enviar|tracking|sucursal|transporte|correo|chilexpress/.test(t)) return truquiAnswers.envio;
+  if (/calific|estrella|reputac|reseñ/.test(t)) return truquiAnswers.calificar;
+  if (/nivel|verificad|confiable|revision|bloqueado/.test(t)) return truquiAnswers.niveles;
   return truquiAnswers.fallback;
-
 }
 
-function normalizeStr(text) {
-
-  return String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-}
-
+// ── UTILS ──
 function hasBadWords(text) {
-
   return /(idiota|imbecil|estupido|mierda|puta|weon|culiao|maricon|basura|conchetumare|ctm)/i.test(normalizeStr(text));
-
 }
-
-// ── TOAST ──
-
+function normalizeStr(t) { return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function esc(str) { return String(str||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 let toastTimer;
-
 function toast(msg) {
-
   const el = document.getElementById('toast');
-
-  el.textContent = msg;
-
-  el.classList.add('visible');
-
+  el.textContent = msg; el.classList.add('visible');
   clearTimeout(toastTimer);
-
-  toastTimer = setTimeout(() => el.classList.remove('visible'), 3000);
-
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 3200);
 }
-
-init();
-
 </script>
-
 </body>
-
 </html>
