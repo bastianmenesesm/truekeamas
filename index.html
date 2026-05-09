@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://res.cloudinary.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://api.cloudinary.com wss://*.firebaseio.com; frame-ancestors 'none';"><meta http-equiv="X-Content-Type-Options" content="nosniff"><meta http-equiv="X-Frame-Options" content="DENY"><meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Truekeamas | Cambia. Ahorra. Conecta.</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@ import{getFirestore,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,delete
 const cfg={apiKey:"AIzaSyDH4TQbvRym1fkIIFwPpssU5qBENCM-GSk",authDomain:"truekeamas.firebaseapp.com",projectId:"truekeamas",storageBucket:"truekeamas.firebasestorage.app",messagingSenderId:"873643507138",appId:"1:873643507138:web:7eacc2a7972639b196aa5b"};
 const app=initializeApp(cfg);
 window._fb={auth:getAuth(app),db:getFirestore(app),createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,updateProfile,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp};
-window.dispatchEvent(new Event('fb-ready'));
+window.dispatchEvent(new Event('fb-ready'));</script><script>window.uploadToCloudinary=async function(file){const fd=new FormData();fd.append('file',file);fd.append('upload_preset','truekeamas');const r=await fetch('https://api.cloudinary.com/v1_1/dnkvgg0zi/image/upload',{method:'POST',body:fd});const d=await r.json();if(d.secure_url)return d.secure_url;throw new Error(d.error?.message||'Upload failed');};const _rl={};function rateLimit(key,maxCalls,windowMs){const now=Date.now();const stored=JSON.parse(sessionStorage.getItem('rl_'+key)||'[]');_rl[key]=stored.filter(t=>now-t<windowMs);if(_rl[key].length>=maxCalls){const s=Math.ceil((windowMs-(now-_rl[key][0]))/1000);throw new Error('Demasiadas acciones. Espera '+(s>60?Math.ceil(s/60)+'min':s+'s')+'.');}  _rl[key].push(now);try{sessionStorage.setItem('rl_'+key,JSON.stringify(_rl[key]));}catch(e){}}function rlPublish(){rateLimit('pub_'+(window.CU?.uid||'x'),5,3600000);}function rlMessage(){rateLimit('msg_'+(window.CU?.uid||'x'),30,60000);}function rlMatch(){rateLimit('mat_'+(window.CU?.uid||'x'),10,3600000);}
 </script>
 <script>
 window.uploadToCloudinary=async function(file){
@@ -550,7 +550,7 @@ function toggleSave(id){
   renderProds();toast(saved.includes(id)?'Guardado ❤️':'Eliminado de guardados.');
 }
 async function doMatch(productId){
-  if(!CU){toast('Inicia sesión para hacer match.');openMod('auth');return;}
+  if(!CU){toast('Inicia sesión para hacer match.');openMod('auth');return;}if(CUD?.level==='Bloqueado'){toast('Tu cuenta está suspendida.');return;}try{rlMatch();}catch(e){toast(e.message);return;}
   const prod=prods.find(p=>p.id===productId);
   if(!prod)return;
   if(prod.ownerId===CU.uid){toast('No puedes hacer match con tu propia publicación.');return;}
@@ -634,7 +634,7 @@ async function sendMsg(mid){
   const txt=inp?.value.trim()||'';
   if(!txt&&!pendImg)return;
   if(!CU||!window._fb)return;
-  if(badW(txt)){toast('Mensaje bloqueado por lenguaje ofensivo.');return;}
+  if(badW(txt)){toast('Mensaje bloqueado por lenguaje ofensivo.');return;}try{rlMessage();}catch(e){toast(e.message);return;}
   const btn=document.getElementById('cSend');if(btn)btn.disabled=true;
   const{db,collection,addDoc,doc,updateDoc,serverTimestamp,st,ref,uploadBytes,getDownloadURL}=window._fb;
   const myN=CUD?.displayName||CU.displayName||CU.email?.split('@')[0]||'Usuario';
@@ -889,7 +889,7 @@ function bindMEv(type){
 
   document.getElementById('pubF')?.addEventListener('submit',async e=>{
     e.preventDefault();
-    if(!CU)return toast('Debes iniciar sesión.');
+    if(!CU)return toast('Debes iniciar sesión.');if(CUD?.level==='Bloqueado')return toast('Tu cuenta está suspendida.');try{rlPublish();}catch(e){toast(e.message);return;}
     const d=new FormData(e.target);
     const ttl=d.get('title')?.trim(),wnt=d.get('wants')?.trim();
     if(!ttl||!wnt)return toast('Completa título y qué buscas.');
