@@ -7,7 +7,7 @@ export default function HeroSection() {
   return (
     <section className="hero" id="inicio">
       <div className="hc">
-        <div className="hl">✦ Plataforma de Trueque Digital</div>
+        <div className="hl">✦ Plataforma de Trueke Digital</div>
         <h2>Intercambia lo que tienes por lo que <em>necesitas</em></h2>
         <p>Truekeamas conecta personas para hacer trueques, compras secundarias o acuerdos mixtos.</p>
         <div className="ha">
