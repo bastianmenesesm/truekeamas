@@ -12,8 +12,13 @@ const NAV = [
   { l: 'Ayuda', id: 'help', ic: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.5 2c-1.1.8-2 1.4-2 3"/><path d="M12 17h.01"/>' },
 ];
 
+const ADMIN_NAV = {
+  l: 'Moderación', id: 'admin',
+  ic: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+};
+
 export default function Sidebar() {
-  const { currentUser, userData, openModal } = useApp();
+  const { currentUser, userData, isAdmin, openModal } = useApp();
 
   function handleNav(id) {
     if (['inicio', 'vitrina', 'categorias'].includes(id)) {
@@ -43,6 +48,17 @@ export default function Sidebar() {
             {item.l}
           </button>
         ))}
+        {isAdmin && (
+          <>
+            <div className="nd" />
+            <button className="ni ni-admin" onClick={() => handleNav(ADMIN_NAV.id)}>
+              <div className="nic nic-admin">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: ADMIN_NAV.ic }} />
+              </div>
+              {ADMIN_NAV.l}
+            </button>
+          </>
+        )}
         <div className="nd" />
       </nav>
       {currentUser && (
@@ -51,7 +67,9 @@ export default function Sidebar() {
             <div className="nua">{initial}</div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--is)' }}>{name || '—'}</div>
-              <div style={{ fontSize: 11, color: 'var(--mu)' }}>{userData?.level || 'Nuevo'}</div>
+              <div style={{ fontSize: 11, color: 'var(--mu)' }}>
+                {isAdmin ? '🛡️ Admin' : (userData?.level || 'Nuevo')}
+              </div>
             </div>
           </div>
         </div>

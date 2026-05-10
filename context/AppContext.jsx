@@ -33,6 +33,7 @@ function rateLimit(key, maxCalls, windowMs) {
 export function AppProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [saved, setSaved] = useState([]);
   const [modal, setModal] = useState(null);
@@ -41,9 +42,12 @@ export function AppProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [modeFilter, setModeFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
+  const [regionFilter, setRegionFilter] = useState('all');
   const [stats, setStats] = useState({ products: '—', users: '—', matches: '—' });
   const toastTimer = useRef(null);
   const lastLoadRef = useRef(0);
+
+  const isAdmin = userData?.role === 'admin';
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -61,6 +65,7 @@ export function AppProvider({ children }) {
       } else {
         setUserData(null);
       }
+      setAuthLoading(false);
     });
     return unsub;
   }, []);
@@ -147,13 +152,17 @@ export function AppProvider({ children }) {
     await signInWithEmailAndPassword(auth, email, password);
   }
 
-  async function registerUser(email, password, name, phone, location) {
+  async function registerUser(email, password, name, phone, region) {
     rateLimit('reg_x', 3, 3600000);
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     await setDoc(doc(db, 'users', cred.user.uid), {
-      displayName: name, email, phone: phone || '', location: location || '',
-      level: 'Nuevo', createdAt: serverTimestamp()
+      displayName: name, email,
+      phone: phone || '',
+      region: region || '',
+      level: 'Nuevo',
+      role: 'user',
+      createdAt: serverTimestamp()
     });
     const ud = await loadUserData(cred.user.uid);
     setUserData(ud);
@@ -164,10 +173,10 @@ export function AppProvider({ children }) {
     setUserData(null);
   }
 
-  async function updateUserProfile(name, phone, location) {
+  async function updateUserProfile(name, phone, region) {
     if (!currentUser) return;
     await updateProfile(currentUser, { displayName: name });
-    await setDoc(doc(db, 'users', currentUser.uid), { displayName: name, phone, location }, { merge: true });
+    await setDoc(doc(db, 'users', currentUser.uid), { displayName: name, phone, region }, { merge: true });
     const ud = await loadUserData(currentUser.uid);
     setUserData(ud);
   }
@@ -189,19 +198,35 @@ export function AppProvider({ children }) {
     await loadProducts();
   }
 
+  async function blockProduct(id) {
+    if (!isAdmin) { showToast('Sin permisos de administrador.'); return; }
+    await updateDoc(doc(db, 'products', id), { status: 'blocked', blockedAt: serverTimestamp(), blockedBy: currentUser.uid });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'blocked' } : p));
+    showToast('Publicación bloqueada.');
+  }
+
+  async function unblockProduct(id) {
+    if (!isAdmin) { showToast('Sin permisos de administrador.'); return; }
+    await updateDoc(doc(db, 'products', id), { status: 'active', blockedAt: null, blockedBy: null });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'active' } : p));
+    showToast('Publicación desbloqueada.');
+  }
+
   function rlMessage() { rateLimit('msg_' + (currentUser?.uid || 'x'), 30, 60000); }
 
   const value = {
-    currentUser, userData, products, saved, modal, toast,
+    currentUser, userData, authLoading, isAdmin,
+    products, saved, modal, toast,
     activeCategory, setActiveCategory,
     searchQuery, setSearchQuery,
     modeFilter, setModeFilter,
     levelFilter, setLevelFilter,
+    regionFilter, setRegionFilter,
     stats,
     showToast, openModal, closeModal,
     toggleSave, doMatch,
     loginUser, registerUser, logoutUser, updateUserProfile,
-    publishProduct, deleteProduct,
+    publishProduct, deleteProduct, blockProduct, unblockProduct,
     loadProducts, loadStats, rlMessage,
     db, collection, query, where, orderBy, addDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot: null
   };

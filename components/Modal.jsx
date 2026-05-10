@@ -8,6 +8,7 @@ import MyPostsModal from '@/components/modals/MyPostsModal';
 import ProfileModal from '@/components/modals/ProfileModal';
 import HelpModal from '@/components/modals/HelpModal';
 import ChatModal from '@/components/modals/ChatModal';
+import AdminModal from '@/components/modals/AdminModal';
 
 const TITLES = {
   auth: 'Acceder',
@@ -18,6 +19,7 @@ const TITLES = {
   profile: '👤 Mi perfil',
   help: '❓ Ayuda',
   chat: '💬 Chat',
+  admin: '🛡️ Panel de moderación',
 };
 
 export default function Modal() {
@@ -38,13 +40,14 @@ export default function Modal() {
       case 'profile': return <ProfileModal />;
       case 'help': return <HelpModal />;
       case 'chat': return <ChatModal mid={modal.mid} prod={modal.prod} />;
+      case 'admin': return <AdminModal />;
       default: return null;
     }
   }
 
   return (
     <div className="mo open" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
-      <div className={`mb${isChat ? ' cm' : ''}`}>
+      <div className={`mb${isChat ? ' cm' : ''}${type === 'admin' ? ' wide' : ''}`}>
         <div className="mh">
           <div>
             <h3>{title}</h3>

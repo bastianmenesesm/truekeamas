@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { REGIONES_CHILE } from '@/lib/regions';
 
 const EYE_ON = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
 const EYE_OFF = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
@@ -65,11 +66,10 @@ export default function AuthModal() {
     const password = fd.get('password')?.toString();
     const name = fd.get('name')?.toString().trim();
     if (!email || !password || !name) return;
-    if (password.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres.'); return; }
-    if (strength.level < 2) { showToast('La contraseña es demasiado débil.'); return; }
+    if (strength.level < 3) { showToast('La contraseña debe tener mayúscula, número y carácter especial.'); return; }
     setLoading(true);
     try {
-      await registerUser(email, password, name, fd.get('phone')?.toString(), fd.get('location')?.toString());
+      await registerUser(email, password, name, fd.get('phone')?.toString(), fd.get('region')?.toString());
       showToast('¡Cuenta creada! Bienvenido/a 🎉');
       closeModal();
     } catch (err) {
@@ -188,9 +188,15 @@ export default function AuthModal() {
                   <div className="pwd-hint">{strength.label}</div>
                 </>
               )}
+              <div className="pwd-reqs">Debe incluir: mayúscula · número · carácter especial (!@#$%...)</div>
             </label>
             <label className="fd">Teléfono<input type="tel" name="phone" placeholder="+56 9..." autoComplete="tel" /></label>
-            <label className="fd">Comuna<input type="text" name="location" placeholder="Ej: La Florida" /></label>
+            <label className="fd">Región
+              <select name="region" defaultValue="">
+                <option value="" disabled>Selecciona tu región</option>
+                {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
           </div>
           <div className="ma">
             <button className="btn bl btn-full" type="submit" disabled={loading}>

@@ -33,8 +33,12 @@ export async function POST(request) {
       createdAt: Date.now(),
     });
 
-    // Send email via Brevo REST API
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${token}`;
+    // Send email via Brevo REST API — use request origin so the link works from any domain
+    const origin = request.headers.get('origin') ||
+      (() => { const r = request.headers.get('referer'); return r ? r.split('/').slice(0, 3).join('/') : null; })() ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      'https://truekeamas.cl';
+    const resetUrl = `${origin}/reset-password?token=${token}`;
     const emailBody = {
       sender: {
         email: process.env.BREVO_SENDER_EMAIL || 'noreply@truekeamas.cl',

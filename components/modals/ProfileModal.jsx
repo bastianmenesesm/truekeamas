@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { REGIONES_CHILE } from '@/lib/regions';
 
 export default function ProfileModal() {
   const { currentUser, userData, updateUserProfile, logoutUser, closeModal, showToast } = useApp();
@@ -12,8 +13,10 @@ export default function ProfileModal() {
     e.preventDefault();
     const fd = new FormData(e.target);
     setLoading(true);
-    try { await updateUserProfile(fd.get('name'), fd.get('phone') || '', fd.get('location') || ''); showToast('Perfil actualizado ✅'); }
-    catch (err) { showToast('Error: ' + err.message); }
+    try {
+      await updateUserProfile(fd.get('name'), fd.get('phone') || '', fd.get('region') || '');
+      showToast('Perfil actualizado ✅');
+    } catch (err) { showToast('Error: ' + err.message); }
     finally { setLoading(false); }
   }
 
@@ -27,13 +30,21 @@ export default function ProfileModal() {
           <div style={{ fontFamily: 'Syne,sans-serif', fontSize: 20, fontWeight: 900 }}>{name}</div>
           <div style={{ fontSize: 13, color: 'var(--mu)' }}>{currentUser.email}</div>
           <span className="cl" style={{ marginTop: 6, display: 'inline-flex', padding: '3px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{userData?.level || 'Nuevo'}</span>
+          {userData?.role === 'admin' && (
+            <span style={{ marginTop: 6, marginLeft: 6, display: 'inline-flex', padding: '3px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(224,51,88,.1)', color: 'var(--dg)' }}>Admin</span>
+          )}
         </div>
       </div>
       <form onSubmit={handleSave}>
         <div className="fg">
           <label className="fd fl">Nombre visible<input name="name" defaultValue={name} /></label>
           <label className="fd">Teléfono<input name="phone" defaultValue={userData?.phone || ''} placeholder="+56 9..." /></label>
-          <label className="fd">Ciudad<input name="location" defaultValue={userData?.location || ''} placeholder="Tu ubicación" /></label>
+          <label className="fd">Región
+            <select name="region" defaultValue={userData?.region || ''}>
+              <option value="">Sin especificar</option>
+              {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
         </div>
         <div className="ma">
           <button type="button" className="btn bd2 bsm" onClick={handleLogout}>Cerrar sesión</button>

@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
+function validatePassword(pwd) {
+  if (!pwd || pwd.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+  if (!/[A-Z]/.test(pwd)) return 'Debe incluir al menos una letra mayúscula.';
+  if (!/[0-9]/.test(pwd)) return 'Debe incluir al menos un número.';
+  if (!/[^A-Za-z0-9]/.test(pwd)) return 'Debe incluir al menos un carácter especial (!@#$%...).';
+  return null;
+}
+
 export async function POST(request) {
   try {
     const { token, password } = await request.json();
@@ -9,8 +17,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Datos incompletos.' }, { status: 400 });
     }
 
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres.' }, { status: 400 });
+    const pwdError = validatePassword(password);
+    if (pwdError) {
+      return NextResponse.json({ error: pwdError }, { status: 400 });
     }
 
     const db = getAdminDb();

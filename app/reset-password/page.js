@@ -52,7 +52,7 @@ function ResetForm() {
     e.preventDefault();
     setError('');
 
-    if (strength.level < 2) { setError('La contraseña es demasiado débil.'); return; }
+    if (strength.level < 3) { setError('La contraseña debe tener mayúscula, número y carácter especial.'); return; }
     if (password !== confirm) { setError('Las contraseñas no coinciden.'); return; }
 
     setLoading(true);
