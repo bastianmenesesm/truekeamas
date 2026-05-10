@@ -6,14 +6,13 @@ import {
   signOut, updateProfile
 } from 'firebase/auth';
 import {
-  collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, onSnapshot, serverTimestamp
+  collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
+  query, where, orderBy, serverTimestamp
 } from 'firebase/firestore';
 
 export const CATS = [
   { n: 'Tecnología', e: '📱' }, { n: 'Hogar', e: '🛋️' }, { n: 'Deportes', e: '⚽' },
-  { n: 'Moda', e: '👕' }, { n: 'Libros', e: '📘' }, { n: 'Juguetes', e: '🧸' },
-  { n: 'Ferreteria', e:'🔨'}
+  { n: 'Moda', e: '👕' }, { n: 'Libros', e: '📘' }, { n: 'Juguetes', e: '🧸' }
 ];
 
 const AppContext = createContext(null);
@@ -25,8 +24,7 @@ function rateLimit(key, maxCalls, windowMs) {
   _rl[key] = stored.filter(t => now - t < windowMs);
   if (_rl[key].length >= maxCalls) {
     const secs = Math.ceil((windowMs - (now - _rl[key][0])) / 1000);
-    const mins = secs > 60 ? Math.ceil(secs / 60) + 'min' : secs + 's';
-    throw new Error(`Demasiadas acciones. Espera ${mins}.`);
+    throw new Error(`Demasiadas acciones. Espera ${secs > 60 ? Math.ceil(secs / 60) + 'min' : secs + 's'}.`);
   }
   _rl[key].push(now);
   try { sessionStorage.setItem('rl_' + key, JSON.stringify(_rl[key])); } catch (e) { }
@@ -103,7 +101,7 @@ export function AppProvider({ children }) {
   function showToast(msg) {
     setToast({ msg, visible: true });
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast({ msg: '', visible: false }), 3000);
+    toastTimer.current = setTimeout(() => setToast({ msg: '', visible: false }), 3500);
   }
 
   function openModal(type) { setModal(type); }
@@ -169,9 +167,7 @@ export function AppProvider({ children }) {
   async function updateUserProfile(name, phone, location) {
     if (!currentUser) return;
     await updateProfile(currentUser, { displayName: name });
-    await setDoc(doc(db, 'users', currentUser.uid), {
-      displayName: name, phone, location
-    }, { merge: true });
+    await setDoc(doc(db, 'users', currentUser.uid), { displayName: name, phone, location }, { merge: true });
     const ud = await loadUserData(currentUser.uid);
     setUserData(ud);
   }
@@ -181,14 +177,8 @@ export function AppProvider({ children }) {
     rateLimit('pub_' + currentUser.uid, 5, 3600000);
     const myN = userData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario';
     await addDoc(collection(db, 'products'), {
-      ...data,
-      photos,
-      ownerId: currentUser.uid,
-      owner: myN,
-      level: userData?.level || 'Nuevo',
-      barter: true,
-      status: 'active',
-      createdAt: serverTimestamp()
+      ...data, photos, ownerId: currentUser.uid, owner: myN,
+      level: userData?.level || 'Nuevo', barter: true, status: 'active', createdAt: serverTimestamp()
     });
     await loadProducts();
     loadStats();
@@ -213,7 +203,7 @@ export function AppProvider({ children }) {
     loginUser, registerUser, logoutUser, updateUserProfile,
     publishProduct, deleteProduct,
     loadProducts, loadStats, rlMessage,
-    db, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs
+    db, collection, query, where, orderBy, addDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot: null
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

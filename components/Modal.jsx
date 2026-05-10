@@ -1,60 +1,62 @@
 'use client';
 import { useApp } from '@/context/AppContext';
-import AuthModal from './modals/AuthModal';
-import PublishModal from './modals/PublishModal';
-import ProfileModal from './modals/ProfileModal';
-import ChatModal from './modals/ChatModal';
-import CartModal from './modals/CartModal';
-import MyPostsModal from './modals/MyPostsModal';
-import AgreementsModal from './modals/AgreementsModal';
-import HelpModal from './modals/HelpModal';
+import AuthModal from '@/components/modals/AuthModal';
+import PublishModal from '@/components/modals/PublishModal';
+import CartModal from '@/components/modals/CartModal';
+import AgreementsModal from '@/components/modals/AgreementsModal';
+import MyPostsModal from '@/components/modals/MyPostsModal';
+import ProfileModal from '@/components/modals/ProfileModal';
+import HelpModal from '@/components/modals/HelpModal';
+import ChatModal from '@/components/modals/ChatModal';
 
 const TITLES = {
-  auth: 'Acceder a Truekeamas',
-  publish: 'Publicar producto o servicio',
-  profile: 'Mi perfil',
-  cart: 'Guardados',
-  agreements: 'Mis acuerdos / Mensajes',
-  myPosts: 'Mis publicaciones',
-  help: 'Ayuda',
+  auth: 'Acceder',
+  publish: '✍️ Publicar',
+  cart: '🤍 Guardados',
+  agreements: '🤝 Mis acuerdos',
+  myposts: '📦 Mis publicaciones',
+  profile: '👤 Mi perfil',
+  help: '❓ Ayuda',
+  chat: '💬 Chat',
 };
 
 export default function Modal() {
   const { modal, closeModal } = useApp();
-
   if (!modal) return null;
 
   const type = typeof modal === 'string' ? modal : modal.type;
-  const title = type === 'chat' ? (modal.prod?.title || 'Chat') : (TITLES[type] || 'Truekeamas');
-  const subtitle = type === 'chat' ? ('Chat con ' + (modal.prod?.owner || 'Usuario')) : '';
-  const isWide = type === 'admin';
+  const title = TITLES[type] || '';
   const isChat = type === 'chat';
 
   function renderContent() {
     switch (type) {
       case 'auth': return <AuthModal />;
       case 'publish': return <PublishModal />;
-      case 'profile': return <ProfileModal />;
       case 'cart': return <CartModal />;
       case 'agreements': return <AgreementsModal />;
-      case 'myPosts': return <MyPostsModal />;
+      case 'myposts': return <MyPostsModal />;
+      case 'profile': return <ProfileModal />;
       case 'help': return <HelpModal />;
       case 'chat': return <ChatModal mid={modal.mid} prod={modal.prod} />;
-      default: return <div className="nb nbl"><strong>En desarrollo</strong><br />Esta sección estará disponible pronto.</div>;
+      default: return null;
     }
   }
 
   return (
-    <div className="mo open" id="modal" onClick={e => { if (e.target.id === 'modal') closeModal(); }}>
-      <div className={`mb${isWide ? ' wide' : ''}${isChat ? ' cm' : ''}`}>
+    <div className="mo open" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+      <div className={`mb${isChat ? ' cm' : ''}`}>
         <div className="mh">
           <div>
             <h3>{title}</h3>
-            {subtitle && <div className="mhs">{subtitle}</div>}
+            {isChat && modal.prod && (
+              <div className="mhs">con {modal.prod.owner} · {modal.prod.title}</div>
+            )}
           </div>
           <button className="mc" onClick={closeModal}>×</button>
         </div>
-        <div className="mbd">{renderContent()}</div>
+        <div className="mbd">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

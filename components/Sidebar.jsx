@@ -12,13 +12,11 @@ const NAV = [
   { l: 'Ayuda', id: 'help', ic: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.5 2c-1.1.8-2 1.4-2 3"/><path d="M12 17h.01"/>' },
 ];
 
-const SCROLL_IDS = ['inicio', 'vitrina', 'categorias'];
-
 export default function Sidebar() {
   const { currentUser, userData, openModal } = useApp();
 
   function handleNav(id) {
-    if (SCROLL_IDS.includes(id)) {
+    if (['inicio', 'vitrina', 'categorias'].includes(id)) {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     } else {
       openModal(id);
@@ -27,42 +25,33 @@ export default function Sidebar() {
 
   const name = userData?.displayName || currentUser?.displayName || '';
   const initial = name ? name.charAt(0).toUpperCase() : '?';
-  const level = userData?.level || 'Nuevo';
 
   return (
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-logo">
-          <svg viewBox="0 0 24 24">
-            <path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z" />
-          </svg>
+          <svg viewBox="0 0 24 24"><path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z" /></svg>
         </div>
-        <div className="brand-text">
-          <h1>Truekeamas</h1>
-          <p>Cambia. Ahorra. Conecta.</p>
-        </div>
+        <div className="brand-text"><h1>Truekeamas</h1><p>Cambia. Ahorra. Conecta.</p></div>
       </div>
-
       <nav className="nav">
-        {NAV.map((item) => (
+        {NAV.map(item => (
           <button key={item.id} className="ni" onClick={() => handleNav(item.id)}>
             <div className="nic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-                dangerouslySetInnerHTML={{ __html: item.ic }} />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: item.ic }} />
             </div>
             {item.l}
           </button>
         ))}
         <div className="nd" />
       </nav>
-
       {currentUser && (
         <div className="nu">
           <div className="nuc">
             <div className="nua">{initial}</div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--is)' }}>{name || '—'}</div>
-              <div style={{ fontSize: 11, color: 'var(--mu)' }}>{level}</div>
+              <div style={{ fontSize: 11, color: 'var(--mu)' }}>{userData?.level || 'Nuevo'}</div>
             </div>
           </div>
         </div>

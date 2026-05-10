@@ -2,15 +2,8 @@
 import { useApp, CATS } from '@/context/AppContext';
 
 export default function CategoryGrid() {
-  const { activeCategory, setActiveCategory, searchQuery, setSearchQuery, modeFilter, setModeFilter, levelFilter, setLevelFilter } = useApp();
-
-  function clearFilters() {
-    setActiveCategory('all');
-    setSearchQuery('');
-    setModeFilter('all');
-    setLevelFilter('all');
-  }
-
+  const { activeCategory, setActiveCategory, setSearchQuery, setModeFilter, setLevelFilter } = useApp();
+  function clearFilters() { setActiveCategory('all'); setSearchQuery(''); setModeFilter('all'); setLevelFilter('all'); }
   return (
     <section className="sec" id="categorias">
       <div className="sh">
@@ -19,13 +12,9 @@ export default function CategoryGrid() {
       </div>
       <div className="cg">
         {CATS.map(c => (
-          <button
-            key={c.n}
-            className={`ci${activeCategory === c.n ? ' active' : ''}`}
-            onClick={() => setActiveCategory(activeCategory === c.n ? 'all' : c.n)}
-          >
-            <div className="ce">{c.e}</div>
-            {c.n}
+          <button key={c.n} className={`ci${activeCategory === c.n ? ' active' : ''}`}
+            onClick={() => setActiveCategory(activeCategory === c.n ? 'all' : c.n)}>
+            <div className="ce">{c.e}</div>{c.n}
           </button>
         ))}
       </div>

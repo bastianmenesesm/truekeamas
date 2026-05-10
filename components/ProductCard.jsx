@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 
 function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : 'Solo trueque'; }
@@ -8,17 +7,8 @@ function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : 'Solo tr
 export default function ProductCard({ product: p }) {
   const { currentUser, saved, toggleSave, doMatch, openModal } = useApp();
   const [imgIdx, setImgIdx] = useState(0);
-
   const own = currentUser && p.ownerId === currentUser.uid;
   const photos = p.photos || [];
-
-  function galNav(dir) {
-    setImgIdx(i => (i + dir + photos.length) % photos.length);
-  }
-
-  function handleMatch() {
-    doMatch(p.id, (mid, prod) => openModal({ type: 'chat', mid, prod }));
-  }
 
   return (
     <article className="pk">
@@ -27,20 +17,13 @@ export default function ProductCard({ product: p }) {
           <img className="gm" src={photos[imgIdx]} alt={p.title} loading="lazy" />
           {photos.length > 1 && (
             <>
-              <button className="gn gp" onClick={() => galNav(-1)}>‹</button>
-              <button className="gn gx" onClick={() => galNav(1)}>›</button>
-              <div className="gd">
-                {photos.map((_, i) => (
-                  <span key={i} className={`gdt${i === imgIdx ? ' active' : ''}`} onClick={() => setImgIdx(i)} />
-                ))}
-              </div>
+              <button className="gn gp" onClick={() => setImgIdx(i => (i - 1 + photos.length) % photos.length)}>‹</button>
+              <button className="gn gx" onClick={() => setImgIdx(i => (i + 1) % photos.length)}>›</button>
+              <div className="gd">{photos.map((_, i) => <span key={i} className={`gdt${i === imgIdx ? ' active' : ''}`} onClick={() => setImgIdx(i)} />)}</div>
             </>
           )}
         </div>
-      ) : (
-        <div className="pi">{p.emoji || '📦'}</div>
-      )}
-
+      ) : <div className="pi">{p.emoji || '📦'}</div>}
       <div className="pb2">
         <div className="ch">
           <span className="cl">Trueque</span>
@@ -56,10 +39,8 @@ export default function ProductCard({ product: p }) {
             <span style={{ fontSize: 11, color: 'var(--mu)', fontStyle: 'italic', gridColumn: '1/-1' }}>✏️ Tu publicación</span>
           ) : (
             <>
-              <button className="btn bo bsm" onClick={() => toggleSave(p.id)}>
-                {saved.includes(p.id) ? '❤️ Guardado' : '🤍 Guardar'}
-              </button>
-              <button className="btn bv bsm" onClick={handleMatch}>🤝 Match</button>
+              <button className="btn bo bsm" onClick={() => toggleSave(p.id)}>{saved.includes(p.id) ? '❤️ Guardado' : '🤍 Guardar'}</button>
+              <button className="btn bv bsm" onClick={() => doMatch(p.id, (mid, prod) => openModal({ type: 'chat', mid, prod }))}>🤝 Match</button>
             </>
           )}
         </div>

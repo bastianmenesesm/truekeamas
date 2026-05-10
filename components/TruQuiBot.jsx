@@ -1,66 +1,82 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
-const TQA = {
-  trueque: 'El trueque es el corazón de Truekeamas. Publicas tu producto con 2 fotos, otro usuario hace clic en "🤝 Match" y se abre un chat en tiempo real donde coordinan el intercambio.',
-  publicar: 'Para publicar: 1) Inicia sesión. 2) Clic en "Publicar ahora". 3) Sube 2 fotos de tu producto. 4) Completa título, categoría, valor referencial y qué buscas. 5) ¡Publicar!',
-  match: 'Para hacer match: ve a una publicación y haz clic en "🤝 Match". Se crea un chat privado en tiempo real. Pueden enviarse mensajes e imágenes.',
-  seguridad: 'Seguridad: No compartas datos bancarios. Prefiere entregas presenciales en lugares públicos. Usa "Reportar" ante cualquier sospecha.',
-  fallback: 'Puedo ayudarte con: trueque, cómo publicar con fotos, cómo hacer match, seguridad o niveles de usuario.',
-};
+const BOT_NAME = 'TruQuiBot';
+
+const RESPONSES = [
+  { keys: ['hola', 'hey', 'buenas', 'saludos'], reply: '¡Hola! 👋 Soy TruQuiBot, tu asistente de trueque. ¿En qué puedo ayudarte?' },
+  { keys: ['trueque', 'intercambio', 'cómo funciona', 'como funciona'], reply: 'El trueque es simple: publicas lo que tienes, encuentras lo que necesitas y coordinan el intercambio directamente. ¡Sin dinero de por medio! 🔄' },
+  { keys: ['publicar', 'publico', 'subir producto'], reply: 'Para publicar: inicia sesión → clic en "Publicar ahora" → sube hasta 2 fotos y completa el formulario. ¡Listo en segundos! ✍️' },
+  { keys: ['match', 'acordar', 'contactar'], reply: 'Haz clic en 🤝 Match en cualquier publicación para abrir un chat privado y coordinar el trueque.' },
+  { keys: ['seguridad', 'seguro', 'confianza', 'estafa'], reply: 'Consejos: 🔒 No compartas datos bancarios. 📍 Prefiere lugares públicos. 🚩 Usa "Reportar" ante conductas sospechosas.' },
+  { keys: ['nivel', 'verificado', 'confiable', 'nuevo'], reply: 'Niveles: 🆕 Nuevo → ✅ Verificado (identidad validada) → ⭐ Confiable (múltiples trueques exitosos).' },
+  { keys: ['foto', 'imagen', 'fotos'], reply: 'Puedes subir hasta 2 fotos por publicación. ¡Usa fotos claras para tener más éxito! 📸' },
+  { keys: ['categoria', 'categoría', 'tipo'], reply: 'Categorías: 📱 Tecnología, 🛋️ Hogar, ⚽ Deportes, 👕 Moda, 📘 Libros y 🧸 Juguetes.' },
+  { keys: ['gracias', 'ok', 'entendido', 'perfecto'], reply: '¡De nada! 😊 ¡Feliz trueque! 🎉' },
+  { keys: ['adios', 'adiós', 'chao', 'bye'], reply: '¡Hasta pronto! 👋' },
+];
+
+const DEFAULT_REPLY = 'Hmm, no estoy seguro. 🤔 Pregúntame sobre cómo publicar, hacer match, niveles o seguridad.';
+
+function getBotReply(text) {
+  const lower = text.toLowerCase();
+  for (const { keys, reply } of RESPONSES) {
+    if (keys.some(k => lower.includes(k))) return reply;
+  }
+  return DEFAULT_REPLY;
+}
 
 export default function TruQuiBot() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([{ type: 'bot', text: 'Hola, soy Truqui. ¿En qué puedo ayudarte?' }]);
-  const inputRef = useRef(null);
+  const [messages, setMessages] = useState([{ from: 'bot', text: '¡Hola! Soy TruQuiBot 🤖 ¿En qué puedo ayudarte hoy?' }]);
+  const [input, setInput] = useState('');
+  const [typing, setTyping] = useState(false);
+  const bottomRef = useRef(null);
 
-  function addMsg(type, text) {
-    setMessages(prev => [...prev, { type, text }]);
-  }
+  useEffect(() => {
+    if (open && bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, open]);
 
-  function handleQ(key) {
-    addMsg('user', { trueque: '¿Cómo funciona el trueque?', publicar: '¿Cómo publico con fotos?', match: '¿Cómo hago match?', seguridad: '¿Cómo es la seguridad?' }[key] || key);
-    setTimeout(() => addMsg('bot', TQA[key] || TQA.fallback), 300);
-  }
-
-  function sendMsg() {
-    const txt = inputRef.current?.value.trim();
-    if (!txt) return;
-    addMsg('user', txt);
-    if (inputRef.current) inputRef.current.value = '';
-    const key = Object.keys(TQA).find(k => txt.toLowerCase().includes(k)) || 'fallback';
-    setTimeout(() => addMsg('bot', TQA[key]), 300);
+  function sendMessage(text) {
+    if (!text.trim()) return;
+    setMessages(prev => [...prev, { from: 'user', text }]);
+    setInput('');
+    setTyping(true);
+    setTimeout(() => {
+      setMessages(prev => [...prev, { from: 'bot', text: getBotReply(text) }]);
+      setTyping(false);
+    }, 700 + Math.random() * 400);
   }
 
   return (
     <>
-      <button className="tfab" onClick={() => setOpen(o => !o)}>🤖</button>
-
+      <button className="tfab" onClick={() => setOpen(o => !o)} title={BOT_NAME}>
+        {open ? '×' : '🤖'}
+      </button>
       <div className={`tp${open ? ' open' : ''}`}>
         <div className="tph">
-          <div style={{ fontSize: 24 }}>🤖</div>
-          <div style={{ flex: 1 }}><h4>Truqui</h4><p>● Asistente virtual</p></div>
+          <div>
+            <h4>🤖 {BOT_NAME}</h4>
+            <p>Asistente de trueque</p>
+          </div>
           <button className="tx" onClick={() => setOpen(false)}>×</button>
         </div>
-
         <div className="tpb">
-          <div className="ti2"><b>👋 ¡Hola! Soy Truqui</b>Pregúntame sobre trueques, publicaciones, match o seguridad.</div>
-          <div className="qg">
-            <button className="qb" onClick={() => handleQ('trueque')}>↻ ¿Cómo funciona el trueque?</button>
-            <button className="qb" onClick={() => handleQ('publicar')}>📷 Cómo publicar con fotos</button>
-            <button className="qb" onClick={() => handleQ('match')}>🤝 Cómo hacer match</button>
-            <button className="qb" onClick={() => handleQ('seguridad')}>🔐 Seguridad</button>
-          </div>
-          <div className="tc">
-            {messages.map((m, i) => (
-              <div key={i} className={`tcm ${m.type === 'bot' ? 'bot' : 'user'}`}>{m.text}</div>
-            ))}
-          </div>
+          {messages.map((m, i) => (
+            <div key={i} className={`tcm ${m.from === 'user' ? 'user' : 'bot'}`}>{m.text}</div>
+          ))}
+          {typing && <div className="tcm bot">●●●</div>}
+          <div ref={bottomRef} />
         </div>
-
         <div className="tir">
-          <input ref={inputRef} placeholder="Escribe tu pregunta..." onKeyDown={e => { if (e.key === 'Enter') sendMsg(); }} />
-          <button className="ts" onClick={sendMsg}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') sendMessage(input); }}
+            placeholder="Escribe tu pregunta..."
+            autoComplete="off"
+          />
+          <button className="ts" onClick={() => sendMessage(input)}>
             <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z" /><path d="M22 2 11 13" /></svg>
           </button>
         </div>

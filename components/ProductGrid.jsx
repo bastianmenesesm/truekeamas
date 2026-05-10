@@ -14,14 +14,7 @@ export default function ProductGrid() {
     return bq && bc && bm && bl;
   });
 
-  const limited = filtered.slice(0, 50);
-
-  function clearFilters() {
-    setActiveCategory('all');
-    setSearchQuery('');
-    setModeFilter('all');
-    setLevelFilter('all');
-  }
+  function clearFilters() { setActiveCategory('all'); setSearchQuery(''); setModeFilter('all'); setLevelFilter('all'); }
 
   return (
     <section className="sec" id="vitrina">
@@ -42,28 +35,15 @@ export default function ProductGrid() {
           </select>
         </div>
       </div>
-
       <div className="pg">
         {products.length === 0 ? (
-          <div className="es">
-            <span className="ei">🔄</span>
-            <p>Cargando...</p>
-            <div className="sp sp2" style={{ margin: '0 auto' }} />
-          </div>
-        ) : limited.length === 0 ? (
-          <div className="es">
-            <span className="ei">🔍</span>
-            <p>Sin resultados.</p>
-            <button className="btn bv bsm" onClick={clearFilters}>Ver todas</button>
-          </div>
+          <div className="es"><span className="ei">🔄</span><p>Cargando...</p><div className="sp sp2" style={{ margin: '0 auto' }} /></div>
+        ) : filtered.length === 0 ? (
+          <div className="es"><span className="ei">🔍</span><p>Sin resultados.</p><button className="btn bv bsm" onClick={clearFilters}>Ver todas</button></div>
         ) : (
           <>
-            {limited.map(p => <ProductCard key={p.id} product={p} />)}
-            {filtered.length > 50 && (
-              <div className="es" style={{ gridColumn: '1/-1' }}>
-                <p>Mostrando 50 de {filtered.length} resultados. Usa los filtros para encontrar lo que buscas.</p>
-              </div>
-            )}
+            {filtered.slice(0, 50).map(p => <ProductCard key={p.id} product={p} />)}
+            {filtered.length > 50 && <div className="es" style={{ gridColumn: '1/-1' }}><p>Mostrando 50 de {filtered.length}. Usa los filtros para buscar.</p></div>}
           </>
         )}
       </div>
