@@ -12,7 +12,8 @@ import {
 
 export const CATS = [
   { n: 'Tecnología', e: '📱' }, { n: 'Hogar', e: '🛋️' }, { n: 'Deportes', e: '⚽' },
-  { n: 'Moda', e: '👕' }, { n: 'Libros', e: '📘' }, { n: 'Juguetes', e: '🧸' }
+  { n: 'Moda', e: '👕' }, { n: 'Libros', e: '📘' }, { n: 'Juguetes', e: '🧸' },
+  { n: 'Ferreteria', e:'🔨'}
 ];
 
 const AppContext = createContext(null);
