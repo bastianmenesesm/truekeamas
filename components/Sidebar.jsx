@@ -1,0 +1,72 @@
+'use client';
+import { useApp } from '@/context/AppContext';
+
+const NAV = [
+  { l: 'Inicio', id: 'inicio', ic: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>' },
+  { l: 'Explorar', id: 'vitrina', ic: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>' },
+  { l: 'Publicar', id: 'publish', ic: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>' },
+  { l: 'Mis acuerdos', id: 'agreements', ic: '<path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/>' },
+  { l: 'Guardados', id: 'cart', ic: '<path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>' },
+  { l: 'Mis publicaciones', id: 'myPosts', ic: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>' },
+  { l: 'Mi perfil', id: 'profile', ic: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' },
+  { l: 'Ayuda', id: 'help', ic: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.5 2c-1.1.8-2 1.4-2 3"/><path d="M12 17h.01"/>' },
+];
+
+const SCROLL_IDS = ['inicio', 'vitrina', 'categorias'];
+
+export default function Sidebar() {
+  const { currentUser, userData, openModal } = useApp();
+
+  function handleNav(id) {
+    if (SCROLL_IDS.includes(id)) {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      openModal(id);
+    }
+  }
+
+  const name = userData?.displayName || currentUser?.displayName || '';
+  const initial = name ? name.charAt(0).toUpperCase() : '?';
+  const level = userData?.level || 'Nuevo';
+
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <div className="brand-logo">
+          <svg viewBox="0 0 24 24">
+            <path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z" />
+          </svg>
+        </div>
+        <div className="brand-text">
+          <h1>Truekeamas</h1>
+          <p>Cambia. Ahorra. Conecta.</p>
+        </div>
+      </div>
+
+      <nav className="nav">
+        {NAV.map((item) => (
+          <button key={item.id} className="ni" onClick={() => handleNav(item.id)}>
+            <div className="nic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                dangerouslySetInnerHTML={{ __html: item.ic }} />
+            </div>
+            {item.l}
+          </button>
+        ))}
+        <div className="nd" />
+      </nav>
+
+      {currentUser && (
+        <div className="nu">
+          <div className="nuc">
+            <div className="nua">{initial}</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--is)' }}>{name || '—'}</div>
+              <div style={{ fontSize: 11, color: 'var(--mu)' }}>{level}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
