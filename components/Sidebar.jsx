@@ -34,10 +34,13 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-logo">
-          <svg viewBox="0 0 24 24"><path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z" /></svg>
+        <div className="brand-logo brand-logo-img">
+          <img src="/logo-icon.ico" alt="Truekeamas" width={48} height={48} style={{ borderRadius: 12, objectFit: 'contain' }} />
         </div>
-        <div className="brand-text"><h1>Truekeamas</h1><p>Cambia. Ahorra. Conecta.</p></div>
+        <div className="brand-text">
+          <h1>truekea<span style={{ color: 'var(--lm)' }}>mas</span></h1>
+          <p>Conecta · Intercambia · Crece</p>
+        </div>
       </div>
       <nav className="nav">
         {NAV.map(item => (

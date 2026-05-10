@@ -51,14 +51,10 @@ export default function LandingPage() {
         {/* ── HEADER ── */}
         <header className="lh">
           <div className="lh-brand">
-            <div className="lh-logo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 12h8M14 9l3 3-3 3M7 7h10a3 3 0 0 1 3 3v7H4v-7a3 3 0 0 1 3-3Z" />
-              </svg>
-            </div>
+            <img src="/logo-icon.ico" alt="Truekeamas" width={42} height={42} style={{ borderRadius: 10, objectFit: 'contain' }} />
             <div>
-              <span className="lh-name">Truekeamas</span>
-              <span className="lh-tagline">Cambia. Ahorra. Conecta.</span>
+              <span className="lh-name">truekea<span style={{ color: 'var(--lm)' }}>mas</span></span>
+              <span className="lh-tagline">Conecta · Intercambia · Crece</span>
             </div>
           </div>
           <nav className="lh-nav">
@@ -72,7 +68,7 @@ export default function LandingPage() {
         {/* ── HERO ── */}
         <section className="l-hero">
           <div className="l-hero-content">
-            <div className="hl" style={{ marginBottom: 20 }}>✦ Plataforma de Trueque Digital en Chile</div>
+            <div className="hl" style={{ marginBottom: 20 }}>✦ Conecta · Intercambia · Crece</div>
             <h1 className="l-hero-title">
               Conectamos <em>personas</em>,<br />creamos <span className="l-hero-green">posibilidades.</span>
             </h1>
@@ -208,7 +204,9 @@ export default function LandingPage() {
         {/* ── FOOTER ── */}
         <footer className="l-footer">
           <div className="l-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--v)' }}>Truekeamas</div>
+            <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: 16 }}>
+              <span style={{ color: 'var(--ink)' }}>truekea</span><span style={{ color: 'var(--lm)' }}>mas</span>
+            </div>
             <div style={{ fontSize: 13, color: 'var(--mu)' }}>© 2025 Truekeamas · Cambia. Ahorra. Conecta.</div>
           </div>
         </footer>
