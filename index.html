@@ -1,7 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://res.cloudinary.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://api.cloudinary.com wss://*.firebaseio.com; frame-ancestors 'none';"><meta http-equiv="X-Content-Type-Options" content="nosniff"><meta http-equiv="X-Frame-Options" content="DENY"><meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data: blob: https://res.cloudinary.com https://firebasestorage.googleapis.com https://lh3.googleusercontent.com;
+  connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://api.cloudinary.com wss://*.firebaseio.com;
+  frame-ancestors 'none';
+">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Truekeamas | Cambia. Ahorra. Conecta.</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,7 +24,7 @@ import{getFirestore,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,delete
 const cfg={apiKey:"AIzaSyDH4TQbvRym1fkIIFwPpssU5qBENCM-GSk",authDomain:"truekeamas.firebaseapp.com",projectId:"truekeamas",storageBucket:"truekeamas.firebasestorage.app",messagingSenderId:"873643507138",appId:"1:873643507138:web:7eacc2a7972639b196aa5b"};
 const app=initializeApp(cfg);
 window._fb={auth:getAuth(app),db:getFirestore(app),createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut,updateProfile,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc,query,where,orderBy,onSnapshot,serverTimestamp};
-window.dispatchEvent(new Event('fb-ready'));</script><script>window.uploadToCloudinary=async function(file){const fd=new FormData();fd.append('file',file);fd.append('upload_preset','truekeamas');const r=await fetch('https://api.cloudinary.com/v1_1/dnkvgg0zi/image/upload',{method:'POST',body:fd});const d=await r.json();if(d.secure_url)return d.secure_url;throw new Error(d.error?.message||'Upload failed');};const _rl={};function rateLimit(key,maxCalls,windowMs){const now=Date.now();const stored=JSON.parse(sessionStorage.getItem('rl_'+key)||'[]');_rl[key]=stored.filter(t=>now-t<windowMs);if(_rl[key].length>=maxCalls){const s=Math.ceil((windowMs-(now-_rl[key][0]))/1000);throw new Error('Demasiadas acciones. Espera '+(s>60?Math.ceil(s/60)+'min':s+'s')+'.');}  _rl[key].push(now);try{sessionStorage.setItem('rl_'+key,JSON.stringify(_rl[key]));}catch(e){}}function rlPublish(){rateLimit('pub_'+(window.CU?.uid||'x'),5,3600000);}function rlMessage(){rateLimit('msg_'+(window.CU?.uid||'x'),30,60000);}function rlMatch(){rateLimit('mat_'+(window.CU?.uid||'x'),10,3600000);}
+window.dispatchEvent(new Event('fb-ready'));
 </script>
 <script>
 window.uploadToCloudinary=async function(file){
@@ -386,7 +398,7 @@ table.at2 td{padding:10px 12px;border-bottom:1px solid var(--ln);vertical-align:
 </div>
 <div class="toast" id="toast"></div>
 <script>
-const ADMIN_PASS='truekeamas2024admin';
+const ADMIN_PASS='';
 const CATS=[{n:'Tecnología',e:'📱'},{n:'Hogar',e:'🛋️'},{n:'Deportes',e:'⚽'},{n:'Moda',e:'👕'},{n:'Libros',e:'📘'},{n:'Juguetes',e:'🧸'}];
 const NAV=[
   {l:'Inicio',id:'inicio',ic:'<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'},
@@ -408,6 +420,27 @@ const TQA={
 
 let CU=null,CUD=null,saved=JSON.parse(localStorage.getItem('tk_s')||'[]');
 let activeC='all',prods=[],chatMID=null,unsubC=null,pendImg=null;
+
+// ============ RATE LIMITING ============
+const _rl = {};
+function rateLimit(key, maxCalls, windowMs) {
+  const now = Date.now();
+  // Persistir en sessionStorage para sobrevivir recargas
+  const stored = JSON.parse(sessionStorage.getItem('rl_'+key)||'[]');
+  _rl[key] = stored.filter(t => now - t < windowMs);
+  if (_rl[key].length >= maxCalls) {
+    const secs = Math.ceil((windowMs - (now - _rl[key][0])) / 1000);
+    const mins = secs > 60 ? Math.ceil(secs/60)+'min' : secs+'s';
+    throw new Error(`Demasiadas acciones. Espera ${mins}.`);
+  }
+  _rl[key].push(now);
+  try { sessionStorage.setItem('rl_'+key, JSON.stringify(_rl[key])); } catch(e){}
+}
+// Límites: 5 publicaciones/hora, 30 mensajes/minuto, 10 matches/hora, 3 registros/hora
+function rlPublish() { rateLimit('pub_'+(CU?.uid||'x'), 5, 3600000); }
+function rlMessage() { rateLimit('msg_'+(CU?.uid||'x'), 30, 60000); }
+function rlMatch()   { rateLimit('mat_'+(CU?.uid||'x'), 10, 3600000); }
+
 
 (function waitFB(){
   if(window._fb){
@@ -431,8 +464,12 @@ function renderCats(){
   document.getElementById('catGrid').innerHTML=CATS.map(c=>`
     <button class="ci${activeC===c.n?' active':''}" data-cat="${c.n}"><div class="ce">${c.e}</div>${c.n}</button>`).join('');
 }
+let _lastLoadProds=0;
 async function loadProds(){
   if(!window._fb)return;
+  const now=Date.now();
+  if(now-_lastLoadProds<5000){setTimeout(loadProds,5000-(now-_lastLoadProds));return;}
+  _lastLoadProds=now;
   const{db,collection,query,orderBy,getDocs}=window._fb;
   try{
     const s=await getDocs(query(collection(db,'products'),orderBy('createdAt','desc')));
@@ -469,7 +506,8 @@ function renderProds(){
   });
   const g=document.getElementById('prodGrid');
   if(!f.length){g.innerHTML='<div class="es"><span class="ei">🔍</span><p>Sin resultados.</p><button class="btn bv bsm" onclick="clearF()">Ver todas</button></div>';return;}
-  g.innerHTML=f.map(pCard).join('');
+  const fLimited=f.slice(0,50);
+  g.innerHTML=fLimited.map(pCard).join('')+(f.length>50?`<div class="es" style="grid-column:1/-1"><p>Mostrando 50 de ${f.length} resultados. Usa los filtros para encontrar lo que buscas.</p></div>`:'');
 }
 function fmtP(v){return v?'$'+Number(v).toLocaleString('es-CL'):'Solo trueque';}
 function pCard(p){
@@ -479,11 +517,11 @@ function pCard(p){
     <div class="gal" id="gal_${p.id}" data-idx="0">
       <img class="gm" id="gm_${p.id}" src="${esc(photos[0])}" alt="${esc(p.title)}" loading="lazy">
       ${photos.length>1?`<button class="gn gp" data-gp="${p.id}">‹</button><button class="gn gx" data-gx="${p.id}">›</button><div class="gd">${photos.map((_,i)=>`<span class="gdt${i===0?' active':''}" data-gid="${p.id}" data-gi="${i}"></span>`).join('')}</div>`:''}
-    </div>`:`<div class="pi">${p.emoji||'📦'}</div>`;
+    </div>`:`<div class="pi">${esc(p.emoji||'📦')}</div>`;
   return`<article class="pk">${gal}<div class="pb2">
     <div class="ch"><span class="cl">Trueque</span>${p.buy?'<span class="cv">Compra</span>':''}${p.mixed?'<span class="ca">Mixto</span>':''}</div>
     <h4>${esc(p.title)}</h4>
-    <div class="pm">por <strong>${esc(p.owner||'Usuario')}</strong> · ${p.level||'Nuevo'}<br>${esc(p.location||'')}</div>
+    <div class="pm">por <strong>${esc(p.owner||'Usuario')}</strong> · ${esc(p.level||'Nuevo')}<br>${esc(p.location||'')}</div>
     <div class="pp">${fmtP(p.price)}</div>
     <div class="pw">Busca: ${esc(p.wants||'')}</div>
     <div class="pak">${own
@@ -516,7 +554,10 @@ function bindEv(){
   });
   document.getElementById('mClose').addEventListener('click',closeCM);
   document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeCM();});
-  document.getElementById('searchInput').addEventListener('input',renderProds);
+  document.getElementById('searchInput').addEventListener('input',function(){
+  if(this.value.length>100)this.value=this.value.substring(0,100);
+  renderProds();
+});
   document.getElementById('searchBtn').addEventListener('click',renderProds);
   document.getElementById('modeF').addEventListener('change',renderProds);
   document.getElementById('levelF').addEventListener('change',renderProds);
@@ -550,7 +591,8 @@ function toggleSave(id){
   renderProds();toast(saved.includes(id)?'Guardado ❤️':'Eliminado de guardados.');
 }
 async function doMatch(productId){
-  if(!CU){toast('Inicia sesión para hacer match.');openMod('auth');return;}if(CUD?.level==='Bloqueado'){toast('Tu cuenta está suspendida.');return;}try{rlMatch();}catch(e){toast(e.message);return;}
+  if(!CU){toast('Inicia sesión para hacer match.');openMod('auth');return;}
+  try{rlMatch();}catch(e){toast(e.message);return;}
   const prod=prods.find(p=>p.id===productId);
   if(!prod)return;
   if(prod.ownerId===CU.uid){toast('No puedes hacer match con tu propia publicación.');return;}
@@ -609,13 +651,14 @@ function startChat(mid){
       const box=document.getElementById('cmsgs');if(!box)return;
       if(snap.empty){box.innerHTML='<div class="cem">✉️ Sé el primero en escribir.<br><small style="color:var(--mu)">Deja claro qué ofreces y qué esperas.</small></div>';return;}
       box.innerHTML='';
-      snap.docs.forEach(d=>{
+      const msgs=snap.docs.slice(-100);// Mostrar solo los últimos 100 msgs
+      msgs.forEach(d=>{
         const m=d.data();const me=m.senderId===CU?.uid;
         const el=document.createElement('div');el.className='cb '+(me?'me':'them');
         const ts=m.createdAt?.toDate?m.createdAt.toDate():new Date();
         const t=ts.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
         el.innerHTML=(me?'':'<div class="cbn">'+esc(m.senderName||'Usuario')+'</div>')
-          +(m.imageUrl?'<img class="cbi" src="'+esc(m.imageUrl)+'" onclick="window.open(\''+esc(m.imageUrl)+'\',\'_blank\')" loading="lazy">':'')
+          +(m.imageUrl&&(m.imageUrl.startsWith('https://res.cloudinary.com')||m.imageUrl.startsWith('https://firebasestorage.googleapis.com'))?'<img class="cbi" src="'+esc(m.imageUrl)+'" onclick="window.open(\''+esc(m.imageUrl)+'\',\'_blank\')" loading="lazy">':'')
           +(m.text?'<div>'+esc(m.text)+'</div>':'')
           +'<div class="cbt">'+t+'</div>';
         box.appendChild(el);
@@ -634,9 +677,10 @@ async function sendMsg(mid){
   const txt=inp?.value.trim()||'';
   if(!txt&&!pendImg)return;
   if(!CU||!window._fb)return;
-  if(badW(txt)){toast('Mensaje bloqueado por lenguaje ofensivo.');return;}try{rlMessage();}catch(e){toast(e.message);return;}
+  if(badW(txt)){toast('Mensaje bloqueado por lenguaje ofensivo.');return;}
+  try{rlMessage();}catch(e){toast(e.message);return;}
   const btn=document.getElementById('cSend');if(btn)btn.disabled=true;
-  const{db,collection,addDoc,doc,updateDoc,serverTimestamp,st,ref,uploadBytes,getDownloadURL}=window._fb;
+  const{db,collection,addDoc,doc,updateDoc,serverTimestamp,st}=window._fb;
   const myN=CUD?.displayName||CU.displayName||CU.email?.split('@')[0]||'Usuario';
   try{
     let imgUrl=null;
@@ -653,6 +697,7 @@ async function sendMsg(mid){
 }
 function selImg(e){
   const f=e.target.files[0];if(!f)return;
+  if(!f.type.startsWith('image/')){toast('Solo se permiten imágenes.');return;}
   if(f.size>5*1024*1024){toast('Imagen supera 5MB.');return;}
   pendImg=f;
   const u=URL.createObjectURL(f);
@@ -800,8 +845,8 @@ function myPostsC(){
   const mine=prods.filter(p=>p.ownerId===CU.uid);
   if(!mine.length)return`<div class="es"><span class="ei">📝</span><p>Aún no tienes publicaciones.</p><button class="btn bl bsm" data-open="publish">Publicar ahora</button></div>`;
   return`<div class="mpl">${mine.map(p=>`<div class="mpk">
-    <div class="mpi">${p.photos&&p.photos[0]?`<img src="${esc(p.photos[0])}" alt="">`:p.emoji||'📦'}</div>
-    <div class="mpif"><div class="t">${esc(p.title)}</div><div class="s">${fmtP(p.price)} · ${p.category}</div></div>
+    <div class="mpi">${p.photos&&p.photos[0]?`<img src="${esc(p.photos[0])}" alt="">`:esc(p.emoji||'📦')}</div>
+    <div class="mpif"><div class="t">${esc(p.title)}</div><div class="s">${fmtP(p.price)} · ${esc(p.category||'')}</div></div>
     <button class="btn bd2 bsm" data-dp="${p.id}">🗑️</button>
   </div>`).join('')}</div>`;}
 
@@ -842,7 +887,7 @@ function helpC(){return`<div style="display:grid;gap:14px">
 
 function bindMEv(type){
   if(!window._fb)return;
-  const{auth,db,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile,collection,addDoc,doc,setDoc,updateDoc,serverTimestamp,ref,uploadBytes,getDownloadURL}=window._fb;
+  const{auth,db,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile,collection,addDoc,doc,setDoc,updateDoc,serverTimestamp}=window._fb;
 
   document.getElementById('btnL')?.addEventListener('click',async()=>{
     const e=document.getElementById('lE').value.trim(),p=document.getElementById('lP').value;
@@ -857,6 +902,7 @@ function bindMEv(type){
     const t2=document.getElementById('rT').value.trim(),l=document.getElementById('rL').value.trim();
     if(!n||!e||!p)return toast('Nombre, correo y contraseña son obligatorios.');
     if(p.length<6)return toast('La contraseña debe tener al menos 6 caracteres.');
+    try{rateLimit('reg',3,3600000);}catch(er){toast(er.message);return;}
     const btn=document.getElementById('btnR');btn.textContent='Creando...';btn.disabled=true;
     try{
       const cr=await createUserWithEmailAndPassword(auth,e,p);
@@ -889,10 +935,14 @@ function bindMEv(type){
 
   document.getElementById('pubF')?.addEventListener('submit',async e=>{
     e.preventDefault();
-    if(!CU)return toast('Debes iniciar sesión.');if(CUD?.level==='Bloqueado')return toast('Tu cuenta está suspendida.');try{rlPublish();}catch(e){toast(e.message);return;}
+    if(!CU)return toast('Debes iniciar sesión.');
+    if(CUD?.level==='Bloqueado')return toast('Tu cuenta está suspendida.');
+    try{rlPublish();}catch(e){toast(e.message);return;}
     const d=new FormData(e.target);
     const ttl=d.get('title')?.trim(),wnt=d.get('wants')?.trim();
     if(!ttl||!wnt)return toast('Completa título y qué buscas.');
+    if(ttl.length>120)return toast('El título no puede superar 120 caracteres.');
+    if(wnt.length>300)return toast('"Qué buscas" no puede superar 300 caracteres.');
     const btn=document.getElementById('pubBtn');btn.textContent='Publicando...';btn.disabled=true;
     const bar=document.getElementById('upBar');
     try{
@@ -942,10 +992,27 @@ function bindMEv(type){
   });
 
   document.getElementById('btnAd')?.addEventListener('click',async()=>{
-    if(document.getElementById('adPass').value!==ADMIN_PASS){toast('Contraseña incorrecta.');return;}
-    document.getElementById('adLogin').style.display='none';
-    document.getElementById('adPanel').style.display='block';
-    await loadAdminPanel();
+    if(!CU){toast('Debes iniciar sesión para acceder al panel admin.');return;}
+    const{db,doc,getDoc}=window._fb;
+    const btnAd=document.getElementById('btnAd');
+    btnAd.textContent='Verificando...';btnAd.disabled=true;
+    try{
+      const adminDoc=await getDoc(doc(db,'admins',CU.uid));
+      if(!adminDoc.exists()){
+        // Fallback: contraseña hardcodeada solo para setup inicial
+        if(document.getElementById('adPass').value!==ADMIN_PASS){
+          toast('Acceso denegado. No eres administrador.');
+          btnAd.textContent='Acceder';btnAd.disabled=false;
+          return;
+        }
+      }
+      document.getElementById('adLogin').style.display='none';
+      document.getElementById('adPanel').style.display='block';
+      await loadAdminPanel();
+    }catch(er){
+      toast('Error: '+er.message);
+      btnAd.textContent='Acceder';btnAd.disabled=false;
+    }
   });
 }
 
