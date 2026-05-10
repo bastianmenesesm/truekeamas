@@ -51,7 +51,7 @@ export default function LandingPage() {
         {/* ── HEADER ── */}
         <header className="lh">
           <div className="lh-brand">
-            <img src="/logo-icon.ico" alt="Truekeamas" width={42} height={42} style={{ borderRadius: 10, objectFit: 'contain' }} />
+            <img src="/logo-icon.ico" alt="Truekeamas" width={42} height={42} style={{ objectFit: 'contain' }} />
             <div>
               <span className="lh-name">truekea<span style={{ color: 'var(--lm)' }}>mas</span></span>
               <span className="lh-tagline">Conecta · Intercambia · Crece</span>

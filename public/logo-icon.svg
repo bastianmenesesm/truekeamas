@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 310" fill="none">
+  <defs>
+    <!-- Full gradient left (cyan) to right (lime) -->
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="420" y2="310" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#00C8FF"/>
+      <stop offset="48%"  stop-color="#00DD88"/>
+      <stop offset="100%" stop-color="#6EDD00"/>
+    </linearGradient>
+    <!-- Left head gradient (cyan-blue) -->
+    <linearGradient id="leftHead" x1="60" y1="20" x2="150" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#44DDFF"/>
+      <stop offset="100%" stop-color="#0088EE"/>
+    </linearGradient>
+    <!-- Right head gradient (green-lime) -->
+    <linearGradient id="rightHead" x1="270" y1="20" x2="365" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#99EE22"/>
+      <stop offset="100%" stop-color="#44BB00"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left person head (blue) -->
+  <circle cx="108" cy="78" r="48" fill="url(#leftHead)"/>
+
+  <!-- Right person head (green) -->
+  <circle cx="312" cy="78" r="48" fill="url(#rightHead)"/>
+
+  <!-- Body — two people arching inward, forming the M/W shape -->
+  <!-- Left arm/body: sweeps down from left head to center-bottom -->
+  <path d="M 68 124
+           C 62 175, 68 215, 88 242
+           C 112 272, 158 286, 210 286
+           C 262 286, 308 272, 332 242
+           C 352 215, 358 175, 352 124"
+        stroke="url(#bodyGrad)"
+        stroke-width="56"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+</svg>

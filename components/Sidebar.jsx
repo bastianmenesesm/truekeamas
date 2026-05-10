@@ -35,7 +35,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-logo brand-logo-img">
-          <img src="/logo-icon.ico" alt="Truekeamas" width={48} height={48} style={{ borderRadius: 12, objectFit: 'contain' }} />
+          <img src="/logo-icon.ico" alt="Truekeamas" width={48} height={48} style={{ objectFit: 'contain' }} />
         </div>
         <div className="brand-text">
           <h1>truekea<span style={{ color: 'var(--lm)' }}>mas</span></h1>
