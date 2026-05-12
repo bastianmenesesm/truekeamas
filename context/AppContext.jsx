@@ -7,8 +7,7 @@ import {
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
-  query, where, orderBy, limit, serverTimestamp, onSnapshot, increment,
-  getCountFromServer
+  query, where, orderBy, limit, serverTimestamp, onSnapshot, increment
 } from 'firebase/firestore';
 
 export { CATS } from '@/lib/categories';
@@ -145,19 +144,19 @@ export function AppProvider({ children }) {
       const snap = await getDocs(
         query(collection(db, 'products'), orderBy('createdAt', 'desc'), limit(80))
       );
-      setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted'));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted');
+      setProducts(list);
+      setStats(prev => ({ ...prev, products: list.length }));
     } catch { }
   }
 
   async function loadStats() {
-    // Usar getCountFromServer — no descarga documentos, solo cuenta
     try {
-      const [p, u, m] = await Promise.all([
-        getCountFromServer(collection(db, 'products')),
-        getCountFromServer(collection(db, 'users')),
-        getCountFromServer(collection(db, 'matches')),
+      const [u, m] = await Promise.all([
+        getDocs(query(collection(db, 'users'),   limit(500))),
+        getDocs(query(collection(db, 'matches'), limit(500))),
       ]);
-      setStats({ products: p.data().count, users: u.data().count, matches: m.data().count });
+      setStats(prev => ({ ...prev, users: u.size, matches: m.size }));
     } catch { }
   }
 
