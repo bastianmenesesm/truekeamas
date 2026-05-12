@@ -107,14 +107,13 @@ export function AppProvider({ children }) {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setReceivedProposals(list);
-    }, () => {});
+    }, (err) => { console.warn('[proposals recibidas]', err.code, err.message); });
     return unsub;
   }, [currentUser]);
 
   /* ── Sent proposals listener ──────────────── */
   useEffect(() => {
     if (!currentUser) { setSentProposals([]); return; }
-    // Sin orderBy para evitar índice compuesto — ordenamos en cliente
     const q = query(
       collection(db, 'proposals'),
       where('proposerUid', '==', currentUser.uid)
@@ -123,7 +122,7 @@ export function AppProvider({ children }) {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setSentProposals(list);
-    }, () => {});
+    }, (err) => { console.warn('[proposals enviadas]', err.code, err.message); });
     return unsub;
   }, [currentUser]);
 
