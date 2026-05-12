@@ -5,10 +5,15 @@ import { useApp } from '@/context/AppContext';
 function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : 'Solo trueque'; }
 
 export default function ProductCard({ product: p }) {
-  const { currentUser, saved, toggleSave, doMatch, openModal } = useApp();
+  const { currentUser, saved, toggleSave, openModal } = useApp();
   const [imgIdx, setImgIdx] = useState(0);
-  const own = currentUser && p.ownerId === currentUser.uid;
+  const own    = currentUser && p.ownerId === currentUser.uid;
   const photos = p.photos || [];
+
+  function handleProposal() {
+    if (!currentUser) { openModal('auth'); return; }
+    openModal({ type: 'match_proposal', productId: p.id });
+  }
 
   return (
     <article className="pk">
@@ -24,14 +29,16 @@ export default function ProductCard({ product: p }) {
           )}
         </div>
       ) : <div className="pi">{p.emoji || '📦'}</div>}
+
       <div className="pb2">
         <div className="ch">
           <span className="cl">Trueque</span>
-          {p.buy && <span className="cv">Compra</span>}
+          {p.buy   && <span className="cv">Compra</span>}
           {p.mixed && <span className="ca">Mixto</span>}
         </div>
         <h4>{p.title}</h4>
-        <div className="pm">por <strong>{p.owner || 'Usuario'}</strong> · {p.level || 'Nuevo'}<br />{p.location || ''}</div>
+        {/* Solo nivel y región, sin nombre por privacidad */}
+        <div className="pm">{p.level || 'Nuevo'} · {p.region || p.location || 'Chile'}</div>
         <div className="pp">{fmtP(p.price)}</div>
         <div className="pw">Busca: {p.wants || ''}</div>
         <div className="pak">
@@ -39,8 +46,12 @@ export default function ProductCard({ product: p }) {
             <span style={{ fontSize: 11, color: 'var(--mu)', fontStyle: 'italic', gridColumn: '1/-1' }}>✏️ Tu publicación</span>
           ) : (
             <>
-              <button className="btn bo bsm" onClick={() => toggleSave(p.id)}>{saved.includes(p.id) ? '❤️ Guardado' : '🤍 Guardar'}</button>
-              <button className="btn bv bsm" onClick={() => doMatch(p.id, (mid, prod) => openModal({ type: 'chat', mid, prod }))}>🤝 Match</button>
+              <button className="btn bo bsm" onClick={() => toggleSave(p.id)}>
+                {saved.includes(p.id) ? '❤️ Guardado' : '🤍 Guardar'}
+              </button>
+              <button className="btn bv bsm" onClick={handleProposal}>
+                🤝 Proponer trueque
+              </button>
             </>
           )}
         </div>

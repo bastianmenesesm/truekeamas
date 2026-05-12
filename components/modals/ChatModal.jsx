@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 
 export default function ChatModal({ mid, prod }) {
-  const { currentUser, userData, showToast, rlMessage } = useApp();
+  const { currentUser, userData, showToast, rlMessage, notifyMessage } = useApp();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendImg, setPendImg] = useState(null);
@@ -43,6 +43,12 @@ export default function ChatModal({ mid, prod }) {
         text: txt, imageUrl, senderId: currentUser.uid, senderName: myN, createdAt: serverTimestamp()
       });
       await updateDoc(doc(db, 'matches', mid), { lastMessage: txt || '📷 Imagen', lastMessageAt: serverTimestamp() });
+      // Notificar al otro usuario
+      const recipientUid = prod?.ownerId === currentUser.uid ? prod?.requesterId : prod?.ownerId;
+      if (recipientUid) {
+        const myN = userData?.displayName || currentUser.displayName || 'Usuario';
+        await notifyMessage(mid, recipientUid, myN, txt || '📷 Imagen');
+      }
       if (inputRef.current) inputRef.current.value = '';
       setPendImg(null); setPendImgUrl(null);
     } catch (err) { showToast('Error: ' + err.message); }

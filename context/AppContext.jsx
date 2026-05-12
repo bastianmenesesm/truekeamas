@@ -7,7 +7,7 @@ import {
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
-  query, where, orderBy, serverTimestamp
+  query, where, orderBy, serverTimestamp, onSnapshot
 } from 'firebase/firestore';
 
 export const CATS = [
@@ -31,24 +31,35 @@ function rateLimit(key, maxCalls, windowMs) {
 }
 
 export function AppProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [userData, setUserData] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [products, setProducts] = useState([]);
-  const [saved, setSaved] = useState([]);
-  const [modal, setModal] = useState(null);
-  const [toast, setToast] = useState({ msg: '', visible: false });
+  const [currentUser, setCurrentUser]       = useState(null);
+  const [userData, setUserData]             = useState(null);
+  const [authLoading, setAuthLoading]       = useState(true);
+  const [products, setProducts]             = useState([]);
+  const [saved, setSaved]                   = useState([]);
+  const [modal, setModal]                   = useState(null);
+  const [toast, setToast]                   = useState({ msg: '', visible: false });
   const [activeCategory, setActiveCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [modeFilter, setModeFilter] = useState('all');
-  const [levelFilter, setLevelFilter] = useState('all');
-  const [regionFilter, setRegionFilter] = useState('all');
-  const [stats, setStats] = useState({ products: '—', users: '—', matches: '—' });
-  const toastTimer = useRef(null);
+  const [searchQuery, setSearchQuery]       = useState('');
+  const [modeFilter, setModeFilter]         = useState('all');
+  const [levelFilter, setLevelFilter]       = useState('all');
+  const [regionFilter, setRegionFilter]     = useState('all');
+  const [stats, setStats]                   = useState({ products: '—', users: '—', matches: '—' });
+
+  // Notifications
+  const [notifications, setNotifications]         = useState([]);
+  // Proposals (received by current user's products)
+  const [receivedProposals, setReceivedProposals] = useState([]);
+  // Proposals sent by current user
+  const [sentProposals, setSentProposals]         = useState([]);
+
+  const toastTimer  = useRef(null);
   const lastLoadRef = useRef(0);
 
-  const isAdmin = userData?.role === 'admin';
+  const isAdmin      = userData?.role === 'admin';
+  const unreadNotifs = notifications.filter(n => !n.read).length;
+  const pendingProposals = receivedProposals.filter(p => p.status === 'pending').length;
 
+  /* ── Saved (localStorage) ─────────────────── */
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const s = localStorage.getItem('tk_s');
@@ -56,6 +67,7 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  /* ── Auth listener ────────────────────────── */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -70,10 +82,49 @@ export function AppProvider({ children }) {
     return unsub;
   }, []);
 
+  /* ── Notifications listener ───────────────── */
   useEffect(() => {
-    loadProducts();
-    loadStats();
-  }, []);
+    if (!currentUser) { setNotifications([]); return; }
+    const q = query(
+      collection(db, 'notifications', currentUser.uid, 'items'),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, snap => {
+      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return unsub;
+  }, [currentUser]);
+
+  /* ── Received proposals listener ─────────── */
+  useEffect(() => {
+    if (!currentUser) { setReceivedProposals([]); return; }
+    const q = query(
+      collection(db, 'proposals'),
+      where('productOwnerUid', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, snap => {
+      setReceivedProposals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return unsub;
+  }, [currentUser]);
+
+  /* ── Sent proposals listener ──────────────── */
+  useEffect(() => {
+    if (!currentUser) { setSentProposals([]); return; }
+    const q = query(
+      collection(db, 'proposals'),
+      where('proposerUid', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, snap => {
+      setSentProposals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return unsub;
+  }, [currentUser]);
+
+  /* ── Products & stats ─────────────────────── */
+  useEffect(() => { loadProducts(); loadStats(); }, []);
 
   async function loadUserData(uid) {
     try {
@@ -103,15 +154,18 @@ export function AppProvider({ children }) {
     } catch { }
   }
 
+  /* ── Toast ────────────────────────────────── */
   function showToast(msg) {
     setToast({ msg, visible: true });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast({ msg: '', visible: false }), 3500);
   }
 
+  /* ── Modal ────────────────────────────────── */
   function openModal(type) { setModal(type); }
-  function closeModal() { setModal(null); }
+  function closeModal()    { setModal(null); }
 
+  /* ── Save ─────────────────────────────────── */
   function toggleSave(id) {
     if (!currentUser) { showToast('Inicia sesión para guardar.'); openModal('auth'); return; }
     const next = saved.includes(id) ? saved.filter(x => x !== id) : [...saved, id];
@@ -120,34 +174,146 @@ export function AppProvider({ children }) {
     showToast(next.includes(id) ? 'Guardado ❤️' : 'Eliminado de guardados.');
   }
 
-  async function doMatch(productId, onChatOpen) {
-    if (!currentUser) { showToast('Inicia sesión para hacer match.'); openModal('auth'); return; }
-    try { rateLimit('mat_' + currentUser.uid, 10, 3600000); } catch (e) { showToast(e.message); return; }
-    const prod = products.find(p => p.id === productId);
-    if (!prod) return;
-    if (prod.ownerId === currentUser.uid) { showToast('No puedes hacer match con tu propia publicación.'); return; }
+  /* ── Notifications helpers ────────────────── */
+  async function createNotif(userId, data) {
     try {
-      const q = query(collection(db, 'matches'), where('productId', '==', productId), where('requesterId', '==', currentUser.uid));
-      const ex = await getDocs(q);
-      let mid;
-      if (!ex.empty) { mid = ex.docs[0].id; showToast('Chat ya existe. Abriendo...'); }
-      else {
-        const myN = userData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario';
-        const r = await addDoc(collection(db, 'matches'), {
-          productId, productTitle: prod.title, productEmoji: prod.emoji || '📦',
-          productPhoto: (prod.photos && prod.photos[0]) || null,
-          ownerId: prod.ownerId, ownerName: prod.owner,
-          requesterId: currentUser.uid, requesterName: myN,
-          status: 'active', lastMessage: '', lastMessageAt: serverTimestamp(), createdAt: serverTimestamp()
-        });
-        mid = r.id;
-        loadStats();
-        showToast('¡Match creado con ' + prod.owner + '! 🎉');
-      }
-      if (onChatOpen) onChatOpen(mid, prod);
-    } catch (e) { showToast('Error: ' + e.message); }
+      await addDoc(collection(db, 'notifications', userId, 'items'), {
+        ...data, read: false, createdAt: serverTimestamp()
+      });
+    } catch { }
   }
 
+  async function markNotifRead(notifId) {
+    if (!currentUser) return;
+    try {
+      await updateDoc(doc(db, 'notifications', currentUser.uid, 'items', notifId), { read: true });
+    } catch { }
+  }
+
+  async function markAllNotifsRead() {
+    if (!currentUser) return;
+    const unread = notifications.filter(n => !n.read);
+    await Promise.all(unread.map(n =>
+      updateDoc(doc(db, 'notifications', currentUser.uid, 'items', n.id), { read: true }).catch(() => {})
+    ));
+  }
+
+  /* ── Message notification ─────────────────── */
+  async function notifyMessage(matchId, recipientUid, senderName, preview) {
+    if (!recipientUid || recipientUid === currentUser?.uid) return;
+    await createNotif(recipientUid, {
+      type: 'new_message',
+      title: `Nuevo mensaje de ${senderName}`,
+      body: preview.length > 60 ? preview.slice(0, 57) + '…' : preview,
+      chatId: matchId,
+      read: false
+    });
+  }
+
+  /* ── Proposals ────────────────────────────── */
+  async function submitProposal(productId, offerData) {
+    if (!currentUser) { openModal('auth'); return; }
+    const prod = products.find(p => p.id === productId);
+    if (!prod) throw new Error('Publicación no encontrada');
+    if (prod.ownerId === currentUser.uid) throw new Error('No puedes enviar una propuesta a tu propia publicación.');
+    try { rateLimit('prop_' + currentUser.uid, 5, 3600000); } catch (e) { throw e; }
+
+    // Check for existing pending proposal
+    const existing = await getDocs(query(
+      collection(db, 'proposals'),
+      where('productId', '==', productId),
+      where('proposerUid', '==', currentUser.uid),
+      where('status', '==', 'pending')
+    ));
+    if (!existing.empty) throw new Error('Ya tienes una propuesta pendiente para esta publicación.');
+
+    const myName = userData?.displayName || currentUser.displayName || 'Usuario';
+    const ref = await addDoc(collection(db, 'proposals'), {
+      productId,
+      productTitle: prod.title,
+      productPhoto: prod.photos?.[0] || null,
+      productOwnerUid: prod.ownerId,
+      proposerUid: currentUser.uid,
+      proposerName: myName,
+      offerType: offerData.offerType,
+      offerDescription: offerData.offerDescription || '',
+      offerPhotos: offerData.offerPhotos || [],
+      offerAmount: offerData.offerAmount || null,
+      message: offerData.message || '',
+      status: 'pending',
+      matchId: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    await createNotif(prod.ownerId, {
+      type: 'proposal_received',
+      title: '¡Nueva propuesta de trueque!',
+      body: `Propuesta para "${prod.title}"`,
+      proposalId: ref.id,
+      productId
+    });
+    return ref.id;
+  }
+
+  async function acceptProposal(proposalId) {
+    if (!currentUser) return;
+    const propSnap = await getDoc(doc(db, 'proposals', proposalId));
+    if (!propSnap.exists()) throw new Error('Propuesta no encontrada');
+    const proposal = propSnap.data();
+    if (proposal.productOwnerUid !== currentUser.uid) throw new Error('Sin permiso');
+
+    // Create match (chat entry)
+    const matchRef = await addDoc(collection(db, 'matches'), {
+      productId: proposal.productId,
+      productTitle: proposal.productTitle,
+      productPhoto: proposal.productPhoto || null,
+      ownerId: proposal.productOwnerUid,
+      ownerName: userData?.displayName || currentUser.displayName || 'Usuario',
+      requesterId: proposal.proposerUid,
+      requesterName: proposal.proposerName,
+      proposalId,
+      status: 'active',
+      lastMessage: '',
+      lastMessageAt: serverTimestamp(),
+      createdAt: serverTimestamp()
+    });
+
+    await updateDoc(doc(db, 'proposals', proposalId), {
+      status: 'accepted', matchId: matchRef.id, updatedAt: serverTimestamp()
+    });
+
+    await createNotif(proposal.proposerUid, {
+      type: 'proposal_accepted',
+      title: '¡Propuesta aceptada! 🎉',
+      body: `Tu propuesta para "${proposal.productTitle}" fue aceptada. ¡Ya pueden chatear!`,
+      proposalId, productId: proposal.productId, chatId: matchRef.id
+    });
+
+    loadStats();
+    return matchRef.id;
+  }
+
+  async function declineProposal(proposalId) {
+    if (!currentUser) return;
+    const propSnap = await getDoc(doc(db, 'proposals', proposalId));
+    if (!propSnap.exists()) return;
+    const proposal = propSnap.data();
+    if (proposal.productOwnerUid !== currentUser.uid) throw new Error('Sin permiso');
+
+    await updateDoc(doc(db, 'proposals', proposalId), {
+      status: 'declined', updatedAt: serverTimestamp()
+    });
+
+    await createNotif(proposal.proposerUid, {
+      type: 'proposal_declined',
+      title: 'Propuesta no aceptada',
+      body: `Tu propuesta para "${proposal.productTitle}" no fue aceptada esta vez.`,
+      proposalId, productId: proposal.productId
+    });
+  }
+
+  /* ── Auth ─────────────────────────────────── */
   async function loginUser(email, password) {
     await signInWithEmailAndPassword(auth, email, password);
   }
@@ -162,6 +328,7 @@ export function AppProvider({ children }) {
       region: region || '',
       level: 'Nuevo',
       role: 'user',
+      termsAcceptedAt: serverTimestamp(),
       createdAt: serverTimestamp()
     });
     const ud = await loadUserData(cred.user.uid);
@@ -181,6 +348,7 @@ export function AppProvider({ children }) {
     setUserData(ud);
   }
 
+  /* ── Products ─────────────────────────────── */
   async function publishProduct(data, photos) {
     if (!currentUser) throw new Error('No autenticado');
     rateLimit('pub_' + currentUser.uid, 5, 3600000);
@@ -223,12 +391,17 @@ export function AppProvider({ children }) {
     levelFilter, setLevelFilter,
     regionFilter, setRegionFilter,
     stats,
+    // Notifications
+    notifications, unreadNotifs, markNotifRead, markAllNotifsRead, notifyMessage,
+    // Proposals
+    receivedProposals, sentProposals, pendingProposals,
+    submitProposal, acceptProposal, declineProposal,
     showToast, openModal, closeModal,
-    toggleSave, doMatch,
+    toggleSave,
     loginUser, registerUser, logoutUser, updateUserProfile,
     publishProduct, deleteProduct, blockProduct, unblockProduct,
     loadProducts, loadStats, rlMessage,
-    db, collection, query, where, orderBy, addDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot: null
+    db, collection, query, where, orderBy, addDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

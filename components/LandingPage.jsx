@@ -21,7 +21,7 @@ function LandingProductCard({ p }) {
         </div>
         <h4 style={{ fontFamily: 'Syne,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{p.title}</h4>
         <div style={{ fontSize: 12, color: 'var(--mu)', marginBottom: 6 }}>
-          por <strong>{p.owner}</strong> · {p.region || p.location || ''}
+          {p.level || 'Nuevo'} · {p.region || p.location || 'Chile'}
         </div>
         <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--v)', marginBottom: 6 }}>{fmtP(p.price)}</div>
         <button className="btn bv bsm btn-full" onClick={() => openModal('auth')}>

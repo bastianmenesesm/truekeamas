@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
 
-const EYE_ON = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+const EYE_ON  = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
 const EYE_OFF = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
 
 function getPasswordStrength(pwd) {
@@ -14,7 +14,7 @@ function getPasswordStrength(pwd) {
   if (/[0-9]/.test(pwd)) score++;
   if (/[^A-Za-z0-9]/.test(pwd)) score++;
   const labels = ['', 'Débil', 'Regular', 'Buena', 'Fuerte'];
-  const cls = ['', 'weak', 'fair', 'good', 'strong'];
+  const cls    = ['', 'weak', 'fair', 'good', 'strong'];
   return { level: score, label: labels[score], cls: cls[score], bars: [score >= 1, score >= 2, score >= 3, score >= 4] };
 }
 
@@ -32,19 +32,20 @@ function PasswordInput({ name, placeholder, value, onChange, autoComplete }) {
 }
 
 export default function AuthModal() {
-  const { loginUser, registerUser, closeModal, showToast } = useApp();
-  const [tab, setTab] = useState('l');
-  const [loading, setLoading] = useState(false);
-  const [regPwd, setRegPwd] = useState('');
-  const [forgotSent, setForgotSent] = useState(false);
+  const { loginUser, registerUser, closeModal, showToast, openModal } = useApp();
+  const [tab, setTab]           = useState('l');
+  const [loading, setLoading]   = useState(false);
+  const [regPwd, setRegPwd]     = useState('');
+  const [termsOk, setTermsOk]   = useState(false);
+  const [forgotSent, setForgotSent]   = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
 
   const strength = getPasswordStrength(regPwd);
 
   async function handleLogin(e) {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    const email = fd.get('email')?.toString().trim();
+    const fd       = new FormData(e.target);
+    const email    = fd.get('email')?.toString().trim();
     const password = fd.get('password')?.toString();
     if (!email || !password) return;
     setLoading(true);
@@ -52,6 +53,8 @@ export default function AuthModal() {
       await loginUser(email, password);
       showToast('¡Bienvenido de vuelta! 👋');
       closeModal();
+      // Mostrar recordatorio de privacidad en cada login
+      setTimeout(() => openModal('privacy_reminder'), 350);
     } catch (err) {
       const msg = err.code === 'auth/invalid-credential' ? 'Correo o contraseña incorrectos.' :
         err.code === 'auth/too-many-requests' ? 'Demasiados intentos. Intenta más tarde.' : 'Error al iniciar sesión.';
@@ -61,17 +64,20 @@ export default function AuthModal() {
 
   async function handleRegister(e) {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    const email = fd.get('email')?.toString().trim();
+    const fd       = new FormData(e.target);
+    const email    = fd.get('email')?.toString().trim();
     const password = fd.get('password')?.toString();
-    const name = fd.get('name')?.toString().trim();
+    const name     = fd.get('name')?.toString().trim();
     if (!email || !password || !name) return;
     if (strength.level < 3) { showToast('La contraseña debe tener mayúscula, número y carácter especial.'); return; }
+    if (!termsOk) { showToast('Debes aceptar los Términos y Política de Privacidad.'); return; }
     setLoading(true);
     try {
       await registerUser(email, password, name, fd.get('phone')?.toString(), fd.get('region')?.toString());
       showToast('¡Cuenta creada! Bienvenido/a 🎉');
       closeModal();
+      // Recordatorio también al registrarse
+      setTimeout(() => openModal('privacy_reminder'), 350);
     } catch (err) {
       const msg = err.code === 'auth/email-already-in-use' ? 'Este correo ya está registrado.' :
         err.code === 'auth/weak-password' ? 'Contraseña demasiado débil.' : 'Error al crear cuenta.';
@@ -85,9 +91,8 @@ export default function AuthModal() {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Ingresa un correo válido.'); return; }
     setLoading(true);
     try {
-      const res = await fetch('/api/reset-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res  = await fetch('/api/reset-request', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
@@ -98,6 +103,7 @@ export default function AuthModal() {
     } finally { setLoading(false); }
   }
 
+  /* ── Forgot ─────────────────────────────── */
   if (tab === 'forgot') {
     return (
       <div>
@@ -105,7 +111,6 @@ export default function AuthModal() {
           onClick={() => { setTab('l'); setForgotSent(false); setForgotEmail(''); }}>
           ← Volver al login
         </button>
-
         {forgotSent ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
@@ -138,6 +143,7 @@ export default function AuthModal() {
     );
   }
 
+  /* ── Login / Register ───────────────────── */
   return (
     <div>
       <div className="at">
@@ -198,8 +204,25 @@ export default function AuthModal() {
               </select>
             </label>
           </div>
+
+          {/* Aceptación de términos */}
+          <div className="terms-check-row">
+            <input
+              type="checkbox" id="terms-ok"
+              checked={termsOk}
+              onChange={e => setTermsOk(e.target.checked)}
+            />
+            <label htmlFor="terms-ok">
+              He leído y acepto los{' '}
+              <a href="/privacidad" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--v)', fontWeight: 600 }}>
+                Términos de Uso y Política de Privacidad
+              </a>
+              {' '}de Truekeamas. Entiendo que la plataforma actúa como intermediario y no se responsabiliza por los intercambios.
+            </label>
+          </div>
+
           <div className="ma">
-            <button className="btn bl btn-full" type="submit" disabled={loading}>
+            <button className="btn bl btn-full" type="submit" disabled={loading || !termsOk}>
               {loading ? <><span className="sp" style={{ width: 16, height: 16, borderWidth: 2, marginRight: 6 }} />Creando...</> : 'Crear cuenta'}
             </button>
           </div>
