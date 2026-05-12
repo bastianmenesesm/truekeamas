@@ -7,7 +7,8 @@ import {
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
-  query, where, orderBy, serverTimestamp, onSnapshot, increment
+  query, where, orderBy, limit, serverTimestamp, onSnapshot, increment,
+  getCountFromServer
 } from 'firebase/firestore';
 
 export { CATS } from '@/lib/categories';
@@ -121,8 +122,13 @@ export function AppProvider({ children }) {
     return unsub;
   }, [currentUser]);
 
-  /* ── Products & stats ─────────────────────── */
-  useEffect(() => { loadProducts(); loadStats(); }, []);
+  /* ── Products (inmediato) + stats (diferido) ─ */
+  useEffect(() => {
+    loadProducts();
+    // Stats no es crítico para el render inicial — cargar después
+    const t = setTimeout(() => loadStats(), 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   async function loadUserData(uid) {
     try {
@@ -136,19 +142,22 @@ export function AppProvider({ children }) {
     if (now - lastLoadRef.current < 5000) return;
     lastLoadRef.current = now;
     try {
-      const snap = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
+      const snap = await getDocs(
+        query(collection(db, 'products'), orderBy('createdAt', 'desc'), limit(80))
+      );
       setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted'));
     } catch { }
   }
 
   async function loadStats() {
+    // Usar getCountFromServer — no descarga documentos, solo cuenta
     try {
       const [p, u, m] = await Promise.all([
-        getDocs(collection(db, 'products')),
-        getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'matches'))
+        getCountFromServer(collection(db, 'products')),
+        getCountFromServer(collection(db, 'users')),
+        getCountFromServer(collection(db, 'matches')),
       ]);
-      setStats({ products: p.size, users: u.size, matches: m.size });
+      setStats({ products: p.data().count, users: u.data().count, matches: m.data().count });
     } catch { }
   }
 
@@ -222,14 +231,11 @@ export function AppProvider({ children }) {
     if (prod.ownerId === currentUser.uid) throw new Error('No puedes enviar una propuesta a tu propia publicación.');
     try { rateLimit('prop_' + currentUser.uid, 5, 3600000); } catch (e) { throw e; }
 
-    // Check for existing pending proposal
-    const existing = await getDocs(query(
-      collection(db, 'proposals'),
-      where('productId', '==', productId),
-      where('proposerUid', '==', currentUser.uid),
-      where('status', '==', 'pending')
-    ));
-    if (!existing.empty) throw new Error('Ya tienes una propuesta pendiente para esta publicación.');
+    // Chequeo de duplicado en cliente (evita índice compuesto de Firestore)
+    const existingPending = sentProposals.find(
+      p => p.productId === productId && p.status === 'pending'
+    );
+    if (existingPending) throw new Error('Ya tienes una propuesta pendiente para esta publicación.');
 
     const myName = userData?.displayName || currentUser.displayName || 'Usuario';
     const ref = await addDoc(collection(db, 'proposals'), {
@@ -375,7 +381,25 @@ export function AppProvider({ children }) {
 
   async function deleteProduct(id) {
     await updateDoc(doc(db, 'products', id), { status: 'deleted' });
-    await loadProducts();
+    setProducts(prev => prev.filter(p => p.id !== id));
+  }
+
+  async function updateProduct(id, data) {
+    if (!currentUser) throw new Error('No autenticado');
+    const allowed = ['title', 'description', 'price', 'condition', 'region', 'wants', 'action', 'barter', 'buy', 'donate', 'mixed'];
+    const clean = Object.fromEntries(Object.entries(data).filter(([k]) => allowed.includes(k)));
+    await updateDoc(doc(db, 'products', id), { ...clean, updatedAt: serverTimestamp() });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...clean } : p));
+  }
+
+  async function markProductSold(id) {
+    await updateDoc(doc(db, 'products', id), { status: 'sold', soldAt: serverTimestamp() });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'sold' } : p));
+  }
+
+  async function reactivateProduct(id) {
+    await updateDoc(doc(db, 'products', id), { status: 'active', soldAt: null });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'active' } : p));
   }
 
   async function reportProduct(productId, reason, description) {
@@ -437,7 +461,8 @@ export function AppProvider({ children }) {
     showToast, openModal, closeModal,
     toggleLike,
     loginUser, registerUser, logoutUser, updateUserProfile,
-    publishProduct, deleteProduct, blockProduct, unblockProduct, reportProduct,
+    publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
+    blockProduct, unblockProduct, reportProduct,
     loadProducts, loadStats, rlMessage,
     db, collection, query, where, orderBy, addDoc, updateDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
   };

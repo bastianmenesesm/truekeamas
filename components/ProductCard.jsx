@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
 function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : null; }
 
@@ -38,7 +39,7 @@ export default function ProductCard({ product: p }) {
       <div className="pk-img-wrap">
         {photos.length > 0 ? (
           <div className="gal">
-            <img className="gm" src={photos[imgIdx]} alt={p.title} loading="lazy" />
+            <img className="gm" src={optimizeCloudinaryUrl(photos[imgIdx], 600)} alt={p.title} loading="lazy" />
             {photos.length > 1 && (
               <>
                 <button className="gn gp" onClick={() => setImgIdx(i => (i - 1 + photos.length) % photos.length)}>‹</button>

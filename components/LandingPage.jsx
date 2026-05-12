@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useApp, CATS } from '@/context/AppContext';
+import { optimizeCloudinaryUrl } from '@/lib/firebase';
 import Modal from '@/components/Modal';
 import Toast from '@/components/Toast';
 
@@ -30,7 +31,7 @@ function LandingCard({ p, onLoginGate }) {
     <article className="lp-card" onClick={onLoginGate}>
       <div className="lp-card-img">
         {photos[0]
-          ? <img src={photos[0]} alt={p.title} loading="lazy" />
+          ? <img src={optimizeCloudinaryUrl(photos[0], 400)} alt={p.title} loading="lazy" />
           : <span className="lp-card-emoji">{p.emoji || '📦'}</span>
         }
         {(p.likes || 0) > 0 && (
@@ -62,7 +63,7 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const sorted = [...products]
-    .filter(p => p.status === 'active')
+    .filter(p => p.status === 'active' && p.status !== 'sold')
     .filter(p => {
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;

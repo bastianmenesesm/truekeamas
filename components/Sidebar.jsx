@@ -8,7 +8,7 @@ const NAV = [
   { l: 'Propuestas',         id: 'proposals',   ic: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>' },
   { l: 'Mis acuerdos',       id: 'agreements',  ic: '<path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.5-5A8 8 0 1 1 21 12Z"/>' },
   { l: 'Guardados',          id: 'cart',        ic: '<path d="M5 6h16l-2 8H7L5 3H2"/><circle cx="8" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>' },
-  { l: 'Mis publicaciones',  id: 'myPosts',     ic: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>' },
+  { l: 'Mis publicaciones',  id: 'myposts',     ic: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>' },
   { l: 'Mi perfil',          id: 'profile',     ic: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' },
   { l: 'Ayuda',              id: 'help',        ic: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.5 2c-1.1.8-2 1.4-2 3"/><path d="M12 17h.01"/>' },
 ];

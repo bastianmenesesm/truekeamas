@@ -5,7 +5,12 @@ import { useApp } from '@/context/AppContext';
 const STATUS_LABEL = { pending: 'Pendiente', accepted: 'Aceptada', declined: 'Declinada' };
 const STATUS_COLOR = { pending: 'var(--am)', accepted: 'var(--lm)', declined: 'var(--dg)' };
 
-const OFFER_LABEL = { product: '📦 Producto', money: '💵 Dinero', mixed: '🔀 Producto + Dinero' };
+const OFFER_LABEL = {
+  product: '📦 Producto',
+  money:   '💵 Dinero',
+  mixed:   '🔀 Producto + Dinero',
+  request: '🙏 Solicitud donación',
+};
 
 function fmtCLP(v) { return '$' + Number(v).toLocaleString('es-CL'); }
 function fmtDate(ts) {

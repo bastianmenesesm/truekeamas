@@ -14,7 +14,7 @@ export default function ProductGrid() {
   } = useApp();
 
   const filtered = products.filter(p => {
-    if (p.status === 'blocked') return false;
+    if (p.status === 'blocked' || p.status === 'sold') return false;
     const q = searchQuery.trim().toLowerCase();
     const tagMatch = !q || (p.tags || []).some(t => t.includes(q));
     const bq = !q || tagMatch || [p.title, p.category, p.subcategory, p.wants, p.region].join(' ').toLowerCase().includes(q);

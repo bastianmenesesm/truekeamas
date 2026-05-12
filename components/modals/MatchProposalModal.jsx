@@ -1,13 +1,40 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { uploadToCloudinary } from '@/lib/firebase';
+import { uploadToCloudinary, optimizeCloudinaryUrl } from '@/lib/firebase';
+
+/* ── Determina qué opciones mostrar según el tipo de publicación ── */
+function getAvailableOfferTypes(product) {
+  const action = product.action;
+
+  // Donación: no requiere oferta, solo mensaje
+  if (action === 'donar' || product.donate) return ['request'];
+
+  // Solo venta
+  if (action === 'vender' || (product.buy && !product.barter)) return ['money'];
+
+  // Mixto: trueque + dinero
+  if (action === 'mixto' || product.mixed) return ['product', 'money', 'mixed'];
+
+  // Por defecto: solo trueque (cambiar o publicaciones antiguas con barter=true)
+  return ['product'];
+}
+
+const OFFER_OPTIONS = {
+  product: { icon: '📦', label: 'Un producto',          desc: 'Ofreces algo a cambio' },
+  money:   { icon: '💵', label: 'Dinero',               desc: 'Pagas el precio pedido' },
+  mixed:   { icon: '🔀', label: 'Producto + dinero',    desc: 'Combinas ambos' },
+  request: { icon: '🙏', label: 'Solicitar donación',   desc: 'Pide el artículo gratuitamente' },
+};
+
+function fmtCLP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : null; }
 
 export default function MatchProposalModal({ productId }) {
   const { products, submitProposal, closeModal, showToast, openModal, currentUser } = useApp();
   const product = products.find(p => p.id === productId);
 
-  const [offerType, setOfferType]     = useState('product'); // 'product' | 'money' | 'mixed'
+  const availableTypes = product ? getAvailableOfferTypes(product) : ['product'];
+  const [offerType, setOfferType]     = useState(availableTypes[0]);
   const [description, setDescription] = useState('');
   const [amount, setAmount]           = useState('');
   const [message, setMessage]         = useState('');
@@ -16,20 +43,23 @@ export default function MatchProposalModal({ productId }) {
   const [loading, setLoading]         = useState(false);
   const fileRef                       = useRef(null);
 
-  if (!currentUser) {
-    return (
-      <>
-        <div className="nb nbd">Debes iniciar sesión para enviar una propuesta.</div>
-        <div className="ma"><button className="btn bv" onClick={() => openModal('auth')}>Iniciar sesión</button></div>
-      </>
-    );
-  }
+  // Si cambia la lista de tipos disponibles, resetear
+  useEffect(() => { setOfferType(availableTypes[0]); }, [productId]);
 
+  /* ── Guards ─────────────────────────────────────── */
+  if (!currentUser) return (
+    <>
+      <div className="nb nbd">Debes iniciar sesión para enviar una propuesta.</div>
+      <div className="ma"><button className="btn bv" onClick={() => openModal('auth')}>Iniciar sesión</button></div>
+    </>
+  );
   if (!product) return <div className="nb nbd">Publicación no encontrada.</div>;
 
   const needsProduct = offerType === 'product' || offerType === 'mixed';
   const needsMoney   = offerType === 'money'   || offerType === 'mixed';
+  const isRequest    = offerType === 'request';
 
+  /* ── Fotos ───────────────────────────────────────── */
   async function handlePhotoChange(e) {
     const files = Array.from(e.target.files).slice(0, 3 - photos.length);
     for (const f of files) {
@@ -39,15 +69,19 @@ export default function MatchProposalModal({ productId }) {
     }
     e.target.value = '';
   }
+  function removePhoto(i) { setPhotos(prev => prev.filter((_, idx) => idx !== i)); }
 
-  function removePhoto(i) {
-    setPhotos(prev => prev.filter((_, idx) => idx !== i));
-  }
-
+  /* ── Submit ──────────────────────────────────────── */
   async function handleSubmit(e) {
     e.preventDefault();
-    if (needsProduct && !description.trim()) { showToast('Describe el producto que ofreces.'); return; }
-    if (needsMoney && (!amount || Number(amount) <= 0)) { showToast('Ingresa un monto válido.'); return; }
+    if (!isRequest) {
+      if (needsProduct && !description.trim()) {
+        showToast('Describe el producto que ofreces.'); return;
+      }
+      if (needsMoney && (!amount || Number(amount) <= 0)) {
+        showToast('Ingresa un monto válido.'); return;
+      }
+    }
 
     setLoading(true);
     try {
@@ -59,11 +93,11 @@ export default function MatchProposalModal({ productId }) {
       }
 
       await submitProposal(productId, {
-        offerType,
+        offerType:        isRequest ? 'request' : offerType,
         offerDescription: needsProduct ? description.trim() : '',
-        offerPhotos: uploadedPhotos,
-        offerAmount: needsMoney ? Number(amount) : null,
-        message: message.trim()
+        offerPhotos:      uploadedPhotos,
+        offerAmount:      needsMoney ? Number(amount) : null,
+        message:          message.trim(),
       });
 
       showToast('¡Propuesta enviada! El publicador recibirá tu oferta. 🤝');
@@ -76,124 +110,147 @@ export default function MatchProposalModal({ productId }) {
     }
   }
 
+  const price = fmtCLP(product.price);
+
   return (
     <form onSubmit={handleSubmit}>
-      {/* Producto al que se propone */}
-      <div className="proposal-target">
-        <div className="proposal-target-img">
+
+      {/* ── Resumen del producto al que se propone ── */}
+      <div className="prop-target">
+        <div className="prop-target-img">
           {product.photos?.[0]
-            ? <img src={product.photos[0]} alt={product.title} />
+            ? <img src={optimizeCloudinaryUrl(product.photos[0], 120)} alt={product.title} />
             : <span>{product.emoji || '📦'}</span>}
         </div>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{product.title}</div>
-          <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 2 }}>
-            {product.category} · {product.region || product.location || 'Chile'}
+        <div className="prop-target-info">
+          <div className="prop-target-title">{product.title}</div>
+          <div className="prop-target-meta">
+            {product.category}
+            {product.condition && <> · <span>{product.condition.split('(')[0].trim()}</span></>}
+            {product.region && <> · {product.region}</>}
           </div>
-          {product.price && (
-            <div style={{ fontSize: 13, color: 'var(--v)', fontWeight: 700, marginTop: 2 }}>
-              Valor ref: ${Number(product.price).toLocaleString('es-CL')}
+          {price && <div className="prop-target-price">{price}</div>}
+          {product.wants && (
+            <div className="prop-target-wants">
+              🔍 Busca: <em>{product.wants}</em>
             </div>
           )}
         </div>
       </div>
 
-      {/* Tipo de oferta */}
-      <div style={{ marginBottom: 20 }}>
-        <label style={{ fontWeight: 600, fontSize: 13, color: 'var(--is)', display: 'block', marginBottom: 10 }}>
-          ¿Qué quieres ofrecer?
-        </label>
-        <div className="offer-type-grid">
-          {[
-            { v: 'product', icon: '📦', label: 'Un producto' },
-            { v: 'money',   icon: '💵', label: 'Dinero' },
-            { v: 'mixed',   icon: '🔀', label: 'Producto + Dinero' },
-          ].map(opt => (
-            <button
-              key={opt.v} type="button"
-              className={`offer-type-btn${offerType === opt.v ? ' active' : ''}`}
-              onClick={() => setOfferType(opt.v)}
-            >
-              <span>{opt.icon}</span>
-              <span>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Descripción del producto */}
-      {needsProduct && (
-        <div style={{ marginBottom: 16 }}>
-          <label className="fd">
-            {offerType === 'mixed' ? 'Producto que ofreces' : 'Describe lo que ofreces'}
-            <textarea
-              placeholder="Ej: Ofrezco mi guitarra acústica Yamaha, 2 años de uso, en perfecto estado..."
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              style={{ minHeight: 88 }}
-              required
-            />
-          </label>
-
-          {/* Fotos del producto */}
-          <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', marginBottom: 8 }}>
-              Fotos del producto que ofreces (máx. 3)
-            </div>
-            {photos.length < 3 && (
-              <div className="pua" style={{ padding: '16px 20px' }} onClick={() => fileRef.current?.click()}>
-                <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoChange} />
-                <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
-                <div style={{ fontSize: 13, color: 'var(--mu)' }}>Subir fotos (opcional)</div>
-              </div>
-            )}
-            {photos.length > 0 && (
-              <div className="pp2" style={{ marginTop: 10 }}>
-                {photos.map((ph, i) => (
-                  <div key={i} className="ppi">
-                    <img src={ph.preview} alt="" />
-                    <button type="button" onClick={() => removePhoto(i)}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* ── Selector de tipo (solo si hay más de 1 opción) ── */}
+      {availableTypes.length > 1 && (
+        <div className="prop-section">
+          <div className="prop-section-label">¿Qué quieres ofrecer?</div>
+          <div className="offer-type-grid">
+            {availableTypes.map(v => {
+              const opt = OFFER_OPTIONS[v];
+              return (
+                <button
+                  key={v} type="button"
+                  className={`offer-type-btn${offerType === v ? ' active' : ''}`}
+                  onClick={() => setOfferType(v)}
+                >
+                  <span className="offer-type-icon">{opt.icon}</span>
+                  <strong>{opt.label}</strong>
+                  <span className="offer-type-desc">{opt.desc}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Monto */}
-      {needsMoney && (
-        <label className="fd" style={{ marginBottom: 16 }}>
-          {offerType === 'mixed' ? 'Dinero adicional (CLP)' : 'Monto en pesos (CLP)'}
-          <input
-            type="number" min="1" step="1"
-            placeholder="Ej: 15000"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            required
-          />
-        </label>
+      {/* ── Modo Donación: solo mensaje ── */}
+      {isRequest && (
+        <div className="prop-section">
+          <div className="prop-info-box">
+            🎁 Este artículo se dona gratis. Solo necesitas presentarte y explicar por qué lo necesitas.
+          </div>
+        </div>
       )}
 
-      {/* Mensaje personal */}
-      <label className="fd" style={{ marginBottom: 8 }}>
-        Mensaje para el publicador (opcional)
-        <textarea
-          placeholder="Ej: Hola! Me interesa mucho tu publicación, creo que podemos llegar a un buen acuerdo..."
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          style={{ minHeight: 72 }}
-        />
-      </label>
+      {/* ── Descripción del producto ofrecido ── */}
+      {needsProduct && (
+        <div className="prop-section">
+          <label className="fd">
+            {offerType === 'mixed' ? '📦 ¿Qué producto ofreces?' : '📦 ¿Qué ofreces a cambio?'}
+            <textarea
+              placeholder={`Ej: ${product.wants ? `El publicador busca: "${product.wants}". Describe lo que tienes…` : 'Marca, modelo, estado, accesorios incluidos…'}`}
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              required
+            />
+          </label>
 
-      <div className="nb" style={{ marginBottom: 16, fontSize: 12.5 }}>
-        🔒 Tu nombre no será visible públicamente. El publicador solo verá tu propuesta y podrá aceptarla o declinarla.
+          {/* Fotos del producto ofrecido */}
+          <div className="prop-photos">
+            <div className="prop-photos-label">📷 Fotos de lo que ofreces <span>(opcional, máx. 3)</span></div>
+            <div className="prop-photos-row">
+              {photos.map((ph, i) => (
+                <div key={i} className="pub-photo-thumb">
+                  <img src={ph.preview} alt="" />
+                  <button type="button" className="pub-photo-rm" onClick={() => removePhoto(i)}>✕</button>
+                </div>
+              ))}
+              {photos.length < 3 && (
+                <label className="pub-photo-add">
+                  <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoChange} />
+                  <span>+</span>
+                  <span style={{ fontSize: 11 }}>Foto</span>
+                </label>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Monto en dinero ── */}
+      {needsMoney && (
+        <div className="prop-section">
+          <label className="fd">
+            {offerType === 'mixed' ? '💵 Dinero adicional (CLP)' : '💵 Monto que ofreces (CLP)'}
+            {price && <span className="prop-price-hint">Valor ref: {price}</span>}
+            <input
+              type="number" min="1" step="1"
+              placeholder="Ej: 15.000"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              required
+            />
+          </label>
+        </div>
+      )}
+
+      {/* ── Mensaje personal ── */}
+      <div className="prop-section">
+        <label className="fd">
+          💬 Mensaje personal {isRequest ? <span style={{ color: 'var(--dg)' }}>*</span> : <span className="prop-optional">(opcional)</span>}
+          <textarea
+            placeholder={isRequest
+              ? '¿Por qué te gustaría recibir este artículo?'
+              : '¡Hola! Me interesa tu publicación, creo que podemos llegar a un buen acuerdo…'}
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            rows={2}
+            required={isRequest}
+          />
+        </label>
+      </div>
+
+      <div className="nb" style={{ fontSize: 12.5, marginBottom: 16 }}>
+        🔒 Tu nombre no será visible públicamente. El publicador solo verá tu propuesta y podrá aceptarla o rechazarla.
       </div>
 
       <div className="ma">
         <button type="button" className="btn bo" onClick={closeModal}>Cancelar</button>
-        <button type="submit" className="btn bv" disabled={loading}>
-          {uploading ? '⬆️ Subiendo fotos...' : loading ? <><span className="sp" style={{ width: 15, height: 15, borderWidth: 2 }} /> Enviando...</> : '🤝 Enviar propuesta'}
+        <button type="submit" className="btn bv" disabled={loading || uploading}>
+          {uploading
+            ? '⬆️ Subiendo fotos…'
+            : loading
+              ? <><span className="sp" style={{ width: 15, height: 15, borderWidth: 2 }} /> Enviando…</>
+              : isRequest ? '🙏 Solicitar donación' : '🤝 Enviar propuesta'}
         </button>
       </div>
     </form>
