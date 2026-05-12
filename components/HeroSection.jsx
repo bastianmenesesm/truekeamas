@@ -1,37 +1,50 @@
 'use client';
-import { useApp } from '@/context/AppContext';
+import { useApp, CATS } from '@/context/AppContext';
 
 export default function HeroSection() {
-  const { stats, openModal } = useApp();
+  const { stats, openModal, searchQuery, setSearchQuery, activeCategory, setActiveCategory } = useApp();
+
   return (
-    <section className="hero" id="inicio">
-      <div className="hc">
-        <div className="hl">✦ Conecta · Intercambia · Crece</div>
-        <h2>Intercambia lo que tienes por lo que <em>necesitas</em></h2>
-        <p>Truekeamas conecta personas para hacer trueques, compras secundarias o acuerdos mixtos.</p>
-        <div className="ha">
-          <button className="btn bl" onClick={() => document.getElementById('vitrina')?.scrollIntoView({ behavior: 'smooth' })}>
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>Explorar productos
-          </button>
-          <button className="btn bg2" onClick={() => openModal('publish')}>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg>Publicar ahora
-          </button>
+    <section className="hero-compact">
+      {/* Search bar */}
+      <div className="hc-search-wrap">
+        <div className="hc-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" style={{ flexShrink: 0, color: 'var(--mu)' }}>
+            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Busca celulares, ropa, libros, plantas…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onFocus={() => document.getElementById('vitrina')?.scrollIntoView({ behavior: 'smooth' })}
+          />
+          {searchQuery && (
+            <button style={{ color: 'var(--mu)', padding: '2px 6px', borderRadius: 6 }} onClick={() => setSearchQuery('')}>✕</button>
+          )}
         </div>
-        <div className="hs">
-          <div className="sc2"><strong>{stats.products}</strong><span>Publicaciones activas</span></div>
-          <div className="sc2"><strong>{stats.users}</strong><span>Usuarios registrados</span></div>
-          <div className="sc2"><strong>{stats.matches}</strong><span>Matches realizados</span></div>
-        </div>
+        <button className="btn bv" style={{ padding: '10px 20px', flexShrink: 0 }} onClick={() => openModal('publish')}>
+          + Publicar
+        </button>
       </div>
-      <div className="hv">
-        <div className="pc">
-          <div className="sr">
-            <div className="si"><span className="se">📱</span><div className="sl">Tú ofreces</div><div className="sv">Tu producto</div></div>
-            <div className="sa">⇄</div>
-            <div className="si"><span className="se">💻</span><div className="sl">Recibes</div><div className="sv">Lo que buscas</div></div>
-          </div>
-          <div className="mb2"><div className="md" /><div><div className="mt2">¡Match en tiempo real!</div><div className="ms">Chat interno protegido</div></div></div>
-        </div>
+
+      {/* Category pills */}
+      <div className="hc-cats">
+        <button className={`l-cat${activeCategory === 'all' ? ' active' : ''}`} onClick={() => setActiveCategory('all')}>
+          <span>🔄</span><span>Todo</span>
+        </button>
+        {CATS.map(c => (
+          <button key={c.n} className={`l-cat${activeCategory === c.n ? ' active' : ''}`} onClick={() => setActiveCategory(c.n)}>
+            <span>{c.e}</span><span>{c.n}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Stats strip */}
+      <div className="hc-stats">
+        <span>📦 <strong>{stats.products}</strong> publicaciones</span>
+        <span>👥 <strong>{stats.users}</strong> usuarios</span>
+        <span>🤝 <strong>{stats.matches}</strong> acuerdos</span>
       </div>
     </section>
   );

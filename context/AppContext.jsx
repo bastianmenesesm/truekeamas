@@ -7,13 +7,10 @@ import {
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
-  query, where, orderBy, serverTimestamp, onSnapshot
+  query, where, orderBy, serverTimestamp, onSnapshot, increment
 } from 'firebase/firestore';
 
-export const CATS = [
-  { n: 'Tecnología', e: '📱' }, { n: 'Hogar', e: '🛋️' }, { n: 'Deportes', e: '⚽' },
-  { n: 'Moda', e: '👕' }, { n: 'Libros', e: '📘' }, { n: 'Juguetes', e: '🧸' }
-];
+export { CATS } from '@/lib/categories';
 
 const AppContext = createContext(null);
 
@@ -44,6 +41,7 @@ export function AppProvider({ children }) {
   const [levelFilter, setLevelFilter]       = useState('all');
   const [regionFilter, setRegionFilter]     = useState('all');
   const [stats, setStats]                   = useState({ products: '—', users: '—', matches: '—' });
+  const [sortBy, setSortBy]                 = useState('likes');
 
   // Notifications
   const [notifications, setNotifications]         = useState([]);
@@ -165,13 +163,19 @@ export function AppProvider({ children }) {
   function openModal(type) { setModal(type); }
   function closeModal()    { setModal(null); }
 
-  /* ── Save ─────────────────────────────────── */
-  function toggleSave(id) {
-    if (!currentUser) { showToast('Inicia sesión para guardar.'); openModal('auth'); return; }
-    const next = saved.includes(id) ? saved.filter(x => x !== id) : [...saved, id];
+  /* ── Like (público, reemplaza Save) ──────── */
+  async function toggleLike(productId) {
+    if (!currentUser) { openModal('auth'); return; }
+    const isLiked = saved.includes(productId);
+    const next = isLiked ? saved.filter(x => x !== productId) : [...saved, productId];
     setSaved(next);
     localStorage.setItem('tk_s', JSON.stringify(next));
-    showToast(next.includes(id) ? 'Guardado ❤️' : 'Eliminado de guardados.');
+    try {
+      await updateDoc(doc(db, 'products', productId), { likes: increment(isLiked ? -1 : 1) });
+      setProducts(prev => prev.map(p =>
+        p.id === productId ? { ...p, likes: Math.max(0, (p.likes || 0) + (isLiked ? -1 : 1)) } : p
+      ));
+    } catch { }
   }
 
   /* ── Notifications helpers ────────────────── */
@@ -353,9 +357,17 @@ export function AppProvider({ children }) {
     if (!currentUser) throw new Error('No autenticado');
     rateLimit('pub_' + currentUser.uid, 5, 3600000);
     const myN = userData?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario';
+    const action = data.action || 'cambiar';
     await addDoc(collection(db, 'products'), {
       ...data, photos, ownerId: currentUser.uid, owner: myN,
-      level: userData?.level || 'Nuevo', barter: true, status: 'active', createdAt: serverTimestamp()
+      level: userData?.level || 'Nuevo',
+      barter: action === 'cambiar' || action === 'mixto',
+      buy:    action === 'vender'  || action === 'mixto',
+      donate: action === 'donar',
+      mixed:  action === 'mixto',
+      status: 'active',
+      likes:  0,
+      createdAt: serverTimestamp()
     });
     await loadProducts();
     loadStats();
@@ -364,6 +376,31 @@ export function AppProvider({ children }) {
   async function deleteProduct(id) {
     await updateDoc(doc(db, 'products', id), { status: 'deleted' });
     await loadProducts();
+  }
+
+  async function reportProduct(productId, reason, description) {
+    if (!currentUser) { openModal('auth'); return; }
+    try { rateLimit('rep_' + currentUser.uid, 5, 3600000); } catch (e) { throw e; }
+
+    // Evitar denuncia duplicada del mismo usuario
+    const existing = await getDocs(query(
+      collection(db, 'reports'),
+      where('productId', '==', productId),
+      where('reporterUid', '==', currentUser.uid)
+    ));
+    if (!existing.empty) throw new Error('Ya has denunciado esta publicación anteriormente.');
+
+    const prod = products.find(p => p.id === productId);
+    await addDoc(collection(db, 'reports'), {
+      productId,
+      productTitle: prod?.title || '',
+      productOwnerUid: prod?.ownerId || '',
+      reporterUid: currentUser.uid,
+      reason,
+      description: description || '',
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
   }
 
   async function blockProduct(id) {
@@ -396,12 +433,13 @@ export function AppProvider({ children }) {
     // Proposals
     receivedProposals, sentProposals, pendingProposals,
     submitProposal, acceptProposal, declineProposal,
+    sortBy, setSortBy,
     showToast, openModal, closeModal,
-    toggleSave,
+    toggleLike,
     loginUser, registerUser, logoutUser, updateUserProfile,
-    publishProduct, deleteProduct, blockProduct, unblockProduct,
+    publishProduct, deleteProduct, blockProduct, unblockProduct, reportProduct,
     loadProducts, loadStats, rlMessage,
-    db, collection, query, where, orderBy, addDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
+    db, collection, query, where, orderBy, addDoc, updateDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

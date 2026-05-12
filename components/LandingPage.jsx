@@ -1,32 +1,56 @@
 'use client';
+import { useState } from 'react';
 import { useApp, CATS } from '@/context/AppContext';
 import Modal from '@/components/Modal';
 import Toast from '@/components/Toast';
 
-function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : 'Solo trueque'; }
+function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : null; }
 
-function LandingProductCard({ p }) {
-  const { openModal } = useApp();
+const ACTION_COLOR = {
+  donar:   { label: 'Donación', cls: 'cd-badge' },
+  vender:  { label: 'Venta',    cls: 'cv' },
+  mixto:   { label: 'Mixto',    cls: 'ca' },
+  cambiar: { label: 'Trueque',  cls: 'cl' },
+};
+
+function getActionBadge(p) {
+  if (p.action) return ACTION_COLOR[p.action] || ACTION_COLOR.cambiar;
+  if (p.donate) return ACTION_COLOR.donar;
+  if (p.buy && p.barter) return ACTION_COLOR.mixto;
+  if (p.buy) return ACTION_COLOR.vender;
+  return ACTION_COLOR.cambiar;
+}
+
+function LandingCard({ p, onLoginGate }) {
   const photos = p.photos || [];
+  const badge  = getActionBadge(p);
+  const price  = fmtP(p.price);
+
   return (
-    <article className="lp-card">
+    <article className="lp-card" onClick={onLoginGate}>
       <div className="lp-card-img">
-        {photos[0] ? <img src={photos[0]} alt={p.title} loading="lazy" /> : <span>{p.emoji || '📦'}</span>}
+        {photos[0]
+          ? <img src={photos[0]} alt={p.title} loading="lazy" />
+          : <span className="lp-card-emoji">{p.emoji || '📦'}</span>
+        }
+        {(p.likes || 0) > 0 && (
+          <div className="lp-card-likes">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" stroke="none">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            {p.likes}
+          </div>
+        )}
+        <span className={`lp-card-badge ${badge.cls}`}>{badge.label}</span>
       </div>
       <div className="lp-card-body">
-        <div className="ch" style={{ marginBottom: 6 }}>
-          <span className="cl">Trueque</span>
-          {p.buy && <span className="cv">Compra</span>}
-          {p.mixed && <span className="ca">Mixto</span>}
-        </div>
-        <h4 style={{ fontFamily: 'Syne,sans-serif', fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{p.title}</h4>
-        <div style={{ fontSize: 12, color: 'var(--mu)', marginBottom: 6 }}>
-          {p.level || 'Nuevo'} · {p.region || p.location || 'Chile'}
-        </div>
-        <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--v)', marginBottom: 6 }}>{fmtP(p.price)}</div>
-        <button className="btn bv bsm btn-full" onClick={() => openModal('auth')}>
-          Iniciar sesión para conectar
-        </button>
+        <h4 className="lp-card-title">{p.title}</h4>
+        {p.condition && <div className="lp-card-cond">{p.condition.split('(')[0].trim()}</div>}
+        <div className="lp-card-meta">{p.region || 'Chile'}</div>
+        {price
+          ? <div className="lp-card-price">{price}</div>
+          : <div className="lp-card-price lp-card-price--free">Gratis / Trueque</div>
+        }
       </div>
     </article>
   );
@@ -34,109 +58,129 @@ function LandingProductCard({ p }) {
 
 export default function LandingPage() {
   const { products, stats, searchQuery, setSearchQuery, openModal, activeCategory, setActiveCategory } = useApp();
+  const [sortBy, setSortBy] = useState('likes');
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const visibleProducts = products
+  const sorted = [...products]
     .filter(p => p.status === 'active')
     .filter(p => {
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
-      return [p.title, p.category, p.wants, p.region].join(' ').toLowerCase().includes(q);
+      return [p.title, p.category, p.subcategory, p.wants, p.region].join(' ').toLowerCase().includes(q);
     })
     .filter(p => activeCategory === 'all' || p.category === activeCategory)
-    .slice(0, 8);
+    .sort((a, b) => {
+      if (sortBy === 'likes')  return (b.likes || 0) - (a.likes || 0);
+      if (sortBy === 'newest') return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      return 0;
+    })
+    .slice(0, 24);
+
+  const allCount  = products.filter(p => p.status === 'active').length;
+
+  function loginGate() { openModal('auth'); }
 
   return (
     <>
       <div className="landing">
-        {/* ── HEADER ── */}
+
+        {/* ── HEADER ───────────────────────────── */}
         <header className="lh">
           <div className="lh-brand">
-            <img src="/logo-icon.ico" alt="Truekeamas" width={42} height={42} style={{ objectFit: 'contain' }} />
-            <div>
-              <span className="lh-name">truekea<span style={{ color: 'var(--lm)' }}>mas</span></span>
-              <span className="lh-tagline">Conecta · Intercambia · Crece</span>
-            </div>
+            <img src="/logo-icon.ico" alt="Truekeamas" width={38} height={38} style={{ objectFit: 'contain' }} />
+            <span className="lh-name">truekea<span>mas</span></span>
           </div>
-          <nav className="lh-nav">
-            <a href="#como-funciona" className="lh-link">¿Cómo funciona?</a>
-            <a href="#vitrina-publica" className="lh-link">Ver productos</a>
-            <button className="btn bo bsm" onClick={() => openModal('auth')}>Iniciar sesión</button>
-            <button className="btn bv bsm" onClick={() => openModal('auth')}>Registrarse gratis</button>
+          <nav className={`lh-nav${menuOpen ? ' open' : ''}`}>
+            <a href="#como-funciona" className="lh-link" onClick={() => setMenuOpen(false)}>¿Cómo funciona?</a>
+            <a href="#vitrina" className="lh-link" onClick={() => setMenuOpen(false)}>Explorar</a>
+            <a href="/privacidad" className="lh-link" onClick={() => setMenuOpen(false)}>Privacidad</a>
+            <button className="btn bo bsm" onClick={() => { setMenuOpen(false); openModal('auth'); }}>Iniciar sesión</button>
+            <button className="btn bv bsm" onClick={() => { setMenuOpen(false); openModal('auth'); }}>Registrarse</button>
           </nav>
+          <button className="lh-burger" onClick={() => setMenuOpen(o => !o)} aria-label="Menú">
+            <span /><span /><span />
+          </button>
         </header>
 
-        {/* ── HERO ── */}
+        {/* ── HERO ─────────────────────────────── */}
         <section className="l-hero">
+          <div className="l-hero-overlay" />
           <div className="l-hero-content">
-            <div className="hl" style={{ marginBottom: 20 }}>✦ Conecta · Intercambia · Crece</div>
+            <div className="l-hero-pill">🇨🇱 La comunidad de intercambio de Chile</div>
             <h1 className="l-hero-title">
-              Conectamos <em>personas</em>,<br />creamos <span className="l-hero-green">posibilidades.</span>
+              ¿Qué tienes<br />que ya no usas?
             </h1>
-            <p className="l-hero-sub">Todo lo que necesitas está en nuestra comunidad. Intercambia, ahorra y conecta con personas de toda Chile.</p>
-
+            <p className="l-hero-sub">
+              Intercambia, vende o dona a personas reales cerca de ti.<br />
+              Sin intermediarios, sin comisiones.
+            </p>
             <div className="l-hero-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" style={{ flexShrink: 0, color: 'var(--mu)' }}>
+                <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+              </svg>
               <input
                 type="text"
-                placeholder="¿Qué estás buscando?"
+                placeholder="Busca celulares, ropa, libros…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                onFocus={() => document.getElementById('vitrina-publica')?.scrollIntoView({ behavior: 'smooth' })}
+                onFocus={() => document.getElementById('vitrina')?.scrollIntoView({ behavior: 'smooth' })}
               />
-              <button className="l-search-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                  <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
-                </svg>
+              {searchQuery && <button className="l-search-clear" onClick={() => setSearchQuery('')}>✕</button>}
+            </div>
+            <div className="l-hero-ctas">
+              <button className="btn bv" style={{ fontSize: 15, padding: '13px 28px' }} onClick={loginGate}>
+                Publicar gratis
+              </button>
+              <button className="btn" style={{ background: 'rgba(255,255,255,.18)', color: '#fff', border: '1.5px solid rgba(255,255,255,.4)', fontSize: 15, padding: '13px 28px' }} onClick={loginGate}>
+                Ver mis favoritos
               </button>
             </div>
-
             <div className="l-hero-stats">
               <div className="l-stat"><strong>{stats.products}</strong><span>Publicaciones</span></div>
               <div className="l-stat"><strong>{stats.users}</strong><span>Usuarios</span></div>
               <div className="l-stat"><strong>{stats.matches}</strong><span>Acuerdos</span></div>
             </div>
           </div>
-          <div className="l-hero-visual">
-            <div className="l-hero-card">
-              <div className="l-hc-row">
-                <div className="l-hc-item"><span>📱</span><div>Tú ofreces</div><strong>Tu producto</strong></div>
-                <div className="l-hc-arrow">⇄</div>
-                <div className="l-hc-item"><span>💻</span><div>Recibes</div><strong>Lo que buscas</strong></div>
-              </div>
-              <div className="l-hc-match">
-                <div className="md" />
-                <div><div style={{ fontWeight: 800, fontSize: 13 }}>¡Match en tiempo real!</div><div style={{ fontSize: 11, opacity: .7 }}>Chat interno protegido</div></div>
-              </div>
-            </div>
-          </div>
         </section>
 
-        {/* ── CATEGORÍAS ── */}
-        <section className="l-section l-cats-section">
+        {/* ── CATEGORÍAS ───────────────────────── */}
+        <section className="l-cats-strip">
           <div className="l-container">
-            <div className="l-section-header">
-              <h2>Explora por categoría</h2>
-              <p>Encuentra lo que buscas entre miles de publicaciones</p>
-            </div>
-            <div className="l-cats">
+            <div className="l-cats-scroll">
               <button className={`l-cat${activeCategory === 'all' ? ' active' : ''}`} onClick={() => setActiveCategory('all')}>
-                <span>🔄</span>Todos
+                <span>🔄</span><span>Todo</span>
               </button>
               {CATS.map(c => (
                 <button key={c.n} className={`l-cat${activeCategory === c.n ? ' active' : ''}`} onClick={() => setActiveCategory(c.n)}>
-                  <span>{c.e}</span>{c.n}
+                  <span>{c.e}</span><span>{c.n}</span>
                 </button>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── PRODUCTOS ── */}
-        <section className="l-section" id="vitrina-publica">
+        {/* ── PRODUCTS GRID ────────────────────── */}
+        <section className="l-products-section" id="vitrina">
           <div className="l-container">
-            <div className="l-section-header">
-              <h2>Publicaciones recientes</h2>
-              <p>Ingresa para guardar favoritos, hacer match y chatear</p>
+            <div className="l-grid-header">
+              <div className="l-grid-title">
+                <h2>
+                  {activeCategory === 'all' ? 'Publicaciones' : activeCategory}
+                  {allCount > 0 && <span className="l-grid-count">{allCount}</span>}
+                </h2>
+                {searchQuery && (
+                  <span className="l-search-tag">
+                    "{searchQuery}"
+                    <button onClick={() => setSearchQuery('')}>✕</button>
+                  </span>
+                )}
+              </div>
+              <div className="l-grid-sort">
+                <button className={`l-sort-btn${sortBy === 'likes'  ? ' active' : ''}`} onClick={() => setSortBy('likes')}>❤️ Populares</button>
+                <button className={`l-sort-btn${sortBy === 'newest' ? ' active' : ''}`} onClick={() => setSortBy('newest')}>🆕 Recientes</button>
+              </div>
             </div>
+
             <div className="l-products">
               {products.length === 0 ? (
                 <div className="es" style={{ gridColumn: '1/-1' }}>
@@ -144,36 +188,40 @@ export default function LandingPage() {
                   <p>Cargando publicaciones...</p>
                   <div className="sp sp2" style={{ margin: '0 auto' }} />
                 </div>
-              ) : visibleProducts.length === 0 ? (
+              ) : sorted.length === 0 ? (
                 <div className="es" style={{ gridColumn: '1/-1' }}>
-                  <span className="ei">🔍</span><p>Sin resultados para "{searchQuery}"</p>
+                  <span className="ei">🔍</span>
+                  <p>Sin resultados para "<strong>{searchQuery || activeCategory}</strong>"</p>
                   <button className="btn bv bsm" onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}>Ver todas</button>
                 </div>
               ) : (
-                visibleProducts.map(p => <LandingProductCard key={p.id} p={p} />)
+                sorted.map(p => <LandingCard key={p.id} p={p} onLoginGate={loginGate} />)
               )}
             </div>
-            <div style={{ textAlign: 'center', marginTop: 28 }}>
-              <button className="btn bv" onClick={() => openModal('auth')}>
-                Ver todas las publicaciones →
-              </button>
-            </div>
+
+            {allCount > 24 && (
+              <div className="l-grid-more">
+                <button className="btn bv" style={{ padding: '12px 36px' }} onClick={loginGate}>
+                  Ver las {allCount} publicaciones →
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* ── CÓMO FUNCIONA ── */}
-        <section className="l-section l-how" id="como-funciona">
+        {/* ── CÓMO FUNCIONA ─────────────────────  */}
+        <section className="l-how" id="como-funciona">
           <div className="l-container">
-            <div className="l-section-header">
-              <h2>Un flujo claro para acordar con confianza</h2>
-              <p>Truekeamas facilita el encuentro, el chat en tiempo real y el registro del acuerdo.</p>
+            <div className="l-how-header">
+              <h2>Así de simple funciona</h2>
+              <p>En minutos puedes publicar y empezar a intercambiar</p>
             </div>
             <div className="l-steps">
               {[
-                { n: '1', icon: '📝', title: 'Publica lo que tienes', desc: 'Crea tu publicación con fotos, precio referencial y lo que buscas a cambio.' },
-                { n: '2', icon: '🔍', title: 'Explora y haz Match', desc: 'Encuentra lo que necesitas y conecta haciendo match con el publicador.' },
-                { n: '3', icon: '💬', title: 'Chatea en tiempo real', desc: 'Coordina los detalles del trueque de forma segura en el chat interno.' },
-                { n: '4', icon: '🤝', title: 'Registra el acuerdo', desc: 'Formaliza el intercambio y construye tu reputación en la comunidad.' },
+                { n: '1', icon: '📸', title: 'Fotografía lo que tienes', desc: 'Sube fotos, elige la categoría y escribe qué buscas a cambio.' },
+                { n: '2', icon: '🤝', title: 'Recibe propuestas', desc: 'Otros usuarios te envían propuestas con su oferta. Acepta o declina.' },
+                { n: '3', icon: '💬', title: 'Coordina por chat', desc: 'Habla directamente dentro de la app. Sin exponer datos personales.' },
+                { n: '4', icon: '✅', title: '¡Acuerdo listo!', desc: 'Registra el intercambio y construye tu reputación en la comunidad.' },
               ].map(s => (
                 <div key={s.n} className="l-step">
                   <div className="l-step-num">{s.n}</div>
@@ -186,30 +234,64 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── CTA ── */}
+        {/* ── CTA BANNER ────────────────────────── */}
         <section className="l-cta">
-          <div className="l-container" style={{ textAlign: 'center' }}>
-            <h2 style={{ fontFamily: 'Syne,sans-serif', fontSize: 'clamp(26px,4vw,40px)', fontWeight: 900, color: '#fff', marginBottom: 12 }}>
-              Únete a la comunidad
-            </h2>
-            <p style={{ color: 'rgba(255,255,255,.8)', fontSize: 16, marginBottom: 28, maxWidth: 500, margin: '0 auto 28px' }}>
-              Crea tu cuenta gratis y empieza a intercambiar hoy mismo.
-            </p>
-            <button className="btn" style={{ background: '#fff', color: 'var(--v)', fontWeight: 900, fontSize: 16, padding: '14px 36px' }} onClick={() => openModal('auth')}>
-              Crear cuenta gratuita →
-            </button>
+          <div className="l-container">
+            <div className="l-cta-inner">
+              <div>
+                <h2>Empieza hoy gratis</h2>
+                <p>Únete a miles de chilenos que ya intercambian en Truekeamas</p>
+              </div>
+              <button className="btn" style={{ background: '#fff', color: 'var(--v)', fontWeight: 800, fontSize: 15, padding: '14px 32px', borderRadius: 12, whiteSpace: 'nowrap' }} onClick={loginGate}>
+                Crear cuenta gratis →
+              </button>
+            </div>
           </div>
         </section>
 
-        {/* ── FOOTER ── */}
+        {/* ── FOOTER ───────────────────────────── */}
         <footer className="l-footer">
-          <div className="l-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 900, fontSize: 16 }}>
-              <span style={{ color: 'var(--ink)' }}>truekea</span><span style={{ color: 'var(--lm)' }}>mas</span>
+          <div className="l-container">
+            <div className="l-footer-grid">
+
+              <div className="l-footer-brand">
+                <div className="l-footer-logo">
+                  <img src="/logo-icon.ico" alt="Truekeamas" width={36} height={36} style={{ objectFit: 'contain' }} />
+                  <span>truekea<strong>mas</strong></span>
+                </div>
+                <p>La plataforma de intercambio, venta y donación de Chile. Sin comisiones, sin intermediarios.</p>
+                <a href="https://www.instagram.com/truekeamas" target="_blank" rel="noopener noreferrer" className="l-footer-ig">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  @truekeamas
+                </a>
+              </div>
+
+              <div className="l-footer-col">
+                <h5>Plataforma</h5>
+                <a href="#vitrina" onClick={loginGate}>Explorar publicaciones</a>
+                <a href="#como-funciona">¿Cómo funciona?</a>
+                <a href="#" onClick={e => { e.preventDefault(); loginGate(); }}>Publicar gratis</a>
+                <a href="#" onClick={e => { e.preventDefault(); loginGate(); }}>Mis favoritos</a>
+              </div>
+
+              <div className="l-footer-col">
+                <h5>Empresa</h5>
+                <a href="#sobre-nosotros">Sobre nosotros</a>
+                <a href="https://www.instagram.com/truekeamas" target="_blank" rel="noopener noreferrer">Contacto</a>
+                <a href="/privacidad">Política de privacidad</a>
+                <a href="/privacidad">Términos de uso</a>
+              </div>
+
             </div>
-            <div style={{ fontSize: 13, color: 'var(--mu)' }}>© 2025 Truekeamas · Cambia. Ahorra. Conecta.</div>
+            <div className="l-footer-bottom">
+              <span>© 2025 Truekeamas · Cambia. Ahorra. Conecta.</span>
+              <span>Hecho con ❤️ en Chile 🇨🇱</span>
+            </div>
           </div>
         </footer>
+
       </div>
 
       <Modal />

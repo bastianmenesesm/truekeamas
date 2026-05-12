@@ -13,6 +13,7 @@ import TermsModal         from '@/components/modals/TermsModal';
 import MatchProposalModal from '@/components/modals/MatchProposalModal';
 import ProposalsModal     from '@/components/modals/ProposalsModal';
 import NotificationsModal from '@/components/modals/NotificationsModal';
+import ReportModal        from '@/components/modals/ReportModal';
 
 const TITLES = {
   auth:            'Acceder',
@@ -29,6 +30,7 @@ const TITLES = {
   match_proposal:  '🤝 Enviar propuesta de trueque',
   notifications:   '🔔 Notificaciones',
   privacy_reminder:'🔒 Recordatorio de seguridad',
+  report:          '🚩 Denunciar publicación',
 };
 
 export default function Modal() {
@@ -56,6 +58,7 @@ export default function Modal() {
       case 'match_proposal':  return <MatchProposalModal productId={modal.productId} />;
       case 'notifications':   return <NotificationsModal />;
       case 'privacy_reminder':return <PrivacyReminderContent />;
+      case 'report':          return <ReportModal productId={modal.productId} />;
       default:                return null;
     }
   }
