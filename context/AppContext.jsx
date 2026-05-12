@@ -83,12 +83,14 @@ export function AppProvider({ children }) {
   /* ── Notifications listener ───────────────── */
   useEffect(() => {
     if (!currentUser) { setNotifications([]); return; }
+    // Sin orderBy — ordenamos en cliente para evitar índice compuesto
     const q = query(
-      collection(db, 'notifications', currentUser.uid, 'items'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'notifications', currentUser.uid, 'items')
     );
     const unsub = onSnapshot(q, snap => {
-      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setNotifications(list);
     }, () => {});
     return unsub;
   }, [currentUser]);
@@ -96,13 +98,15 @@ export function AppProvider({ children }) {
   /* ── Received proposals listener ─────────── */
   useEffect(() => {
     if (!currentUser) { setReceivedProposals([]); return; }
+    // Sin orderBy para evitar índice compuesto — ordenamos en cliente
     const q = query(
       collection(db, 'proposals'),
-      where('productOwnerUid', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
+      where('productOwnerUid', '==', currentUser.uid)
     );
     const unsub = onSnapshot(q, snap => {
-      setReceivedProposals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setReceivedProposals(list);
     }, () => {});
     return unsub;
   }, [currentUser]);
@@ -110,13 +114,15 @@ export function AppProvider({ children }) {
   /* ── Sent proposals listener ──────────────── */
   useEffect(() => {
     if (!currentUser) { setSentProposals([]); return; }
+    // Sin orderBy para evitar índice compuesto — ordenamos en cliente
     const q = query(
       collection(db, 'proposals'),
-      where('proposerUid', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
+      where('proposerUid', '==', currentUser.uid)
     );
     const unsub = onSnapshot(q, snap => {
-      setSentProposals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setSentProposals(list);
     }, () => {});
     return unsub;
   }, [currentUser]);
