@@ -3,7 +3,8 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import {
   onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, updateProfile, signInWithPopup, GoogleAuthProvider
+  signOut, updateProfile, signInWithPopup, GoogleAuthProvider,
+  setPersistence, browserSessionPersistence
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
@@ -329,11 +330,13 @@ export function AppProvider({ children }) {
 
   /* ── Auth ─────────────────────────────────── */
   async function loginUser(email, password) {
+    await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   }
 
   async function registerUser(email, password, name, phone, region) {
     rateLimit('reg_x', 3, 3600000);
+    await setPersistence(auth, browserSessionPersistence);
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     await setDoc(doc(db, 'users', cred.user.uid), {
@@ -351,6 +354,7 @@ export function AppProvider({ children }) {
 
   async function socialLogin(providerName) {
     if (providerName !== 'google') throw new Error('Proveedor no soportado');
+    await setPersistence(auth, browserSessionPersistence);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
