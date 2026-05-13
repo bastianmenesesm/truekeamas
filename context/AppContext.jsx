@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import {
   onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, updateProfile
+  signOut, updateProfile, signInWithPopup, GoogleAuthProvider
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
@@ -349,6 +349,33 @@ export function AppProvider({ children }) {
     setUserData(ud);
   }
 
+  async function socialLogin(providerName) {
+    if (providerName !== 'google') throw new Error('Proveedor no soportado');
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    const cred = await signInWithPopup(auth, provider);
+    const user = cred.user;
+
+    // Si el usuario es nuevo, crear doc en Firestore
+    const userRef = doc(db, 'users', user.uid);
+    const snap    = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        displayName: user.displayName || user.email?.split('@')[0] || 'Usuario',
+        email: user.email || '',
+        phone: '',
+        region: '',
+        level: 'Nuevo',
+        role: 'user',
+        provider: providerName,
+        createdAt: serverTimestamp()
+      });
+    }
+    const ud = await loadUserData(user.uid);
+    setUserData(ud);
+  }
+
   async function logoutUser() {
     await signOut(auth);
     setUserData(null);
@@ -464,7 +491,7 @@ export function AppProvider({ children }) {
     sortBy, setSortBy,
     showToast, openModal, closeModal,
     toggleLike,
-    loginUser, registerUser, logoutUser, updateUserProfile,
+    loginUser, registerUser, socialLogin, logoutUser, updateUserProfile,
     publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
     blockProduct, unblockProduct, reportProduct,
     loadProducts, loadStats, rlMessage,

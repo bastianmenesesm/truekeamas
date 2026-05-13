@@ -503,6 +503,37 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .atb { flex: 1; padding: 12px; font-weight: 600; font-size: 14px; background: var(--sf); color: var(--mu); border: none; cursor: pointer; transition: all .15s; }
 .atb.active { background: var(--v); color: #fff; }
 
+/* ─── SOCIAL LOGIN ────────────────────────── */
+.auth-social {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px;
+}
+.social-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 11px 16px;
+  border-radius: var(--r-md);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; border: none;
+  transition: opacity .15s, transform .1s;
+}
+.social-btn:active { transform: scale(.98); }
+.social-btn:disabled { opacity: .6; cursor: not-allowed; }
+.social-btn--google {
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--ln2);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.social-btn--google:hover:not(:disabled) { background: var(--sf); }
+
+.auth-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px; color: var(--mu); font-size: 12.5px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--ln);
+}
+
 /* ─── AUTH MODAL ──────────────────────────── */
 .pwd-wrap { position: relative; }
 .pwd-wrap input { padding-right: 46px !important; }
