@@ -56,27 +56,70 @@ export default function UserProfileModal({ userId }) {
   const blockedUsers = userData?.blockedUsers || [];
   const isBlocked    = blockedUsers.includes(userId);
 
-  /* Load user + ratings in parallel, then products separately */
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
     setProdLoading(true);
+    setUser(null);
+    setRatings([]);
 
     async function load() {
+      let userObj = null;
+
+      /* 1 ─ Try reading the user document */
       try {
-        const [userSnap, ratSnap] = await Promise.all([
-          getDoc(doc(db, 'users', userId)),
-          getDocs(query(
-            collection(db, 'ratings'),
-            where('toUid', '==', userId),
-            orderBy('createdAt', 'desc'),
-            limit(20)
-          )),
-        ]);
-        setUser(userSnap.exists() ? { id: userSnap.id, ...userSnap.data() } : null);
+        const snap = await getDoc(doc(db, 'users', userId));
+        if (snap.exists()) {
+          userObj = { id: snap.id, ...snap.data() };
+        }
+      } catch (e) {
+        // permission-denied or network error — we'll fall through to the product fallback
+        console.warn('[UserProfile] user doc unavailable:', e?.code || e?.message);
+      }
+
+      /* 2 ─ Fallback: build profile from one of their product documents
+             (product docs are always readable since they're public)       */
+      if (!userObj) {
+        try {
+          const prodSnap = await getDocs(query(
+            collection(db, 'products'),
+            where('ownerId', '==', userId),
+            limit(1)
+          ));
+          if (!prodSnap.empty) {
+            const p = prodSnap.docs[0].data();
+            userObj = {
+              id:           userId,
+              displayName:  p.ownerName || p.owner || 'Usuario',
+              avatarUrl:    p.ownerAvatarUrl || null,
+              level:        p.level || 'Nuevo',
+              verified:     p.ownerVerified || false,
+              region:       p.region || '',
+              ratingAvg:    p.ownerRatingAvg    || 0,
+              ratingCount:  p.ownerRatingCount  || 0,
+              _fromProduct: true, // flag: partial data
+            };
+          }
+        } catch (e) {
+          console.warn('[UserProfile] product fallback failed:', e?.code);
+        }
+      }
+
+      setUser(userObj);
+      setLoading(false);
+
+      /* 3 ─ Load ratings (independent — may also fail if rules block it) */
+      try {
+        const ratSnap = await getDocs(query(
+          collection(db, 'ratings'),
+          where('toUid', '==', userId),
+          orderBy('createdAt', 'desc'),
+          limit(20)
+        ));
         setRatings(ratSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      } catch (e) { console.error('[UserProfile]', e); }
-      finally { setLoading(false); }
+      } catch (e) {
+        console.warn('[UserProfile] ratings unavailable:', e?.code);
+      }
     }
 
     async function loadProducts() {
@@ -89,8 +132,11 @@ export default function UserProfileModal({ userId }) {
           limit(12)
         ));
         setOwnProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      } catch (e) { console.error('[UserProfile products]', e); }
-      finally { setProdLoading(false); }
+      } catch (e) {
+        console.warn('[UserProfile] products list failed:', e?.code);
+      } finally {
+        setProdLoading(false);
+      }
     }
 
     load();
@@ -104,18 +150,27 @@ export default function UserProfileModal({ userId }) {
       Cargando perfil...
     </div>
   );
-  if (!user) return <div className="nb nbd">Usuario no encontrado.</div>;
 
-  const initial   = (user.displayName || 'U').charAt(0).toUpperCase();
-  const avg       = user.ratingAvg   || 0;
-  const count     = user.ratingCount || 0;
-  const memberSince = fmtMemberSince(user.createdAt);
+  /* ── Render: truly not found ─── */
+  if (!user) return (
+    <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>👤</div>
+      <p style={{ color: 'var(--mu)', fontSize: 14 }}>
+        Este perfil no está disponible o fue eliminado.
+      </p>
+    </div>
+  );
+
+  const initial     = (user.displayName || 'U').charAt(0).toUpperCase();
+  const avg         = user.ratingAvg   || 0;
+  const count       = user.ratingCount || 0;
+  const memberSince = user._fromProduct ? null : fmtMemberSince(user.createdAt);
 
   const badges = [];
   if (user.verified)              badges.push({ label: '✓ Verificado',  cls: 'up-badge--verified' });
   if (user.level === 'Confiable') badges.push({ label: '🏅 Confiable',  cls: 'up-badge--trusted'  });
   if (user.level === 'Activo')    badges.push({ label: '✅ Activo',     cls: 'up-badge--trusted'  });
-  if (user.role === 'admin')      badges.push({ label: '🛡️ Admin',      cls: 'up-badge--admin'    });
+  if (user.role  === 'admin')     badges.push({ label: '🛡️ Admin',      cls: 'up-badge--admin'    });
 
   return (
     <div className="up-wrap">
@@ -124,7 +179,11 @@ export default function UserProfileModal({ userId }) {
       <div className="up-header">
         <div className="up-avatar-wrap">
           {user.avatarUrl
-            ? <img src={optimizeCloudinaryUrl(user.avatarUrl, 200)} alt={user.displayName} className="up-avatar-img" />
+            ? <img
+                src={optimizeCloudinaryUrl(user.avatarUrl, 200)}
+                alt={user.displayName}
+                className="up-avatar-img"
+              />
             : <div className="up-avatar-ph">{initial}</div>
           }
         </div>
@@ -142,7 +201,7 @@ export default function UserProfileModal({ userId }) {
             ))}
           </div>
 
-          {/* Rating */}
+          {/* Rating stars */}
           {count > 0 ? (
             <div className="up-rating-row">
               <StarDisplay value={avg} />
@@ -154,9 +213,11 @@ export default function UserProfileModal({ userId }) {
           )}
 
           {/* Location + member since */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 2 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', marginTop: 2 }}>
             {user.region && (
-              <span className="up-region">📍 {user.commune ? `${user.commune}, ${user.region}` : user.region}</span>
+              <span className="up-region">
+                📍 {user.commune ? `${user.commune}, ${user.region}` : user.region}
+              </span>
             )}
             {memberSince && (
               <span className="up-region" title={`Se unió el ${fmtDate(user.createdAt)}`}>
@@ -183,7 +244,7 @@ export default function UserProfileModal({ userId }) {
         </div>
       </div>
 
-      {/* ── Bio / descripción ──────────────── */}
+      {/* ── Bio ────────────────────────────── */}
       {user.bio && (
         <div className="up-bio">
           <p>"{user.bio}"</p>
@@ -217,7 +278,7 @@ export default function UserProfileModal({ userId }) {
       <div className="up-section">
         <h4 className="up-section-title">
           Publicaciones activas
-          {!prodLoading && (
+          {!prodLoading && ownProducts.length > 0 && (
             <span className="pg-count" style={{ marginLeft: 8, fontSize: 12 }}>{ownProducts.length}</span>
           )}
         </h4>
@@ -236,7 +297,10 @@ export default function UserProfileModal({ userId }) {
               <button
                 key={p.id}
                 className="up-product-thumb"
-                onClick={() => { closeModal(); setTimeout(() => openModal({ type: 'product_detail', productId: p.id }), 200); }}
+                onClick={() => {
+                  closeModal();
+                  setTimeout(() => openModal({ type: 'product_detail', productId: p.id }), 200);
+                }}
                 title={p.title}
               >
                 {p.photos?.[0]
@@ -250,11 +314,13 @@ export default function UserProfileModal({ userId }) {
         )}
       </div>
 
-      {/* ── Calificaciones recibidas ────────── */}
+      {/* ── Calificaciones ─────────────────── */}
       <div className="up-section">
         <h4 className="up-section-title">
           Opiniones
-          {count > 0 && <span className="pg-count" style={{ marginLeft: 8, fontSize: 12 }}>{count}</span>}
+          {count > 0 && (
+            <span className="pg-count" style={{ marginLeft: 8, fontSize: 12 }}>{count}</span>
+          )}
         </h4>
 
         {ratings.length === 0 ? (
@@ -279,7 +345,6 @@ export default function UserProfileModal({ userId }) {
                       <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
                     </div>
                   </div>
-                  {/* Stars number badge */}
                   <span style={{
                     fontSize: 13, fontWeight: 800, color: '#F59E0B',
                     background: 'rgba(245,158,11,.1)', borderRadius: 6,

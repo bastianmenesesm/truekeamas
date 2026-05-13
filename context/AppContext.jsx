@@ -85,7 +85,22 @@ export function AppProvider({ children }) {
     const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        const ud = await loadUserData(user.uid);
+        let ud = await loadUserData(user.uid);
+        // Auto-create missing user doc (e.g. admin added manually, old accounts)
+        if (!ud) {
+          try {
+            await setDoc(doc(db, 'users', user.uid), {
+              displayName: user.displayName || user.email?.split('@')[0] || 'Usuario',
+              email:       user.email || '',
+              phone:       '',
+              region:      '',
+              level:       'Nuevo',
+              role:        'user',
+              createdAt:   serverTimestamp(),
+            }, { merge: true }); // merge: true preserves any existing fields (e.g. role: 'admin')
+            ud = await loadUserData(user.uid);
+          } catch (e) { console.warn('[Auth] No se pudo crear doc de usuario:', e); }
+        }
         setUserData(ud);
       } else {
         setUserData(null);

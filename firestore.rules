@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────
+    function isAuth() { return request.auth != null; }
+    function isOwner(uid) { return request.auth.uid == uid; }
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── Users ─────────────────────────────────────────────────
+    // Cualquier usuario autenticado puede ver perfiles (información pública)
+    // Solo el propio usuario o un admin puede escribir
+    match /users/{userId} {
+      allow read:   if isAuth();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Products ──────────────────────────────────────────────
+    // Lectura pública (la vitrina es visible sin login)
+    // Escritura solo autenticados
+    match /products/{productId} {
+      allow read:   if true;
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.ownerId == request.auth.uid || isAdmin()
+      );
+      allow delete: if isAuth() && (
+        resource.data.ownerId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // ── Proposals ─────────────────────────────────────────────
+    // Solo los participantes pueden leer/escribir sus propuestas
+    match /proposals/{proposalId} {
+      allow read:   if isAuth() && (
+        resource.data.proposerUid      == request.auth.uid ||
+        resource.data.productOwnerUid  == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.productOwnerUid == request.auth.uid || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── Matches (chats) ───────────────────────────────────────
+    match /matches/{matchId} {
+      allow read:   if isAuth() && (
+        resource.data.ownerId     == request.auth.uid ||
+        resource.data.requesterId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.ownerId     == request.auth.uid ||
+        resource.data.requesterId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+
+      // Mensajes del chat — solo los participantes del match
+      match /messages/{messageId} {
+        allow read, write: if isAuth() && (
+          get(/databases/$(database)/documents/matches/$(matchId)).data.ownerId     == request.auth.uid ||
+          get(/databases/$(database)/documents/matches/$(matchId)).data.requesterId == request.auth.uid ||
+          isAdmin()
+        );
+      }
+    }
+
+    // ── Ratings ───────────────────────────────────────────────
+    // Cualquier usuario autenticado puede leer calificaciones (para mostrar en perfiles)
+    // Solo el API server (admin SDK) puede escribir
+    match /ratings/{ratingId} {
+      allow read:   if isAuth();
+      allow write:  if false; // Solo vía API route con Admin SDK
+    }
+
+    // ── Notifications ─────────────────────────────────────────
+    match /notifications/{userId}/items/{notifId} {
+      allow read, update: if isOwner(userId) || isAdmin();
+      allow create:       if isAuth();
+      allow delete:       if isOwner(userId) || isAdmin();
+    }
+
+    // ── Support tickets ───────────────────────────────────────
+    match /support/{ticketId} {
+      allow create: if isAuth();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── User reports ──────────────────────────────────────────
+    match /userReports/{reportId} {
+      allow create: if isAuth();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── Reports (product reports) ─────────────────────────────
+    match /reports/{reportId} {
+      allow create: if isAuth();
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
