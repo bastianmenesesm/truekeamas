@@ -129,7 +129,14 @@ export default function ProductCard({ product: p }) {
                 <span className="pk-verified-dot" title="Usuario verificado">✓</span>
               )}
             </div>
-            <span className="pk-level">{p.level || 'Nuevo'}</span>
+            <div className="pk-user-info">
+              <span className="pk-level">{p.level || 'Nuevo'}</span>
+              {p.ownerRatingAvg > 0 && (
+                <span className="pk-rating-mini">
+                  ⭐ {Number(p.ownerRatingAvg).toFixed(1)}
+                </span>
+              )}
+            </div>
           </button>
 
           {own ? (

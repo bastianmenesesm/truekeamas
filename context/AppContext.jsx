@@ -418,8 +418,10 @@ export function AppProvider({ children }) {
     await addDoc(collection(db, 'products'), {
       ...data, photos, ownerId: currentUser.uid, owner: myN,
       ownerName: myN,
-      ownerAvatarUrl: userData?.avatarUrl || null,
-      ownerVerified: userData?.verified || false,
+      ownerAvatarUrl:   userData?.avatarUrl    || null,
+      ownerVerified:    userData?.verified     || false,
+      ownerRatingAvg:   userData?.ratingAvg    || 0,
+      ownerRatingCount: userData?.ratingCount  || 0,
       level: userData?.level || 'Nuevo',
       barter: action === 'cambiar' || action === 'mixto',
       buy:    action === 'vender'  || action === 'mixto',

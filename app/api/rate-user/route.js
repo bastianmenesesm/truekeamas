@@ -68,16 +68,20 @@ export async function POST(request) {
       ratingCount: FieldValue.increment(1),
     });
 
-    // Recalcular promedio y nivel
+    // Leer DESPUÉS del incremento — los valores ya son los definitivos
     const toSnap   = await adminDb.collection('users').doc(toUid).get();
     const toUser   = toSnap.data() || {};
-    const newSum   = (toUser.ratingSum   || 0) + Number(stars);
-    const newCount = (toUser.ratingCount || 0) + 1;
-    const newAvg   = Math.round((newSum / newCount) * 10) / 10;
+    const newSum   = toUser.ratingSum   || 0;   // ya actualizado por increment
+    const newCount = toUser.ratingCount || 0;   // ya actualizado por increment
+    const newAvg   = newCount > 0 ? Math.round((newSum / newCount) * 10) / 10 : 0;
 
+    // Nivel automático — no pisamos si el admin ya lo configuró manualmente
     let newLevel = toUser.level || 'Nuevo';
-    if      (newCount >= 10 && newAvg >= 4.5) newLevel = 'Confiable';
-    else if (newCount >= 3  && newAvg >= 4.0) newLevel = 'Verificado';
+    if (newCount >= 10 && newAvg >= 4.5) {
+      newLevel = 'Confiable';
+    } else if (newCount >= 5 && newAvg >= 4.0 && newLevel === 'Nuevo') {
+      newLevel = 'Activo';
+    }
 
     await adminDb.collection('users').doc(toUid).update({
       ratingAvg: newAvg,

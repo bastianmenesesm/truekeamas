@@ -1,10 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { db } from '@/lib/firebase';
-import { optimizeCloudinaryUrl } from '@/lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { db, optimizeCloudinaryUrl } from '@/lib/firebase';
+import {
+  doc, getDoc, collection, query, where,
+  getDocs, orderBy, limit,
+} from 'firebase/firestore';
 
+/* ── Helpers ─────────────────────────────── */
 function StarDisplay({ value, size = 14 }) {
   const rounded = Math.round(value * 2) / 2;
   return (
@@ -12,7 +15,8 @@ function StarDisplay({ value, size = 14 }) {
       {[1, 2, 3, 4, 5].map(s => (
         <svg key={s} viewBox="0 0 24 24" width={size} height={size}
           fill={s <= rounded ? '#F59E0B' : 'none'}
-          stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          stroke={s <= rounded ? '#F59E0B' : '#CBD5E1'}
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
       ))}
@@ -20,22 +24,47 @@ function StarDisplay({ value, size = 14 }) {
   );
 }
 
+function fmtMemberSince(ts) {
+  if (!ts) return null;
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  const months = Math.floor((now - d) / (1000 * 60 * 60 * 24 * 30));
+  if (months < 1)  return 'Menos de un mes';
+  if (months < 12) return `${months} mes${months > 1 ? 'es' : ''}`;
+  const years = Math.floor(months / 12);
+  const rem   = months % 12;
+  return `${years} año${years > 1 ? 's' : ''}${rem > 0 ? ` y ${rem} mes${rem > 1 ? 'es' : ''}` : ''}`;
+}
+
+function fmtDate(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+/* ── Component ───────────────────────────── */
 export default function UserProfileModal({ userId }) {
-  const { currentUser, userData, products, openModal, closeModal, blockUser, unblockUser } = useApp();
-  const [user,    setUser]    = useState(null);
-  const [ratings, setRatings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { currentUser, userData, openModal, closeModal, blockUser, unblockUser } = useApp();
 
-  const isOwn         = currentUser?.uid === userId;
-  const blockedUsers  = userData?.blockedUsers || [];
-  const isBlocked     = blockedUsers.includes(userId);
-  const ownProducts   = products.filter(p => p.ownerId === userId && p.status === 'active');
+  const [user,        setUser]        = useState(null);
+  const [ratings,     setRatings]     = useState([]);
+  const [ownProducts, setOwnProducts] = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [prodLoading, setProdLoading] = useState(true);
 
+  const isOwn        = currentUser?.uid === userId;
+  const blockedUsers = userData?.blockedUsers || [];
+  const isBlocked    = blockedUsers.includes(userId);
+
+  /* Load user + ratings in parallel, then products separately */
   useEffect(() => {
     if (!userId) return;
+    setLoading(true);
+    setProdLoading(true);
+
     async function load() {
       try {
-        const [userSnap, ratingsSnap] = await Promise.all([
+        const [userSnap, ratSnap] = await Promise.all([
           getDoc(doc(db, 'users', userId)),
           getDocs(query(
             collection(db, 'ratings'),
@@ -45,36 +74,53 @@ export default function UserProfileModal({ userId }) {
           )),
         ]);
         setUser(userSnap.exists() ? { id: userSnap.id, ...userSnap.data() } : null);
-        setRatings(ratingsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      } catch (e) { console.error(e); }
+        setRatings(ratSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) { console.error('[UserProfile]', e); }
       finally { setLoading(false); }
     }
+
+    async function loadProducts() {
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'products'),
+          where('ownerId', '==', userId),
+          where('status', '==', 'active'),
+          orderBy('createdAt', 'desc'),
+          limit(12)
+        ));
+        setOwnProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) { console.error('[UserProfile products]', e); }
+      finally { setProdLoading(false); }
+    }
+
     load();
+    loadProducts();
   }, [userId]);
 
-  if (loading) return <div className="cem"><div className="sp" style={{ margin: '0 auto' }} /></div>;
-  if (!user)   return <div className="nb nbd">Usuario no encontrado.</div>;
+  /* ── Render: loading ─── */
+  if (loading) return (
+    <div className="cem">
+      <div className="sp" style={{ margin: '0 auto 10px' }} />
+      Cargando perfil...
+    </div>
+  );
+  if (!user) return <div className="nb nbd">Usuario no encontrado.</div>;
 
-  const initial = (user.displayName || 'U').charAt(0).toUpperCase();
-  const avg     = user.ratingAvg   || 0;
-  const count   = user.ratingCount || 0;
+  const initial   = (user.displayName || 'U').charAt(0).toUpperCase();
+  const avg       = user.ratingAvg   || 0;
+  const count     = user.ratingCount || 0;
+  const memberSince = fmtMemberSince(user.createdAt);
 
-  // Determine badges based on level + verified
   const badges = [];
-  if (user.verified)             badges.push({ label: '✓ Verificado', cls: 'up-badge--verified' });
-  if (user.level === 'Confiable') badges.push({ label: '🏅 Confiable', cls: 'up-badge--trusted' });
-  if (user.role === 'admin')     badges.push({ label: '🛡️ Admin',     cls: 'up-badge--admin' });
-
-  function fmtDate(ts) {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
+  if (user.verified)              badges.push({ label: '✓ Verificado',  cls: 'up-badge--verified' });
+  if (user.level === 'Confiable') badges.push({ label: '🏅 Confiable',  cls: 'up-badge--trusted'  });
+  if (user.level === 'Activo')    badges.push({ label: '✅ Activo',     cls: 'up-badge--trusted'  });
+  if (user.role === 'admin')      badges.push({ label: '🛡️ Admin',      cls: 'up-badge--admin'    });
 
   return (
     <div className="up-wrap">
 
-      {/* ── Header ───────────────────────────── */}
+      {/* ── Header ─────────────────────────── */}
       <div className="up-header">
         <div className="up-avatar-wrap">
           {user.avatarUrl
@@ -82,8 +128,11 @@ export default function UserProfileModal({ userId }) {
             : <div className="up-avatar-ph">{initial}</div>
           }
         </div>
+
         <div className="up-header-info">
-          <div className="up-name">{user.displayName}</div>
+          <div className="up-name">{user.displayName || 'Usuario'}</div>
+
+          {/* Level + badges */}
           <div className="up-badges-row">
             <span className="cl" style={{ padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
               {user.level || 'Nuevo'}
@@ -92,21 +141,36 @@ export default function UserProfileModal({ userId }) {
               <span key={i} className={`up-badge ${b.cls}`}>{b.label}</span>
             ))}
           </div>
-          {count > 0 && (
+
+          {/* Rating */}
+          {count > 0 ? (
             <div className="up-rating-row">
               <StarDisplay value={avg} />
               <span className="up-rating-num">{avg.toFixed(1)}</span>
-              <span className="up-rating-count">({count})</span>
+              <span className="up-rating-count">({count} calificación{count !== 1 ? 'es' : ''})</span>
             </div>
+          ) : (
+            <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 2 }}>Sin calificaciones aún</div>
           )}
-          {user.region && <div className="up-region">📍 {user.region}</div>}
+
+          {/* Location + member since */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 2 }}>
+            {user.region && (
+              <span className="up-region">📍 {user.commune ? `${user.commune}, ${user.region}` : user.region}</span>
+            )}
+            {memberSince && (
+              <span className="up-region" title={`Se unió el ${fmtDate(user.createdAt)}`}>
+                🗓️ Miembro hace {memberSince}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Stats ────────────────────────────── */}
+      {/* ── Stats ──────────────────────────── */}
       <div className="up-stats">
         <div className="up-stat-item">
-          <strong>{ownProducts.length}</strong>
+          <strong>{prodLoading ? '…' : ownProducts.length}</strong>
           <span>Publicaciones</span>
         </div>
         <div className="up-stat-item">
@@ -114,12 +178,19 @@ export default function UserProfileModal({ userId }) {
           <span>Trueques</span>
         </div>
         <div className="up-stat-item">
-          <strong>{count > 0 ? avg.toFixed(1) + '★' : '—'}</strong>
+          <strong>{count > 0 ? avg.toFixed(1) + ' ★' : '—'}</strong>
           <span>Reputación</span>
         </div>
       </div>
 
-      {/* ── Acciones (perfil ajeno) ───────────── */}
+      {/* ── Bio / descripción ──────────────── */}
+      {user.bio && (
+        <div className="up-bio">
+          <p>"{user.bio}"</p>
+        </div>
+      )}
+
+      {/* ── Acciones (perfil ajeno) ─────────── */}
       {!isOwn && currentUser && (
         <div className="up-actions">
           <button
@@ -142,10 +213,55 @@ export default function UserProfileModal({ userId }) {
         </div>
       )}
 
-      {/* ── Calificaciones ───────────────────── */}
-      {ratings.length > 0 && (
-        <div className="up-section">
-          <h4 className="up-section-title">Calificaciones</h4>
+      {/* ── Publicaciones activas ──────────── */}
+      <div className="up-section">
+        <h4 className="up-section-title">
+          Publicaciones activas
+          {!prodLoading && (
+            <span className="pg-count" style={{ marginLeft: 8, fontSize: 12 }}>{ownProducts.length}</span>
+          )}
+        </h4>
+
+        {prodLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div className="sp" style={{ margin: '0 auto' }} />
+          </div>
+        ) : ownProducts.length === 0 ? (
+          <div className="nb" style={{ fontSize: 13, padding: '12px 16px' }}>
+            Este usuario no tiene publicaciones activas.
+          </div>
+        ) : (
+          <div className="up-products-grid">
+            {ownProducts.map(p => (
+              <button
+                key={p.id}
+                className="up-product-thumb"
+                onClick={() => { closeModal(); setTimeout(() => openModal({ type: 'product_detail', productId: p.id }), 200); }}
+                title={p.title}
+              >
+                {p.photos?.[0]
+                  ? <img src={optimizeCloudinaryUrl(p.photos[0], 200)} alt={p.title} />
+                  : <span className="up-product-emoji">{p.emoji || '📦'}</span>
+                }
+                <div className="up-product-title">{p.title}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Calificaciones recibidas ────────── */}
+      <div className="up-section">
+        <h4 className="up-section-title">
+          Opiniones
+          {count > 0 && <span className="pg-count" style={{ marginLeft: 8, fontSize: 12 }}>{count}</span>}
+        </h4>
+
+        {ratings.length === 0 ? (
+          <div className="nb" style={{ fontSize: 13, padding: '12px 16px' }}>
+            Aún no tiene calificaciones. ¡Sé el primero en opinar! 🌟
+          </div>
+        ) : (
           <div className="up-ratings-list">
             {ratings.map(r => (
               <div key={r.id} className="up-rating-item">
@@ -156,13 +272,21 @@ export default function UserProfileModal({ userId }) {
                       : <span>{(r.fromName || 'U').charAt(0).toUpperCase()}</span>
                     }
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="up-rater-name">{r.fromName}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="up-rater-name">{r.fromName || 'Usuario'}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <StarDisplay value={r.stars} size={12} />
                       <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
                     </div>
                   </div>
+                  {/* Stars number badge */}
+                  <span style={{
+                    fontSize: 13, fontWeight: 800, color: '#F59E0B',
+                    background: 'rgba(245,158,11,.1)', borderRadius: 6,
+                    padding: '2px 7px', flexShrink: 0,
+                  }}>
+                    {r.stars}★
+                  </span>
                 </div>
                 {r.comment && (
                   <p className="up-rating-comment">"{r.comment}"</p>
@@ -170,37 +294,9 @@ export default function UserProfileModal({ userId }) {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* ── Publicaciones ────────────────────── */}
-      {ownProducts.length > 0 && (
-        <div className="up-section">
-          <h4 className="up-section-title">
-            Publicaciones activas
-            <span className="pg-count" style={{ marginLeft: 8 }}>{ownProducts.length}</span>
-          </h4>
-          <div className="up-products-grid">
-            {ownProducts.slice(0, 6).map(p => (
-              <button
-                key={p.id}
-                className="up-product-thumb"
-                onClick={() => { closeModal(); setTimeout(() => openModal({ type: 'product_detail', productId: p.id }), 200); }}
-              >
-                {p.photos?.[0]
-                  ? <img src={optimizeCloudinaryUrl(p.photos[0], 200)} alt={p.title} />
-                  : <span className="up-product-emoji">{p.emoji || '📦'}</span>
-                }
-                <div className="up-product-title">{p.title}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {ratings.length === 0 && ownProducts.length === 0 && (
-        <div className="nb" style={{ marginTop: 8 }}>Este usuario aún no tiene actividad registrada.</div>
-      )}
     </div>
   );
 }
