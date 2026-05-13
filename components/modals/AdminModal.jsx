@@ -23,7 +23,7 @@ function fmtDate(ts) {
 
 export default function AdminModal() {
   const {
-    products, isAdmin, blockProduct, unblockProduct, showToast,
+    products, isAdmin, blockProduct, unblockProduct, deleteProduct, showToast,
     db, collection, query, orderBy, getDocs, updateDoc, doc, where, onSnapshot
   } = useApp();
 
@@ -94,6 +94,28 @@ export default function AdminModal() {
     } finally { setLoading(false); }
   }
 
+  async function handleDeleteProduct(p) {
+    if (!confirm(`¿Eliminar permanentemente "${p.title}"?\nEsto borrará las fotos de Cloudinary y todos los registros asociados. Esta acción no se puede deshacer.`)) return;
+    setLoading(true);
+    try {
+      await deleteProduct(p.id);
+      showToast('Publicación eliminada permanentemente.');
+    } catch (err) {
+      showToast(err.message || 'Error al eliminar.');
+    } finally { setLoading(false); }
+  }
+
+  async function deleteFromReport(report) {
+    if (!confirm(`¿Eliminar permanentemente "${report.productTitle}"?`)) return;
+    setLoading(true);
+    try {
+      await deleteProduct(report.productId);
+      showToast('Publicación eliminada permanentemente.');
+    } catch (err) {
+      showToast(err.message || 'Error al eliminar.');
+    } finally { setLoading(false); }
+  }
+
   /* ── Render ──────────────────────────────── */
   return (
     <div>
@@ -154,6 +176,14 @@ export default function AdminModal() {
                       if (confirm(`¿Bloquear "${p.title}"?`)) blockProduct(p.id);
                     }}>🚫 Bloquear</button>
                   )}
+                  <button
+                    className="btn bsm"
+                    style={{ background: '#FEE2E2', color: '#DC2626', border: '1.5px solid #FECACA' }}
+                    disabled={loading}
+                    onClick={() => handleDeleteProduct(p)}
+                  >
+                    🗑 Eliminar
+                  </button>
                 </div>
               </div>
             ))}
@@ -211,24 +241,34 @@ export default function AdminModal() {
                       </span>
                     </div>
                   </div>
-                  {r.status !== 'resolved' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                      {prod && prod.status !== 'blocked' && (
-                        <button className="btn bd2 bsm" disabled={loading}
-                          onClick={() => { if (confirm(`¿Bloquear "${r.productTitle}"?`)) blockFromReport(r); }}>
-                          🚫 Bloquear
-                        </button>
-                      )}
-                      {r.status === 'pending' && (
-                        <button className="btn bo bsm" onClick={() => markReviewed(r.id)}>
-                          👁 Revisar
-                        </button>
-                      )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    {r.status !== 'resolved' && prod && prod.status !== 'blocked' && (
+                      <button className="btn bd2 bsm" disabled={loading}
+                        onClick={() => { if (confirm(`¿Bloquear "${r.productTitle}"?`)) blockFromReport(r); }}>
+                        🚫 Bloquear
+                      </button>
+                    )}
+                    {r.status !== 'resolved' && r.status === 'pending' && (
+                      <button className="btn bo bsm" onClick={() => markReviewed(r.id)}>
+                        👁 Revisar
+                      </button>
+                    )}
+                    {r.status !== 'resolved' && (
                       <button className="btn bo bsm" style={{ fontSize: 11 }} onClick={() => resolveReport(r.id)}>
                         ✓ Resolver
                       </button>
-                    </div>
-                  )}
+                    )}
+                    {prod && (
+                      <button
+                        className="btn bsm"
+                        style={{ background: '#FEE2E2', color: '#DC2626', border: '1.5px solid #FECACA', fontSize: 11 }}
+                        disabled={loading}
+                        onClick={() => deleteFromReport(r)}
+                      >
+                        🗑 Eliminar
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

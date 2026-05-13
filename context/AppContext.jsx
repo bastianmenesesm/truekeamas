@@ -415,7 +415,17 @@ export function AppProvider({ children }) {
   }
 
   async function deleteProduct(id) {
-    await updateDoc(doc(db, 'products', id), { status: 'deleted' });
+    if (!currentUser) throw new Error('No autenticado');
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/delete-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ productId: id }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Error al eliminar la publicación');
+    }
     setProducts(prev => prev.filter(p => p.id !== id));
   }
 
@@ -428,8 +438,18 @@ export function AppProvider({ children }) {
   }
 
   async function markProductSold(id) {
-    await updateDoc(doc(db, 'products', id), { status: 'sold', soldAt: serverTimestamp() });
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'sold' } : p));
+    if (!currentUser) throw new Error('No autenticado');
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/delete-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ productId: id }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Error al completar la publicación');
+    }
+    setProducts(prev => prev.filter(p => p.id !== id));
   }
 
   async function reactivateProduct(id) {
