@@ -1,8 +1,8 @@
 'use client';
-import { useApp, CATS } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 export default function HeroSection() {
-  const { stats, openModal, searchQuery, setSearchQuery, activeCategory, setActiveCategory } = useApp();
+  const { stats, openModal, searchQuery, setSearchQuery } = useApp();
 
   return (
     <section className="hero-compact">
@@ -26,18 +26,6 @@ export default function HeroSection() {
         <button className="btn bv" style={{ padding: '10px 20px', flexShrink: 0 }} onClick={() => openModal('publish')}>
           + Publicar
         </button>
-      </div>
-
-      {/* Category pills */}
-      <div className="hc-cats">
-        <button className={`l-cat${activeCategory === 'all' ? ' active' : ''}`} onClick={() => setActiveCategory('all')}>
-          <span>🔄</span><span>Todo</span>
-        </button>
-        {CATS.map(c => (
-          <button key={c.n} className={`l-cat${activeCategory === c.n ? ' active' : ''}`} onClick={() => setActiveCategory(c.n)}>
-            <span>{c.e}</span><span>{c.n}</span>
-          </button>
-        ))}
       </div>
 
       {/* Stats strip */}

@@ -3,7 +3,6 @@ import { useApp } from '@/context/AppContext';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import HeroSection from '@/components/HeroSection';
-import CategoryGrid from '@/components/CategoryGrid';
 import ProductGrid from '@/components/ProductGrid';
 import ProcessSection from '@/components/ProcessSection';
 import BottomNav from '@/components/BottomNav';
@@ -37,7 +36,6 @@ export default function Home() {
         <main className="main">
           <TopBar />
           <HeroSection />
-          <CategoryGrid />
           <ProductGrid />
           <ProcessSection />
         </main>

@@ -1,5 +1,5 @@
 'use client';
-import { useApp } from '@/context/AppContext';
+import { useApp, CATS } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
 import ProductCard from './ProductCard';
 
@@ -48,6 +48,10 @@ export default function ProductGrid() {
       <div className="sh">
         <h3>Publicaciones</h3>
         <div className="tl">
+          <select className="fs" value={activeCategory} onChange={e => setActiveCategory(e.target.value)}>
+            <option value="all">Todas las categorías</option>
+            {CATS.map(c => <option key={c.n} value={c.n}>{c.e} {c.n}</option>)}
+          </select>
           <select className="fs" value={sortBy} onChange={e => setSortBy(e.target.value)}>
             <option value="likes">Más populares</option>
             <option value="newest">Más recientes</option>
