@@ -128,7 +128,7 @@ function ProposalCard({ prop, mode, onAccept, onDecline, onOpenChat, loading }) 
 }
 
 export default function ProposalsModal() {
-  const { receivedProposals, sentProposals, acceptProposal, declineProposal, openModal, showToast, products } = useApp();
+  const { receivedProposals, sentProposals, acceptProposal, declineProposal, openModal, closeModal, openChatWindow, showToast, products } = useApp();
   const [tab, setTab]     = useState('received');
   const [loading, setLoading] = useState(false);
 
@@ -139,7 +139,13 @@ export default function ProposalsModal() {
       showToast('¡Propuesta aceptada! Ahora pueden chatear 🎉');
       const prop = receivedProposals.find(p => p.id === proposalId);
       if (matchId && prop) {
-        openModal({ type: 'chat', mid: matchId, prod: { title: prop.productTitle, owner: prop.proposerName } });
+        closeModal();
+        openChatWindow(matchId, {
+          title: prop.productTitle,
+          owner: prop.proposerName,
+          ownerId: prop.productOwnerUid,
+          requesterId: prop.proposerUid,
+        });
       }
     } catch (err) {
       showToast(err.message || 'Error al aceptar propuesta.');
@@ -158,7 +164,13 @@ export default function ProposalsModal() {
   }
 
   function handleOpenChat(matchId, prop) {
-    openModal({ type: 'chat', mid: matchId, prod: { title: prop.productTitle, owner: prop.proposerName } });
+    closeModal();
+    openChatWindow(matchId, {
+      title: prop.productTitle,
+      owner: prop.proposerName || prop.ownerName || '',
+      ownerId: prop.productOwnerUid,
+      requesterId: prop.proposerUid,
+    });
   }
 
   const pending  = receivedProposals.filter(p => p.status === 'pending').length;

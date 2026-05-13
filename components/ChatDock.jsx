@@ -29,7 +29,8 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
       snap => {
         setLoading(false);
         setMessages(snap.docs.slice(-100).map(d => ({ id: d.id, ...d.data() })));
-        if (!minimized) setTimeout(() => {
+        // Always scroll to bottom — if minimized the element is hidden so it's a no-op
+        setTimeout(() => {
           if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
         }, 50);
       },
@@ -38,10 +39,13 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
     return unsub;
   }, [mid]);
 
-  /* Scroll on unminimize */
+  /* Scroll to bottom + focus input on open / unminimize */
   useEffect(() => {
-    if (!minimized && msgsRef.current) {
-      msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
+    if (!minimized) {
+      setTimeout(() => {
+        if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
+        if (inputRef.current) inputRef.current.focus();
+      }, 80);
     }
   }, [minimized]);
 

@@ -1,5 +1,7 @@
 'use client';
 import { useApp } from '@/context/AppContext';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const TYPE_META = {
   proposal_received: { icon: '🤝', color: 'var(--v)',  label: 'Nueva propuesta' },
@@ -20,13 +22,28 @@ function fmtDate(ts) {
 }
 
 export default function NotificationsModal() {
-  const { notifications, markNotifRead, markAllNotifsRead, openModal, closeModal, unreadNotifs } = useApp();
+  const { notifications, markNotifRead, markAllNotifsRead, openModal, closeModal, openChatWindow, currentUser, unreadNotifs } = useApp();
 
   async function handleClick(notif) {
     if (!notif.read) await markNotifRead(notif.id);
     if (notif.chatId) {
       closeModal();
-      setTimeout(() => openModal({ type: 'chat', mid: notif.chatId, prod: { title: 'Chat', owner: '' } }), 100);
+      try {
+        const snap = await getDoc(doc(db, 'matches', notif.chatId));
+        if (snap.exists()) {
+          const m = snap.data();
+          const otherName = m.ownerId === currentUser?.uid ? m.requesterName : m.ownerName;
+          openChatWindow(notif.chatId, {
+            title: m.productTitle || 'Chat',
+            owner: otherName || '',
+            ownerId: m.ownerId,
+            requesterId: m.requesterId,
+          });
+          return;
+        }
+      } catch (_) {}
+      // Fallback if fetch fails
+      openChatWindow(notif.chatId, { title: 'Chat', owner: '' });
     } else if (notif.type === 'proposal_received' || notif.type === 'proposal_accepted' || notif.type === 'proposal_declined') {
       closeModal();
       setTimeout(() => openModal('proposals'), 100);

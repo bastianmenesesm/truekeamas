@@ -2138,6 +2138,20 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .cw-min { }
 .cw-min .cw-body { display: none; }
 
+/* Mobile: dock goes full-width above the bottom nav */
+@media (max-width: 640px) {
+  .chat-dock {
+    right: 8px;
+    left: 8px;
+    bottom: 72px; /* above 64px bottom nav */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .cw { width: 100%; border-radius: 12px 12px 0 0; }
+  .cw-msgs { height: 200px; }
+}
+
 /* ─── ADMIN — users tab extras ────────────── */
 .admin-stat--verified {
   background: rgba(56,212,48,.08); border-color: rgba(56,212,48,.25);
