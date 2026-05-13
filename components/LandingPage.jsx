@@ -22,13 +22,13 @@ function getActionBadge(p) {
   return ACTION_COLOR.cambiar;
 }
 
-function LandingCard({ p, onLoginGate }) {
+function LandingCard({ p, onLoginGate, onDetail }) {
   const photos = p.photos || [];
   const badge  = getActionBadge(p);
   const price  = fmtP(p.price);
 
   return (
-    <article className="lp-card" onClick={onLoginGate}>
+    <article className="lp-card" onClick={onDetail || onLoginGate}>
       <div className="lp-card-img">
         {photos[0]
           ? <img src={optimizeCloudinaryUrl(photos[0], 400)} alt={p.title} loading="lazy" />
@@ -181,7 +181,14 @@ export default function LandingPage() {
                   <button className="btn bv bsm" onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}>Ver todas</button>
                 </div>
               ) : (
-                sorted.map(p => <LandingCard key={p.id} p={p} onLoginGate={loginGate} />)
+                sorted.map(p => (
+                <LandingCard
+                  key={p.id}
+                  p={p}
+                  onLoginGate={loginGate}
+                  onDetail={() => openModal({ type: 'product_detail', productId: p.id })}
+                />
+              ))
               )}
             </div>
 

@@ -13,7 +13,8 @@ import TermsModal         from '@/components/modals/TermsModal';
 import MatchProposalModal from '@/components/modals/MatchProposalModal';
 import ProposalsModal     from '@/components/modals/ProposalsModal';
 import NotificationsModal from '@/components/modals/NotificationsModal';
-import ReportModal        from '@/components/modals/ReportModal';
+import ReportModal          from '@/components/modals/ReportModal';
+import ProductDetailModal  from '@/components/modals/ProductDetailModal';
 
 const TITLES = {
   auth:            'Acceder',
@@ -31,16 +32,18 @@ const TITLES = {
   notifications:   '🔔 Notificaciones',
   privacy_reminder:'🔒 Recordatorio de seguridad',
   report:          '🚩 Denunciar publicación',
+  product_detail:  '',
 };
 
 export default function Modal() {
   const { modal, closeModal } = useApp();
   if (!modal) return null;
 
-  const type  = typeof modal === 'string' ? modal : modal.type;
-  const title = TITLES[type] || '';
-  const isChat      = type === 'chat';
-  const isReminder  = type === 'privacy_reminder';
+  const type      = typeof modal === 'string' ? modal : modal.type;
+  const title     = TITLES[type] || '';
+  const isChat    = type === 'chat';
+  const isReminder = type === 'privacy_reminder';
+  const isDetail  = type === 'product_detail';
 
   function renderContent() {
     switch (type) {
@@ -59,22 +62,32 @@ export default function Modal() {
       case 'notifications':   return <NotificationsModal />;
       case 'privacy_reminder':return <PrivacyReminderContent />;
       case 'report':          return <ReportModal productId={modal.productId} />;
+      case 'product_detail':  return <ProductDetailModal productId={modal.productId} />;
       default:                return null;
     }
   }
 
   return (
     <div className="mo open" onClick={e => { if (e.target === e.currentTarget && !isReminder) closeModal(); }}>
-      <div className={`mb${isChat ? ' cm' : ''}${type === 'admin' ? ' wide' : ''}`}>
-        <div className="mh">
-          <div>
-            <h3>{title}</h3>
-            {isChat && modal.prod && (
-              <div className="mhs">{modal.prod.owner ? `con ${modal.prod.owner} · ` : ''}{modal.prod.title}</div>
-            )}
+      <div className={`mb${isChat ? ' cm' : ''}${type === 'admin' || isDetail ? ' wide' : ''}`}>
+        {!isDetail && (
+          <div className="mh">
+            <div>
+              <h3>{title}</h3>
+              {isChat && modal.prod && (
+                <div className="mhs">{modal.prod.owner ? `con ${modal.prod.owner} · ` : ''}{modal.prod.title}</div>
+              )}
+            </div>
+            {!isReminder && <button className="mc" onClick={closeModal}>×</button>}
           </div>
-          {!isReminder && <button className="mc" onClick={closeModal}>×</button>}
-        </div>
+        )}
+        {isDetail && (
+          <button className="pd-close-btn" onClick={closeModal} title="Cerrar">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        )}
         <div className="mbd">
           {renderContent()}
         </div>

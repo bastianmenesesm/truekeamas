@@ -36,14 +36,18 @@ export default function ProductCard({ product: p }) {
     openModal({ type: 'match_proposal', productId: p.id });
   }
 
+  function handleDetail() {
+    openModal({ type: 'product_detail', productId: p.id });
+  }
+
   const wantsText = p.wants
     ? (p.wants.length > 32 ? p.wants.slice(0, 32) + '…' : p.wants)
     : null;
 
   return (
     <article className="pk">
-      {/* ── Image ── */}
-      <div className="pk-img-wrap">
+      {/* ── Image (clickable → detail) ── */}
+      <div className="pk-img-wrap" onClick={handleDetail} style={{ cursor: 'pointer' }}>
         {photos.length > 0 ? (
           <>
             <img
@@ -92,7 +96,7 @@ export default function ProductCard({ product: p }) {
 
       {/* ── Body ── */}
       <div className="pk-body">
-        <h4 className="pk-title">{p.title}</h4>
+        <h4 className="pk-title" onClick={handleDetail} style={{ cursor: 'pointer' }}>{p.title}</h4>
 
         <div className="pk-location">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
