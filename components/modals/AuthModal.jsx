@@ -51,11 +51,12 @@ export default function AuthModal() {
       closeModal();
       setTimeout(() => openModal('privacy_reminder'), 350);
     } catch (err) {
+      console.error('[socialLogin error]', err.code, err.message);
       if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
       if (err.code === 'auth/account-exists-with-different-credential') {
         showToast('Este correo ya está registrado con otro método. Intenta con correo y contraseña.');
       } else {
-        showToast('Error al conectar con ' + provider + '. Intenta de nuevo.');
+        showToast(err.code || err.message || 'Error desconocido');
       }
     } finally { setSocialLoading(''); }
   }
