@@ -115,10 +115,22 @@ export default function ProductCard({ product: p }) {
 
         {/* ── Footer: user + CTA ── */}
         <div className="pk-footer">
-          <div className="pk-user">
-            <div className="pk-avatar">{initial}</div>
+          <button
+            className="pk-user"
+            onClick={e => { e.stopPropagation(); openModal({ type: 'user_profile', userId: p.ownerId }); }}
+            title={`Ver perfil de ${p.ownerName || p.owner || 'usuario'}`}
+          >
+            <div className="pk-avatar-wrap">
+              {p.ownerAvatarUrl
+                ? <img src={p.ownerAvatarUrl} alt={p.ownerName} className="pk-avatar pk-avatar--img" />
+                : <div className="pk-avatar">{initial}</div>
+              }
+              {p.ownerVerified && (
+                <span className="pk-verified-dot" title="Usuario verificado">✓</span>
+              )}
+            </div>
             <span className="pk-level">{p.level || 'Nuevo'}</span>
-          </div>
+          </button>
 
           {own ? (
             <span className="pk-own-tag">✏️ Tuya</span>

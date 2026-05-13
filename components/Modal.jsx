@@ -15,6 +15,9 @@ import ProposalsModal     from '@/components/modals/ProposalsModal';
 import NotificationsModal from '@/components/modals/NotificationsModal';
 import ReportModal          from '@/components/modals/ReportModal';
 import ProductDetailModal  from '@/components/modals/ProductDetailModal';
+import UserProfileModal    from '@/components/modals/UserProfileModal';
+import RateUserModal       from '@/components/modals/RateUserModal';
+import ReportUserModal     from '@/components/modals/ReportUserModal';
 
 const TITLES = {
   auth:            'Acceder',
@@ -33,6 +36,9 @@ const TITLES = {
   privacy_reminder:'🔒 Recordatorio de seguridad',
   report:          '🚩 Denunciar publicación',
   product_detail:  '',
+  user_profile:    '',
+  rate_user:       '⭐ Calificar usuario',
+  report_user:     '🚩 Denunciar usuario',
 };
 
 export default function Modal() {
@@ -41,9 +47,10 @@ export default function Modal() {
 
   const type      = typeof modal === 'string' ? modal : modal.type;
   const title     = TITLES[type] || '';
-  const isChat    = type === 'chat';
+  const isChat     = type === 'chat';
   const isReminder = type === 'privacy_reminder';
-  const isDetail  = type === 'product_detail';
+  const isDetail   = type === 'product_detail';
+  const isProfile  = type === 'user_profile';
 
   function renderContent() {
     switch (type) {
@@ -63,14 +70,17 @@ export default function Modal() {
       case 'privacy_reminder':return <PrivacyReminderContent />;
       case 'report':          return <ReportModal productId={modal.productId} />;
       case 'product_detail':  return <ProductDetailModal productId={modal.productId} />;
+      case 'user_profile':    return <UserProfileModal userId={modal.userId} />;
+      case 'rate_user':       return <RateUserModal matchId={modal.matchId} toUid={modal.toUid} toName={modal.toName} />;
+      case 'report_user':     return <ReportUserModal userId={modal.userId} />;
       default:                return null;
     }
   }
 
   return (
     <div className="mo open" onClick={e => { if (e.target === e.currentTarget && !isReminder) closeModal(); }}>
-      <div className={`mb${isChat ? ' cm' : ''}${type === 'admin' || isDetail ? ' wide' : ''}`}>
-        {!isDetail && (
+      <div className={`mb${isChat ? ' cm' : ''}${type === 'admin' || isDetail || isProfile ? ' wide' : ''}`}>
+        {!isDetail && !isProfile && (
           <div className="mh">
             <div>
               <h3>{title}</h3>
@@ -81,7 +91,7 @@ export default function Modal() {
             {!isReminder && <button className="mc" onClick={closeModal}>×</button>}
           </div>
         )}
-        {isDetail && (
+        {(isDetail || isProfile) && (
           <button className="pd-close-btn" onClick={closeModal} title="Cerrar">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

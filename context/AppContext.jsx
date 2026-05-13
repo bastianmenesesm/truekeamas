@@ -8,7 +8,8 @@ import {
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
-  query, where, orderBy, limit, serverTimestamp, onSnapshot, increment
+  query, where, orderBy, limit, serverTimestamp, onSnapshot, increment,
+  arrayUnion, arrayRemove
 } from 'firebase/firestore';
 
 export { CATS } from '@/lib/categories';
@@ -385,10 +386,12 @@ export function AppProvider({ children }) {
     setUserData(null);
   }
 
-  async function updateUserProfile(name, phone, region) {
+  async function updateUserProfile(name, phone, region, avatarUrl) {
     if (!currentUser) return;
     await updateProfile(currentUser, { displayName: name });
-    await setDoc(doc(db, 'users', currentUser.uid), { displayName: name, phone, region }, { merge: true });
+    const update = { displayName: name, phone, region };
+    if (avatarUrl !== undefined) update.avatarUrl = avatarUrl;
+    await setDoc(doc(db, 'users', currentUser.uid), update, { merge: true });
     const ud = await loadUserData(currentUser.uid);
     setUserData(ud);
   }
@@ -401,6 +404,9 @@ export function AppProvider({ children }) {
     const action = data.action || 'cambiar';
     await addDoc(collection(db, 'products'), {
       ...data, photos, ownerId: currentUser.uid, owner: myN,
+      ownerName: myN,
+      ownerAvatarUrl: userData?.avatarUrl || null,
+      ownerVerified: userData?.verified || false,
       level: userData?.level || 'Nuevo',
       barter: action === 'cambiar' || action === 'mixto',
       buy:    action === 'vender'  || action === 'mixto',
@@ -496,6 +502,21 @@ export function AppProvider({ children }) {
     showToast('Publicación desbloqueada.');
   }
 
+  /* ── Block / unblock users ───────────────── */
+  async function blockUser(targetUid) {
+    if (!currentUser) return;
+    await updateDoc(doc(db, 'users', currentUser.uid), { blockedUsers: arrayUnion(targetUid) });
+    setUserData(prev => ({ ...prev, blockedUsers: [...(prev?.blockedUsers || []), targetUid] }));
+    showToast('Usuario bloqueado.');
+  }
+
+  async function unblockUser(targetUid) {
+    if (!currentUser) return;
+    await updateDoc(doc(db, 'users', currentUser.uid), { blockedUsers: arrayRemove(targetUid) });
+    setUserData(prev => ({ ...prev, blockedUsers: (prev?.blockedUsers || []).filter(id => id !== targetUid) }));
+    showToast('Usuario desbloqueado.');
+  }
+
   function rlMessage() { rateLimit('msg_' + (currentUser?.uid || 'x'), 30, 60000); }
 
   const value = {
@@ -518,6 +539,7 @@ export function AppProvider({ children }) {
     loginUser, registerUser, socialLogin, logoutUser, updateUserProfile,
     publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
     blockProduct, unblockProduct, reportProduct,
+    blockUser, unblockUser,
     loadProducts, loadStats, rlMessage,
     db, collection, query, where, orderBy, addDoc, updateDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
   };

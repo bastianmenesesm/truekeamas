@@ -5,7 +5,7 @@ import ProductCard from './ProductCard';
 
 export default function ProductGrid() {
   const {
-    products, activeCategory, searchQuery,
+    products, userData, activeCategory, searchQuery,
     modeFilter, setModeFilter,
     levelFilter, setLevelFilter,
     regionFilter, setRegionFilter,
@@ -13,8 +13,11 @@ export default function ProductGrid() {
     sortBy, setSortBy,
   } = useApp();
 
+  const blockedUsers = userData?.blockedUsers || [];
+
   const filtered = products.filter(p => {
     if (p.status === 'blocked' || p.status === 'sold') return false;
+    if (blockedUsers.includes(p.ownerId)) return false;
     const q = searchQuery.trim().toLowerCase();
     const tagMatch = !q || (p.tags || []).some(t => t.includes(q));
     const bq = !q || tagMatch || [p.title, p.category, p.subcategory, p.wants, p.region].join(' ').toLowerCase().includes(q);
