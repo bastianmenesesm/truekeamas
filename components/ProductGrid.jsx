@@ -43,13 +43,21 @@ export default function ProductGrid() {
     if (setRegionFilter) setRegionFilter('all');
   }
 
+  const activeCount = [activeCategory !== 'all', modeFilter !== 'all', levelFilter !== 'all', regionFilter && regionFilter !== 'all'].filter(Boolean).length;
+
   return (
     <section className="sec" id="vitrina">
-      <div className="sh">
-        <h3>Publicaciones</h3>
-        <div className="tl">
+      <div className="pg-header">
+        <div className="pg-title-row">
+          <h3>Publicaciones</h3>
+          {sorted.length > 0 && <span className="pg-count">{sorted.length}</span>}
+          {activeCount > 0 && (
+            <button className="pg-clear-btn" onClick={clearFilters}>Limpiar filtros</button>
+          )}
+        </div>
+        <div className="pg-filters">
           <select className="fs" value={activeCategory} onChange={e => setActiveCategory(e.target.value)}>
-            <option value="all">Todas las categorías</option>
+            <option value="all">Categoría</option>
             {CATS.map(c => <option key={c.n} value={c.n}>{c.e} {c.n}</option>)}
           </select>
           <select className="fs" value={sortBy} onChange={e => setSortBy(e.target.value)}>
@@ -59,20 +67,20 @@ export default function ProductGrid() {
             <option value="price_desc">Precio ↓</option>
           </select>
           <select className="fs" value={modeFilter} onChange={e => setModeFilter(e.target.value)}>
-            <option value="all">Todos</option>
+            <option value="all">Tipo</option>
             <option value="barter">Trueque</option>
             <option value="buy">Venta</option>
             <option value="donate">Donación</option>
             <option value="mixed">Mixto</option>
           </select>
           <select className="fs" value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
-            <option value="all">Todos los niveles</option>
+            <option value="all">Nivel</option>
             <option value="Nuevo">Nuevo</option>
             <option value="Verificado">Verificado</option>
             <option value="Confiable">Confiable</option>
           </select>
           <select className="fs" value={regionFilter || 'all'} onChange={e => setRegionFilter && setRegionFilter(e.target.value)}>
-            <option value="all">Todas las regiones</option>
+            <option value="all">Región</option>
             {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
