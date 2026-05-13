@@ -144,21 +144,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── CATEGORÍAS ───────────────────────── */}
-        <section className="l-cats-strip">
-          <div className="l-container">
-            <div className="l-cats-scroll">
-              <button className={`l-cat${activeCategory === 'all' ? ' active' : ''}`} onClick={() => setActiveCategory('all')}>
-                <span>🔄</span><span>Todo</span>
-              </button>
-              {CATS.map(c => (
-                <button key={c.n} className={`l-cat${activeCategory === c.n ? ' active' : ''}`} onClick={() => setActiveCategory(c.n)}>
-                  <span>{c.e}</span><span>{c.n}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* ── PRODUCTS GRID ────────────────────── */}
         <section className="l-products-section" id="vitrina">
