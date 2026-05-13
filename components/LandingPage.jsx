@@ -59,6 +59,7 @@ function LandingCard({ p, onLoginGate, onDetail }) {
 
 export default function LandingPage() {
   const { products, stats, searchQuery, setSearchQuery, openModal, activeCategory, setActiveCategory } = useApp();
+  const totalLikes = products.reduce((sum, p) => sum + (p.likes || 0), 0);
   const [sortBy, setSortBy] = useState('likes');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -138,8 +139,7 @@ export default function LandingPage() {
             </div>
             <div className="l-hero-stats">
               <div className="l-stat"><strong>{stats.products}</strong><span>Publicaciones</span></div>
-              <div className="l-stat"><strong>{stats.users}</strong><span>Usuarios</span></div>
-              <div className="l-stat"><strong>{stats.matches}</strong><span>Acuerdos</span></div>
+              <div className="l-stat"><strong>{totalLikes}</strong><span>Likes</span></div>
             </div>
           </div>
         </section>
