@@ -1532,6 +1532,15 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   display: flex; justify-content: space-between; gap: 12px; margin-top: 20px;
 }
 
+/* Región + Comuna side by side */
+.pub-location-row {
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.pub-location-row .fd { margin-bottom: 0; }
+@media (max-width: 500px) {
+  .pub-location-row { flex-direction: column; }
+}
+
 /* ── Responsive landing ─────────────────── */
 @media (max-width: 900px) {
   .l-footer-grid { grid-template-columns: 1fr 1fr; }

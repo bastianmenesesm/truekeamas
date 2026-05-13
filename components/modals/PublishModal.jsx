@@ -5,6 +5,7 @@ import { CATEGORIES } from '@/lib/categories';
 import { uploadToCloudinary } from '@/lib/firebase';
 import { FIELD_GROUPS, DEFAULT_FIELDS, CONDITIONS } from '@/lib/productFields';
 import { REGIONES_CHILE } from '@/lib/regions';
+import { COMUNAS_POR_REGION } from '@/lib/communes';
 
 const ACTIONS = [
   { id: 'cambiar', icon: '🔄', label: 'Trueque',  desc: 'Intercambia por otro producto o servicio' },
@@ -13,6 +14,118 @@ const ACTIONS = [
   { id: 'donar',   icon: '🎁', label: 'Donar',    desc: 'Regala a quien más lo necesita' },
 ];
 
+/* ── Placeholders de título según categoría / subcategoría / acción ── */
+const TITLE_EXAMPLES = {
+  'Tecnología': {
+    'Celulares y smartphones':    'Ej: iPhone 14 Pro 128GB negro, batería al 91%',
+    'Computadores y laptops':     'Ej: MacBook Air M2 8GB/256GB, excelente estado',
+    'Tablets e iPads':            'Ej: iPad Air 5ta gen 64GB WiFi + Smart Folio',
+    'Audífonos y parlantes':      'Ej: Sony WH-1000XM5 negro, sin cable, caja original',
+    'Consolas de videojuegos':    'Ej: PlayStation 5 con 2 controles y 5 juegos',
+    'Videojuegos':                'Ej: The Last of Us Part II PS5, como nuevo',
+    'Smartwatches y wearables':   'Ej: Apple Watch Series 8 GPS 45mm aluminio',
+    'Cámaras y fotografía':       'Ej: Canon EOS R50 + lente 18-55mm, 500 disparos',
+    'TV y proyectores':           'Ej: Smart TV Samsung 55" QLED 4K 2023',
+    _default:                     'Ej: Router TP-Link AX3000, sin uso, caja cerrada',
+  },
+  'Moda y Vestuario': {
+    'Ropa mujer':       'Ej: Vestido floral Zara talla S, nunca usado con etiqueta',
+    'Ropa hombre':      'Ej: Chaqueta de cuero café talla L, muy buen estado',
+    'Ropa niños/as':    'Ej: Set ropa invierno niño 4 años, 5 prendas H&M',
+    'Calzado mujer':    'Ej: Botines cuero negro N°38, poco uso, como nuevos',
+    'Calzado hombre':   'Ej: Zapatillas Nike Air Force 1 N°42, originales nuevas',
+    'Bolsos y carteras':'Ej: Bolso cuero camel mediano, impecable',
+    'Joyería y relojes':'Ej: Reloj Casio vintage dorado, funcionando perfecto',
+    _default:           'Ej: Parka impermeable azul talla M, 1 temporada de uso',
+  },
+  'Hogar': {
+    'Muebles y living':              'Ej: Sofá esquinero gris 3 cuerpos, buen estado',
+    'Electrodomésticos grandes':     'Ej: Lavadora LG 9kg inverter, funcionando perfecto',
+    'Electrodomésticos pequeños':    'Ej: Cafetera Nespresso Vertuo Plus + 20 cápsulas',
+    'Cocina y vajilla':              'Ej: Juego de ollas Tramontina 7 piezas, acero inox',
+    'Ropa de cama y baño':           'Ej: Juego sábanas 2 plazas algodón egipcio, nuevo',
+    'Decoración y adornos':          'Ej: Cuadro abstracto enmarcado 60x80cm',
+    'Herramientas y materiales':     'Ej: Taladro inalámbrico Bosch 18V + 2 baterías',
+    'Jardín y terraza':              'Ej: Parrilla acero inox 60x40cm con tapa y ruedas',
+    _default:                        'Ej: Escritorio esquinero blanco 120x120cm',
+  },
+  'Deportes': {
+    'Fitness y gym':            'Ej: Bicicleta estática spinning magnética, poco uso',
+    'Ciclismo':                 'Ej: Bicicleta MTB aro 27.5" talla M, frenos hidráulicos',
+    'Fútbol y deportes de equipo': 'Ej: Pelota de fútbol Adidas Tango N°5, casi nueva',
+    'Running y atletismo':      'Ej: Zapatillas Brooks Ghost 14 N°41, 3 salidas',
+    'Senderismo y outdoor':     'Ej: Mochila trekking 50L Deuter, incluye funda lluvia',
+    _default:                   'Ej: Set raquetas pádel Bullpadel + 2 paleteros',
+  },
+  'Vehículos y Movilidad': {
+    'Bicicletas':                   'Ej: Bicicleta urbana aro 28" 7 velocidades, eje central',
+    'Scooters eléctricos y patinetes': 'Ej: Scooter eléctrico Xiaomi Pro 2, batería 45km',
+    'Patines y skates':             'Ej: Patines en línea K2 N°38, ruedas nuevas',
+    _default:                       'Ej: Porta-bicicletas para auto, 2 espacios, aluminio',
+  },
+  'Libros y Educación': {
+    'Novelas y ficción':            'Ej: Trilogía El Señor de los Anillos Tolkien, pasta dura',
+    'Libros técnicos y académicos': 'Ej: Cálculo Larson 9ª edición + solucionario',
+    'Libros infantiles y juveniles':'Ej: Colección Harry Potter 7 tomos, excelente estado',
+    'Material escolar y papelería': 'Ej: Set útiles universitarios completo semestre 2024',
+    _default:                       'Ej: Pack 5 novelas best-seller, varios géneros',
+  },
+  'Arte y Coleccionismo': {
+    'Arte original (pinturas, esculturas)': 'Ej: Cuadro acrílico original 50x70cm "Paisaje Patagonia"',
+    'Antigüedades y objetos vintage':       'Ej: Radio vintage Philips años 60, funcionando',
+    'Figuras y coleccionables':             'Ej: Funko Pop Mandalorian #345, caja en perfecto estado',
+    _default:                               'Ej: Colección monedas chilenas conmemorativas, 12 piezas',
+  },
+  'Bebé e Infancia': {
+    'Cochecitos y sillas de auto':  'Ej: Coche Infanti Travel System, base isofix incluida',
+    'Mobiliario infantil':          'Ej: Cuna convertible Kiddy 3 en 1 blanca, colchón incluido',
+    'Juguetes niños (3-12 años)':   'Ej: Lego City set #60281 Helicóptero, completo con caja',
+    _default:                       'Ej: Set ropa bebé 3-6 meses 10 piezas, impecable',
+  },
+  'Belleza y Salud': {
+    'Maquillaje y cosmética':  'Ej: Paleta Urban Decay Naked 3, 80% de uso',
+    'Cuidado de la piel':      'Ej: Pack rutina skincare Korean Glass Skin, sin abrir',
+    'Perfumes y colonias':     'Ej: Perfume Chanel N°5 EDP 100ml, 70% restante',
+    _default:                  'Ej: Secador de cabello Dyson Supersonic plateado',
+  },
+  'Jardín y Plantas': {
+    'Plantas de interior':  'Ej: Monstera deliciosa 80cm, maceta blanca incluida',
+    'Plantas de exterior':  'Ej: Rosal trepador rojo, macetón grande, florando',
+    'Cactus y suculentas':  'Ej: Pack 6 suculentas variadas en macetas de barro',
+    _default:               'Ej: Semillas tomate cherry orgánico, 3 sobres',
+  },
+  'Entretenimiento': {
+    'Juegos de mesa y cartas':  'Ej: Catan + Expansión Marítima, completo perfecto estado',
+    'Instrumentos musicales':   'Ej: Guitarra acústica Yamaha F310 con funda y afinador',
+    'Puzles y pasatiempos':     'Ej: Puzle 1000 piezas Ravensburger "Van Gogh", armado 1 vez',
+    _default:                   'Ej: Set Cluedo + Monopoly + Scrabble, todos completos',
+  },
+  'Oficina y Negocio': {
+    'Muebles de oficina':   'Ej: Silla ergonómica Steelcase Leap V2 negra, ajuste lumbar',
+    'Material de oficina':  'Ej: Impresora multifuncional HP LaserJet Pro, tóner nuevo',
+    _default:               'Ej: Escritorio pie de ángel roble 160x70cm, sin rayones',
+  },
+  'Servicios': {
+    'Clases y tutorías':    'Ej: Clases de matemáticas PSU, 1 hora online o presencial',
+    'Diseño y tecnología':  'Ej: Diseño de logo + manual de marca, entrega 3 días',
+    'Fotografía y video':   'Ej: Sesión fotográfica retrato 1 hora, edición incluida',
+    _default:               'Ej: Servicio de gasfitería, presupuesto sin costo',
+  },
+  'Otros': {
+    _default: 'Ej: Caja mixta de artículos de cocina, varios utensilios',
+  },
+};
+
+function getTitlePlaceholder(cat, sub, action) {
+  const catMap = TITLE_EXAMPLES[cat];
+  if (!catMap) {
+    if (action === 'donar')  return 'Ej: Ropa de invierno talla M, buen estado, regalo';
+    if (action === 'vender') return 'Ej: Bicicleta urbana azul aro 28", casi nueva';
+    return 'Ej: Celular Samsung Galaxy A54 128GB negro';
+  }
+  return catMap[sub] || catMap['_default'] || 'Ej: Producto en buen estado';
+}
+
 export default function PublishModal() {
   const { currentUser, publishProduct, closeModal, showToast, openModal } = useApp();
 
@@ -20,6 +133,7 @@ export default function PublishModal() {
   const [action, setAction]       = useState('');
   const [selectedCat, setSelectedCat] = useState('');
   const [selectedSub, setSelectedSub] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('');
   const [photos, setPhotos]       = useState([]);
   const [progress, setProgress]   = useState(0);
   const [loading, setLoading]     = useState(false);
@@ -33,15 +147,16 @@ export default function PublishModal() {
   );
 
   /* ── Helpers ───────────────────────────────── */
-  const catObj   = CATEGORIES.find(c => c.n === selectedCat);
-  const subList  = catObj?.subs || [];
+  const catObj    = CATEGORIES.find(c => c.n === selectedCat);
+  const subList   = catObj?.subs || [];
   const dynFields = selectedSub ? (FIELD_GROUPS[selectedSub] || DEFAULT_FIELDS) : DEFAULT_FIELDS;
+  const communes  = selectedRegion ? (COMUNAS_POR_REGION[selectedRegion] || []) : [];
 
   function handlePhotoChange(e) {
     const files = Array.from(e.target.files).slice(0, 5 - photos.length);
     for (const f of files) {
       if (!f.type.startsWith('image/')) { showToast('Solo imágenes.'); continue; }
-      if (f.size > 8 * 1024 * 1024) { showToast('Imagen supera 8MB.'); continue; }
+      if (f.size > 8 * 1024 * 1024)    { showToast('Imagen supera 8MB.'); continue; }
       setPhotos(prev => [...prev, { file: f, url: URL.createObjectURL(f) }]);
     }
   }
@@ -78,14 +193,15 @@ export default function PublishModal() {
       await publishProduct({
         action,
         title,
-        category: selectedCat,
+        category:    selectedCat,
         subcategory: selectedSub || '',
-        condition: fd.get('condition') || '',
-        price: price || null,
-        region: fd.get('region') || '',
-        wants: fd.get('wants') || '',
+        condition:   fd.get('condition') || '',
+        price:       price || null,
+        region:      selectedRegion || '',
+        commune:     fd.get('commune') || '',
+        wants:       fd.get('wants') || '',
         description: fd.get('description') || '',
-        emoji: catObj?.e || '📦',
+        emoji:       catObj?.e || '📦',
         ...extraFields,
       }, urls);
 
@@ -186,7 +302,11 @@ export default function PublishModal() {
           {/* Título */}
           <label className="fd">
             Título <span style={{ color: 'var(--dg)' }}>*</span>
-            <input required name="title" placeholder={`Ej: ${selectedSub || selectedCat} en buen estado`} />
+            <input
+              required
+              name="title"
+              placeholder={getTitlePlaceholder(selectedCat, selectedSub, action)}
+            />
           </label>
 
           {/* Condición */}
@@ -241,12 +361,12 @@ export default function PublishModal() {
                 type="number"
                 min="1"
                 required={action === 'vender' || action === 'mixto'}
-                placeholder={action === 'cambiar' ? 'Opcional — ayuda en el match' : 'Ej: 15.000'}
+                placeholder={action === 'cambiar' ? 'Opcional — ayuda en el match' : 'Ej: 15000'}
               />
             </label>
           )}
 
-          {/* Qué busca (solo si no es venta ni donación) */}
+          {/* Qué busca (solo trueque o mixto) */}
           {(action === 'cambiar' || action === 'mixto') && (
             <label className="fd fl">
               ¿Qué buscas a cambio? <span style={{ color: 'var(--dg)' }}>*</span>
@@ -254,14 +374,30 @@ export default function PublishModal() {
             </label>
           )}
 
-          {/* Región */}
-          <label className="fd">
-            Región
-            <select name="region" defaultValue="">
-              <option value="">— Selecciona región —</option>
-              {REGIONES_CHILE.map(r => <option key={r}>{r}</option>)}
-            </select>
-          </label>
+          {/* Región + Comuna en la misma fila */}
+          <div className="pub-location-row">
+            <label className="fd" style={{ flex: 1 }}>
+              Región
+              <select
+                name="region"
+                value={selectedRegion}
+                onChange={e => { setSelectedRegion(e.target.value); }}
+              >
+                <option value="">— Región —</option>
+                {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+
+            {communes.length > 0 && (
+              <label className="fd" style={{ flex: 1 }}>
+                Comuna
+                <select name="commune" defaultValue="">
+                  <option value="">— Comuna —</option>
+                  {communes.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
 
           {/* Descripción libre */}
           <label className="fd fl">
@@ -292,8 +428,6 @@ export default function PublishModal() {
             </div>
             <div className="upr"><div className="upb" style={{ width: progress + '%' }} /></div>
           </div>
-
-          <div className="nb fl">Truekeamas es un escaparate. El pago y la entrega se coordinan entre usuarios.</div>
 
           <div className="pub-nav fl">
             <button type="button" className="btn bo" onClick={() => setStep(2)}>← Atrás</button>
