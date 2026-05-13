@@ -951,7 +951,7 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   min-height: 520px;
   background:
     linear-gradient(135deg, rgba(11,31,55,.72) 0%, rgba(0,100,80,.55) 100%),
-    url('/hero-bg.png') center/cover no-repeat;
+    url('/hero-bg.jpg') center/cover no-repeat;
   display: flex; align-items: center;
   overflow: hidden;
 }

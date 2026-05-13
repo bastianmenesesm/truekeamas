@@ -42,7 +42,7 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <head>
         {/* Preload hero image para que no bloquee el LCP */}
-        <link rel="preload" as="image" href="/hero-bg.png" fetchPriority="high" />
+        <link rel="preload" as="image" href="/hero-bg.jpg" fetchPriority="high" />
         {/* Fuentes con display=swap para no bloquear render */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
