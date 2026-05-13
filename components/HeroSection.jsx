@@ -2,7 +2,8 @@
 import { useApp } from '@/context/AppContext';
 
 export default function HeroSection() {
-  const { stats, openModal, searchQuery, setSearchQuery } = useApp();
+  const { stats, products, openModal, searchQuery, setSearchQuery } = useApp();
+  const totalLikes = products.reduce((sum, p) => sum + (p.likes || 0), 0);
 
   return (
     <section className="hero-compact">
@@ -30,9 +31,8 @@ export default function HeroSection() {
 
       {/* Stats strip */}
       <div className="hc-stats">
-        <span>📦 <strong>{stats.products}</strong> publicaciones</span>
-        <span>👥 <strong>{stats.users}</strong> usuarios</span>
-        <span>🤝 <strong>{stats.matches}</strong> acuerdos</span>
+        <span>📦 <strong>{stats.products}</strong> Publicaciones</span>
+        <span>❤️ <strong>{totalLikes}</strong> Likes</span>
       </div>
     </section>
   );
