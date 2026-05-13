@@ -45,6 +45,13 @@ export function AppProvider({ children }) {
   const [stats, setStats]                   = useState({ products: '—', users: '—', matches: '—' });
   const [sortBy, setSortBy]                 = useState('likes');
 
+  // Sidebar
+  const [sidebarPinned, setSidebarPinnedState] = useState(true);
+  const [sidebarOpen,   setSidebarOpen]        = useState(true);
+
+  // Floating chat dock
+  const [openChats, setOpenChats] = useState([]);
+
   // Notifications
   const [notifications, setNotifications]         = useState([]);
   // Proposals (received by current user's products)
@@ -59,11 +66,17 @@ export function AppProvider({ children }) {
   const unreadNotifs = notifications.filter(n => !n.read).length;
   const pendingProposals = receivedProposals.filter(p => p.status === 'pending').length;
 
-  /* ── Saved (localStorage) ─────────────────── */
+  /* ── Saved + Sidebar prefs (localStorage) ─── */
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const s = localStorage.getItem('tk_s');
       setSaved(s ? JSON.parse(s) : []);
+      // Sidebar pin preference
+      const pin = localStorage.getItem('tk_sb_pin');
+      if (pin === '0') {
+        setSidebarPinnedState(false);
+        setSidebarOpen(false);
+      }
     }
   }, []);
 
@@ -502,6 +515,28 @@ export function AppProvider({ children }) {
     showToast('Publicación desbloqueada.');
   }
 
+  /* ── Sidebar ─────────────────────────────── */
+  function toggleSidebarPin() {
+    setSidebarPinnedState(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem('tk_sb_pin', next ? '1' : '0');
+      setSidebarOpen(next); // pin → open, unpin → close
+      return next;
+    });
+  }
+
+  /* ── Floating chat dock ───────────────────── */
+  function openChatWindow(mid, prod) {
+    setOpenChats(prev => {
+      const exists = prev.find(c => c.mid === mid);
+      if (exists) return prev.map(c => c.mid === mid ? { ...c, minimized: false } : c);
+      const arr = prev.length >= 3 ? prev.slice(1) : prev;
+      return [...arr, { mid, prod, minimized: false }];
+    });
+  }
+  function closeChatWindow(mid)    { setOpenChats(prev => prev.filter(c => c.mid !== mid)); }
+  function toggleMinimizeChat(mid) { setOpenChats(prev => prev.map(c => c.mid === mid ? { ...c, minimized: !c.minimized } : c)); }
+
   /* ── Block / unblock users ───────────────── */
   async function blockUser(targetUid) {
     if (!currentUser) return;
@@ -540,6 +575,8 @@ export function AppProvider({ children }) {
     publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
     blockProduct, unblockProduct, reportProduct,
     blockUser, unblockUser,
+    sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin,
+    openChats, openChatWindow, closeChatWindow, toggleMinimizeChat,
     loadProducts, loadStats, rlMessage,
     db, collection, query, where, orderBy, addDoc, updateDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
   };

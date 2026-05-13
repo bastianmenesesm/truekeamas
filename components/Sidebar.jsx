@@ -19,7 +19,10 @@ const ADMIN_NAV = {
 };
 
 export default function Sidebar() {
-  const { currentUser, userData, isAdmin, openModal, pendingProposals } = useApp();
+  const {
+    currentUser, userData, isAdmin, openModal, pendingProposals,
+    sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin,
+  } = useApp();
 
   function handleNav(id) {
     if (['inicio', 'vitrina', 'categorias'].includes(id)) {
@@ -27,13 +30,30 @@ export default function Sidebar() {
     } else {
       openModal(id);
     }
+    // Close drawer when navigating (if not pinned)
+    if (!sidebarPinned) setSidebarOpen(false);
   }
 
   const name    = userData?.displayName || currentUser?.displayName || '';
   const initial = name ? name.charAt(0).toUpperCase() : '?';
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${!sidebarPinned ? ' sidebar-drawer' : ''}${!sidebarPinned && sidebarOpen ? ' sidebar-open' : ''}`}>
+
+      {/* ── Pin toggle button ─────────────── */}
+      <button
+        className={`sb-pin-btn${sidebarPinned ? ' pinned' : ''}`}
+        onClick={toggleSidebarPin}
+        title={sidebarPinned ? 'Liberar panel (modo cajón)' : 'Fijar panel siempre visible'}
+      >
+        {/* Pushpin SVG */}
+        <svg viewBox="0 0 24 24" width="16" height="16" fill={sidebarPinned ? 'currentColor' : 'none'}
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </button>
+
       <div className="brand">
         <div className="brand-logo brand-logo-img">
           <img src="/logo-icon.ico" alt="Truekeamas" width={48} height={48} style={{ objectFit: 'contain' }} />
@@ -43,13 +63,16 @@ export default function Sidebar() {
           <p>Conecta · Intercambia · Crece</p>
         </div>
       </div>
+
       <nav className="nav">
         {NAV.map(item => {
           const badge = item.id === 'proposals' ? pendingProposals : 0;
           return (
             <button key={item.id} className="ni" onClick={() => handleNav(item.id)}>
               <div className="nic">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: item.ic }} />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  dangerouslySetInnerHTML={{ __html: item.ic }} />
               </div>
               {item.l}
               {badge > 0 && <span className="bd" style={{ marginLeft: 'auto', fontSize: 10 }}>{badge}</span>}
@@ -61,7 +84,9 @@ export default function Sidebar() {
             <div className="nd" />
             <button className="ni ni-admin" onClick={() => handleNav(ADMIN_NAV.id)}>
               <div className="nic nic-admin">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: ADMIN_NAV.ic }} />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  dangerouslySetInnerHTML={{ __html: ADMIN_NAV.ic }} />
               </div>
               {ADMIN_NAV.l}
             </button>
@@ -69,6 +94,7 @@ export default function Sidebar() {
         )}
         <div className="nd" />
       </nav>
+
       {currentUser && (
         <div className="nu">
           <div className="nuc">

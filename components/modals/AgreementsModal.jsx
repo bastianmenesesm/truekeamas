@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function AgreementsModal() {
-  const { currentUser, openModal } = useApp();
+  const { currentUser, openModal, closeModal, openChatWindow } = useApp();
   const [matches,     setMatches]     = useState([]);
   const [ratedIds,    setRatedIds]    = useState(new Set()); // matchIds ya calificados
   const [loading,     setLoading]     = useState(true);
@@ -43,9 +43,19 @@ export default function AgreementsModal() {
 
         return (
           <div key={m.id} className="mk">
-            {/* Fila principal → abre chat */}
+            {/* Fila principal → abre chat flotante */}
             <div className="mk-main"
-              onClick={() => openModal({ type: 'chat', mid: m.id, prod: { title: m.productTitle, owner: otherName, photos: m.productPhoto ? [m.productPhoto] : [], emoji: m.productEmoji } })}>
+              onClick={() => {
+                closeModal();
+                openChatWindow(m.id, {
+                  title: m.productTitle,
+                  owner: otherName,
+                  photos: m.productPhoto ? [m.productPhoto] : [],
+                  emoji: m.productEmoji,
+                  ownerId: m.ownerId,
+                  requesterId: m.requesterId,
+                });
+              }}>
               <div className="mke">
                 {m.productPhoto
                   ? <img src={m.productPhoto} alt={m.productTitle} />

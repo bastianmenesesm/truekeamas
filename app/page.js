@@ -10,9 +10,10 @@ import Modal from '@/components/Modal';
 import TruQuiBot from '@/components/TruQuiBot';
 import Toast from '@/components/Toast';
 import LandingPage from '@/components/LandingPage';
+import ChatDock from '@/components/ChatDock';
 
 export default function Home() {
-  const { currentUser, authLoading } = useApp();
+  const { currentUser, authLoading, sidebarPinned, sidebarOpen, setSidebarOpen } = useApp();
 
   if (authLoading) {
     return (
@@ -31,7 +32,12 @@ export default function Home() {
 
   return (
     <>
-      <div className="app">
+      {/* Backdrop for drawer mode */}
+      {!sidebarPinned && sidebarOpen && (
+        <div className="sb-backdrop" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      <div className={`app${!sidebarPinned ? ' app--drawer' : ''}`}>
         <Sidebar />
         <main className="main">
           <TopBar />
@@ -40,8 +46,10 @@ export default function Home() {
           <ProcessSection />
         </main>
       </div>
+
       <BottomNav />
       <TruQuiBot />
+      <ChatDock />
       <Modal />
       <Toast />
     </>

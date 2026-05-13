@@ -5,14 +5,33 @@ export default function TopBar() {
   const {
     currentUser, userData, saved, searchQuery, setSearchQuery,
     openModal, unreadNotifs, pendingProposals,
+    sidebarPinned, sidebarOpen, setSidebarOpen,
   } = useApp();
 
-  const name    = userData?.displayName || currentUser?.displayName || 'Entrar';
-  const initial = (userData?.displayName || currentUser?.displayName || '?').charAt(0).toUpperCase();
+  const name      = userData?.displayName || currentUser?.displayName || 'Entrar';
+  const initial   = (userData?.displayName || currentUser?.displayName || '?').charAt(0).toUpperCase();
   const firstName = name.split(' ')[0];
 
   return (
     <header className="topbar">
+      {/* Hamburger — visible only when sidebar is in drawer mode */}
+      {!sidebarPinned && (
+        <button
+          className="tb tb-hamburger"
+          onClick={() => setSidebarOpen(v => !v)}
+          title={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-label="Menú"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+            strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+            {sidebarOpen
+              ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
+              : <><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+            }
+          </svg>
+        </button>
+      )}
+
       {/* Search bar */}
       <div className="sw">
         <input
