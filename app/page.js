@@ -7,7 +7,7 @@ import ProductGrid from '@/components/ProductGrid';
 import ProcessSection from '@/components/ProcessSection';
 import BottomNav from '@/components/BottomNav';
 import Modal from '@/components/Modal';
-import TruQuiBot from '@/components/TruQuiBot';
+import Truki from '@/components/Truki';
 import Toast from '@/components/Toast';
 import LandingPage from '@/components/LandingPage';
 import ChatDock from '@/components/ChatDock';
@@ -48,7 +48,7 @@ export default function Home() {
       </div>
 
       <BottomNav />
-      <TruQuiBot />
+      <Truki />
       <ChatDock />
       <Modal />
       <Toast />
