@@ -130,7 +130,7 @@ export default function ProductCard({ product: p }) {
               )}
             </div>
             <div className="pk-user-info">
-              <span className="pk-level">{p.level || 'Nuevo'}</span>
+              <span className="pk-level">{p.ownerName || p.owner || 'Usuario'}</span>
               {p.ownerRatingAvg > 0 && (
                 <span className="pk-rating-mini">
                   ⭐ {Number(p.ownerRatingAvg).toFixed(1)}

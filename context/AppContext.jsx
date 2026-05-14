@@ -4,7 +4,7 @@ import { auth, db } from '@/lib/firebase';
 import {
   onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, updateProfile, signInWithPopup, GoogleAuthProvider,
-  setPersistence, browserSessionPersistence
+  setPersistence, browserSessionPersistence, sendEmailVerification
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc,
@@ -56,6 +56,15 @@ function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
   if (Notification?.permission === 'granted') {
     try { new Notification(title, { body, icon: '/logo-icon.ico' }); } catch { }
   }
+}
+
+/* ── Nivel automático de usuario ──────────────────────────────── */
+function computeLevel(ud, emailVerified) {
+  const trades = ud?.tradesCompleted || 0;
+  const rating = ud?.ratingAvg       || 0;
+  if (trades >= 3 && rating >= 4.0) return 'Confiable';
+  if (emailVerified)                 return 'Verificado';
+  return 'Nuevo';
 }
 
 export function AppProvider({ children }) {
@@ -132,6 +141,7 @@ export function AppProvider({ children }) {
           } catch (e) { console.warn('[Auth] No se pudo crear doc de usuario:', e); }
         }
         setUserData(ud);
+        syncLevel(user, ud); // recalcular nivel en segundo plano
       } else {
         setUserData(null);
       }
@@ -214,6 +224,17 @@ export function AppProvider({ children }) {
       const snap = await getDoc(doc(db, 'users', uid));
       return snap.exists() ? snap.data() : null;
     } catch { return null; }
+  }
+
+  /* Recalcula y persiste el nivel si cambió (se llama en segundo plano) */
+  async function syncLevel(user, ud) {
+    if (!user || !ud) return;
+    const expected = computeLevel(ud, user.emailVerified);
+    if ((ud.level || 'Nuevo') === expected) return;
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { level: expected });
+      setUserData(prev => ({ ...prev, level: expected }));
+    } catch (e) { console.warn('[syncLevel]', e); }
   }
 
   async function loadProducts() {
@@ -393,6 +414,7 @@ export function AppProvider({ children }) {
     await setPersistence(auth, browserSessionPersistence);
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
+    sendEmailVerification(cred.user).catch(() => {}); // enviar correo de verificación
     await setDoc(doc(db, 'users', cred.user.uid), {
       displayName: name, email,
       phone: phone || '',
@@ -620,7 +642,12 @@ export function AppProvider({ children }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al completar el acuerdo');
     // Solo refrescar el feed si ambos confirmaron y el producto sale del feed
-    if (data.status === 'completed') await loadProducts();
+    if (data.status === 'completed') {
+      await loadProducts();
+      // Recargar usuario para recalcular nivel (tradesCompleted subió en el servidor)
+      const ud = await loadUserData(currentUser.uid);
+      if (ud) { setUserData(ud); syncLevel(currentUser, ud); }
+    }
     return data;
   }
 

@@ -175,11 +175,10 @@ export default function UserProfileModal({ userId }) {
   const count       = user.ratingCount || 0;
   const memberSince = user._fromProduct ? null : fmtMemberSince(user.createdAt);
 
-  const badges = [];
-  if (user.verified)              badges.push({ label: '✓ Verificado',  cls: 'up-badge--verified' });
-  if (user.level === 'Confiable') badges.push({ label: '🏅 Confiable',  cls: 'up-badge--trusted'  });
-  if (user.level === 'Activo')    badges.push({ label: '✅ Activo',     cls: 'up-badge--trusted'  });
-  if (user.role  === 'admin')     badges.push({ label: '🛡️ Admin',      cls: 'up-badge--admin'    });
+  const levelMeta = {
+    'Confiable': { label: '🏅 Confiable', cls: 'up-badge--trusted',  title: '3+ trueques completados · Calificación ≥ 4.0' },
+    'Verificado': { label: '✉️ Verificado', cls: 'up-badge--verified', title: 'Email verificado' },
+  }[user.level] ?? { label: '🆕 Nuevo', cls: 'up-badge--new', title: 'Usuario nuevo' };
 
   return (
     <div className="up-wrap">
@@ -202,12 +201,12 @@ export default function UserProfileModal({ userId }) {
 
           {/* Level + badges */}
           <div className="up-badges-row">
-            <span className="cl" style={{ padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-              {user.level || 'Nuevo'}
+            <span className={`up-badge ${levelMeta.cls}`} title={levelMeta.title}>
+              {levelMeta.label}
             </span>
-            {badges.map((b, i) => (
-              <span key={i} className={`up-badge ${b.cls}`}>{b.label}</span>
-            ))}
+            {user.role === 'admin' && (
+              <span className="up-badge up-badge--admin">🛡️ Admin</span>
+            )}
           </div>
 
           {/* Rating stars */}

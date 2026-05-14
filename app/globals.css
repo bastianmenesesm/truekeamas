@@ -425,7 +425,7 @@ select.fs:hover { border-color: var(--ln2); }
   display: grid; place-items: center; color: #fff;
   font-size: 11px; font-weight: 700; flex-shrink: 0;
 }
-.pk-level { font-size: 11px; color: var(--mu); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-level { font-size: 12px; color: var(--is); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
 .pk-match-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 7px 12px; border-radius: 8px;
@@ -1993,8 +1993,11 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   display: inline-flex; align-items: center; gap: 3px;
   padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
 }
+.up-badge--new {
+  background: rgba(100,116,139,.09); color: var(--mu); border: 1px solid rgba(100,116,139,.2);
+}
 .up-badge--verified {
-  background: rgba(56,212,48,.12); color: #179d0f; border: 1px solid rgba(56,212,48,.3);
+  background: rgba(22,119,255,.1); color: var(--vd); border: 1px solid rgba(22,119,255,.25);
 }
 .up-badge--trusted {
   background: rgba(245,158,11,.12); color: #92620a; border: 1px solid rgba(245,158,11,.3);
@@ -2243,4 +2246,73 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   background: var(--sf2); color: var(--v);
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 16px; font-family: 'Syne', sans-serif;
+}
+
+/* ─── PROCESS SECTION (compact) ───────────── */
+.ps-compact {
+  padding: 10px 16px 12px;
+  background: var(--cd);
+  border-radius: var(--r-md);
+  border: 1px solid var(--ln);
+}
+.ps-steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ps-step-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ps-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--sf);
+}
+.ps-step-n {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--v);
+  font-family: 'Syne', sans-serif;
+  line-height: 1;
+}
+.ps-step-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--is);
+  white-space: nowrap;
+}
+.ps-arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--mu);
+  flex-shrink: 0;
+}
+.ps-divider {
+  height: 1px;
+  background: var(--ln);
+  margin: 8px 0;
+}
+.ps-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ps-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mu);
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
