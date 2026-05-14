@@ -2233,6 +2233,18 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   }
 }
 
+/* ─── FILTRO "Con precio" chip ─────────────── */
+.pg-price-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--ln); background: var(--cd); color: var(--mu);
+  cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
+}
+.pg-price-chip:hover { border-color: var(--v); color: var(--v); }
+.pg-price-chip--on {
+  background: rgba(22,119,255,.1); border-color: var(--v); color: var(--v);
+}
+
 /* ─── ADMIN — users tab extras ────────────── */
 .admin-stat--verified {
   background: rgba(56,212,48,.08); border-color: rgba(56,212,48,.25);

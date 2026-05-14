@@ -82,6 +82,8 @@ export function AppProvider({ children }) {
   const [regionFilter, setRegionFilter]     = useState('all');
   const [stats, setStats]                   = useState({ products: '—', users: '—', matches: '—' });
   const [sortBy, setSortBy]                 = useState('likes');
+  const [communeFilter, setCommuneFilter]   = useState('all');
+  const [priceFilter,   setPriceFilter]     = useState(false);
 
   // Sidebar
   const [sidebarPinned, setSidebarPinnedState] = useState(true);
@@ -660,6 +662,12 @@ export function AppProvider({ children }) {
     setSidebarOpen(true);
   }
 
+  /* Cuando cambia la región, resetear la comuna */
+  function setRegionFilterAndReset(val) {
+    setRegionFilter(val);
+    setCommuneFilter('all');
+  }
+
   const value = {
     currentUser, userData, authLoading, isAdmin,
     products, saved, modal, toast,
@@ -667,7 +675,9 @@ export function AppProvider({ children }) {
     searchQuery, setSearchQuery,
     modeFilter, setModeFilter,
     levelFilter, setLevelFilter,
-    regionFilter, setRegionFilter,
+    regionFilter, setRegionFilter: setRegionFilterAndReset,
+    communeFilter, setCommuneFilter,
+    priceFilter,   setPriceFilter,
     stats,
     // Notifications
     notifications, unreadNotifs, markNotifRead, markAllNotifsRead, notifyMessage,

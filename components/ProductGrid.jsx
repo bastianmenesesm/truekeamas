@@ -6,9 +6,11 @@ import ProductCard from './ProductCard';
 export default function ProductGrid() {
   const {
     products, userData, activeCategory, searchQuery,
-    modeFilter, setModeFilter,
-    levelFilter, setLevelFilter,
-    regionFilter, setRegionFilter,
+    modeFilter,    setModeFilter,
+    levelFilter,   setLevelFilter,
+    regionFilter,  setRegionFilter,
+    communeFilter, setCommuneFilter,
+    priceFilter,   setPriceFilter,
     setActiveCategory, setSearchQuery,
     sortBy, setSortBy,
     openSidebarDrawer,
@@ -20,34 +22,55 @@ export default function ProductGrid() {
     if (p.status === 'blocked' || p.status === 'sold') return false;
     if (blockedUsers.includes(p.ownerId)) return false;
     const q = searchQuery.trim().toLowerCase();
-    const tagMatch = !q || (p.tags || []).some(t => t.includes(q));
-    const bq = !q || tagMatch || [p.title, p.category, p.subcategory, p.wants, p.region].join(' ').toLowerCase().includes(q);
+    const bq = !q || (p.tags || []).some(t => t.includes(q))
+      || [p.title, p.category, p.subcategory, p.wants, p.region, p.commune].join(' ').toLowerCase().includes(q);
     const bc = activeCategory === 'all' || p.category === activeCategory;
     const bm = modeFilter === 'all'
       || (modeFilter === 'barter' && p.barter)
       || (modeFilter === 'buy'    && p.buy)
       || (modeFilter === 'donate' && p.donate)
       || (modeFilter === 'mixed'  && p.mixed);
-    const bl = levelFilter === 'all' || p.level === levelFilter;
     const br = !regionFilter || regionFilter === 'all' || p.region === regionFilter;
-    return bq && bc && bm && bl && br;
+    const bcom = !communeFilter || communeFilter === 'all' || p.commune === communeFilter;
+    const bp = !priceFilter || (p.price && p.price > 0);
+    return bq && bc && bm && br && bcom && bp;
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === 'likes')   return (b.likes || 0) - (a.likes || 0);
-    if (sortBy === 'newest')  return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-    if (sortBy === 'price_asc')  return (a.price || 0) - (b.price || 0);
-    if (sortBy === 'price_desc') return (b.price || 0) - (a.price || 0);
+    if (sortBy === 'likes')       return (b.likes || 0) - (a.likes || 0);
+    if (sortBy === 'newest')      return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    if (sortBy === 'price_asc')   return (a.price || 0) - (b.price || 0);
+    if (sortBy === 'price_desc')  return (b.price || 0) - (a.price || 0);
+    if (sortBy === 'rating')      return (b.ownerRatingAvg || 0) - (a.ownerRatingAvg || 0);
     return 0;
   });
 
+  // Comunas disponibles para la región seleccionada (dinámico — solo las que tienen productos)
+  const availableCommunes = regionFilter && regionFilter !== 'all'
+    ? [...new Set(
+        products
+          .filter(p => p.region === regionFilter && p.commune && p.status === 'active')
+          .map(p => p.commune)
+      )].sort()
+    : [];
+
   function clearFilters() {
-    setActiveCategory('all'); setSearchQuery('');
-    setModeFilter('all'); setLevelFilter('all');
-    if (setRegionFilter) setRegionFilter('all');
+    setActiveCategory('all');
+    setSearchQuery('');
+    setModeFilter('all');
+    setLevelFilter('all');
+    setRegionFilter('all');
+    setCommuneFilter('all');
+    setPriceFilter(false);
   }
 
-  const activeCount = [activeCategory !== 'all', modeFilter !== 'all', levelFilter !== 'all', regionFilter && regionFilter !== 'all'].filter(Boolean).length;
+  const activeCount = [
+    activeCategory !== 'all',
+    modeFilter !== 'all',
+    regionFilter && regionFilter !== 'all',
+    communeFilter && communeFilter !== 'all',
+    priceFilter,
+  ].filter(Boolean).length;
 
   return (
     <section className="sec" id="vitrina">
@@ -65,36 +88,57 @@ export default function ProductGrid() {
             <button className="pg-clear-btn" onClick={clearFilters}>Limpiar filtros</button>
           )}
         </div>
+
         <div className="pg-filters">
+          {/* 1. Tipo */}
+          <select className="fs" value={modeFilter} onChange={e => setModeFilter(e.target.value)}>
+            <option value="all">Tipo</option>
+            <option value="barter">🔄 Trueque</option>
+            <option value="buy">💰 Venta</option>
+            <option value="donate">🎁 Donación</option>
+            <option value="mixed">⚡ Mixto</option>
+          </select>
+
+          {/* 2. Región */}
+          <select className="fs" value={regionFilter || 'all'} onChange={e => setRegionFilter(e.target.value)}>
+            <option value="all">Región</option>
+            {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+
+          {/* 3. Comuna — solo visible cuando hay región seleccionada con comunas disponibles */}
+          {availableCommunes.length > 0 && (
+            <select className="fs" value={communeFilter} onChange={e => setCommuneFilter(e.target.value)}>
+              <option value="all">Comuna</option>
+              {availableCommunes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+
+          {/* 4. Categoría */}
           <select className="fs" value={activeCategory} onChange={e => setActiveCategory(e.target.value)}>
             <option value="all">Categoría</option>
             {CATS.map(c => <option key={c.n} value={c.n}>{c.e} {c.n}</option>)}
           </select>
+
+          {/* 5. Ordenar */}
           <select className="fs" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-            <option value="likes">Más populares</option>
-            <option value="newest">Más recientes</option>
-            <option value="price_asc">Precio ↑</option>
-            <option value="price_desc">Precio ↓</option>
+            <option value="likes">❤️ Más populares</option>
+            <option value="newest">🕐 Más recientes</option>
+            <option value="rating">⭐ Mejor calificados</option>
+            <option value="price_asc">💰 Precio ↑</option>
+            <option value="price_desc">💰 Precio ↓</option>
           </select>
-          <select className="fs" value={modeFilter} onChange={e => setModeFilter(e.target.value)}>
-            <option value="all">Tipo</option>
-            <option value="barter">Trueque</option>
-            <option value="buy">Venta</option>
-            <option value="donate">Donación</option>
-            <option value="mixed">Mixto</option>
-          </select>
-          <select className="fs" value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
-            <option value="all">Nivel</option>
-            <option value="Nuevo">Nuevo</option>
-            <option value="Verificado">Verificado</option>
-            <option value="Confiable">Confiable</option>
-          </select>
-          <select className="fs" value={regionFilter || 'all'} onChange={e => setRegionFilter && setRegionFilter(e.target.value)}>
-            <option value="all">Región</option>
-            {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+
+          {/* 6. Chip "Con precio" */}
+          <button
+            className={`pg-price-chip${priceFilter ? ' pg-price-chip--on' : ''}`}
+            onClick={() => setPriceFilter(v => !v)}
+            title="Mostrar solo productos con precio definido"
+          >
+            💰 Con precio
+          </button>
         </div>
       </div>
+
       <div className="pg">
         {products.length === 0 ? (
           <div className="es"><span className="ei">🔄</span><p>Cargando...</p><div className="sp sp2" style={{ margin: '0 auto' }} /></div>
