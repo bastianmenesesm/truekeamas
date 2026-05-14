@@ -45,14 +45,17 @@ export default function ProductGrid() {
     return 0;
   });
 
-  // Comunas disponibles (dinámico — solo las que tienen productos activos en la región elegida)
-  const availableCommunes = regionFilter && regionFilter !== 'all'
-    ? [...new Set(
-        products
-          .filter(p => p.region === regionFilter && p.commune && p.status !== 'deleted')
-          .map(p => p.commune)
-      )].sort()
-    : [];
+  // Comunas disponibles — si hay región seleccionada muestra las de esa región,
+  // si no, muestra todas las comunas con productos activos
+  const availableCommunes = [...new Set(
+    products
+      .filter(p => {
+        if (!p.commune || p.status === 'deleted') return false;
+        if (regionFilter && regionFilter !== 'all') return p.region === regionFilter;
+        return true;
+      })
+      .map(p => p.commune)
+  )].sort();
 
   function clearFilters() {
     setActiveCategory('all');
@@ -104,18 +107,17 @@ export default function ProductGrid() {
             {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
 
-          {/* 3. Comuna — siempre visible; muestra comunas de la región seleccionada */}
-          <select
-            className="fs"
-            value={communeFilter}
-            onChange={e => setCommuneFilter(e.target.value)}
-            disabled={availableCommunes.length === 0}
-          >
-            <option value="all">
-              {availableCommunes.length === 0 ? 'Comuna' : 'Comuna'}
-            </option>
-            {availableCommunes.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          {/* 3. Comuna — siempre activa; se filtra por región si hay una seleccionada */}
+          {availableCommunes.length > 0 && (
+            <select
+              className="fs"
+              value={communeFilter}
+              onChange={e => setCommuneFilter(e.target.value)}
+            >
+              <option value="all">Comuna</option>
+              {availableCommunes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
 
           {/* 4. Categoría */}
           <select className="fs" value={activeCategory} onChange={e => setActiveCategory(e.target.value)}>

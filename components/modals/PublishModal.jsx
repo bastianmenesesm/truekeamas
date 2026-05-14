@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { CATEGORIES } from '@/lib/categories';
 import { uploadToCloudinary } from '@/lib/firebase';
-import { FIELD_GROUPS, DEFAULT_FIELDS, CONDITIONS } from '@/lib/productFields';
+import { FIELD_GROUPS, DEFAULT_FIELDS, CONDITIONS, NO_CONDITION_CATEGORIES, NO_CONDITION_SUBCATEGORIES } from '@/lib/productFields';
 import { REGIONES_CHILE } from '@/lib/regions';
 import { COMUNAS_POR_REGION } from '@/lib/communes';
 
@@ -151,6 +151,10 @@ export default function PublishModal() {
   const subList   = catObj?.subs || [];
   const dynFields = selectedSub ? (FIELD_GROUPS[selectedSub] || DEFAULT_FIELDS) : DEFAULT_FIELDS;
   const communes  = selectedRegion ? (COMUNAS_POR_REGION[selectedRegion] || []) : [];
+
+  // ¿La categoría/subcategoría actual necesita campo "Condición"?
+  const needsCondition = !NO_CONDITION_CATEGORIES.has(selectedCat)
+                      && !NO_CONDITION_SUBCATEGORIES.has(selectedSub);
 
   function handlePhotoChange(e) {
     const files = Array.from(e.target.files).slice(0, 5 - photos.length);
@@ -309,8 +313,8 @@ export default function PublishModal() {
             />
           </label>
 
-          {/* Condición */}
-          {action !== 'donar' && (
+          {/* Condición — solo para productos físicos con desgaste */}
+          {action !== 'donar' && needsCondition && (
             <label className="fd">
               Condición <span style={{ color: 'var(--dg)' }}>*</span>
               <select name="condition" required defaultValue="">
