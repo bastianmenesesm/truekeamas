@@ -619,7 +619,8 @@ export function AppProvider({ children }) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al completar el acuerdo');
-    await loadProducts(); // refrescar feed (producto desaparece)
+    // Solo refrescar el feed si ambos confirmaron y el producto sale del feed
+    if (data.status === 'completed') await loadProducts();
     return data;
   }
 

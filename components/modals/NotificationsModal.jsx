@@ -8,7 +8,8 @@ const TYPE_META = {
   proposal_accepted: { icon: '🎉', color: 'var(--lm)', label: 'Propuesta aceptada' },
   proposal_declined: { icon: '❌', color: 'var(--dg)', label: 'Propuesta declinada' },
   new_message:       { icon: '💬', color: 'var(--v)',  label: 'Nuevo mensaje' },
-  trade_completed:   { icon: '✅', color: '#059669',   label: 'Trueque completado' },
+  trade_completed:      { icon: '✅', color: '#059669',   label: 'Trueque completado' },
+  completion_requested: { icon: '🤝', color: 'var(--v)', label: 'Confirmación pendiente' },
 };
 
 function fmtDate(ts) {

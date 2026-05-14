@@ -2187,6 +2187,18 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   background: rgba(16,185,129,.07); color: #059669;
   border-bottom: 1px solid rgba(16,185,129,.2);
 }
+.cw-done-banner--waiting {
+  background: rgba(245,158,11,.08); color: #92400e;
+  border-bottom: 1px solid rgba(245,158,11,.2);
+  font-style: italic;
+}
+.cw-done-banner--confirm {
+  background: rgba(27,111,202,.1); color: var(--v);
+  border: none; cursor: pointer; width: 100%;
+  font-weight: 800; transition: background .15s;
+  animation: notif-pop 0.5s ease;
+}
+.cw-done-banner--confirm:hover { background: rgba(27,111,202,.18); }
 
 /* ─── NOTIFICACIONES — badge animado ─────────── */
 @keyframes notif-pop {

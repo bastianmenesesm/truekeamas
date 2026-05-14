@@ -17,9 +17,19 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
   const [sending,     setSending]     = useState(false);
   const [pendImg,     setPendImg]     = useState(null);
   const [pendImgUrl,  setPendImgUrl]  = useState(null);
+  const [matchData,   setMatchData]   = useState(null); // estado en tiempo real del match
 
   const inputRef = useRef(null);
   const msgsRef  = useRef(null);
+
+  /* Real-time match status (para confirmación bilateral) */
+  useEffect(() => {
+    if (!mid) return;
+    const unsub = onSnapshot(doc(db, 'matches', mid), snap => {
+      if (snap.exists()) setMatchData(snap.data());
+    }, () => {});
+    return unsub;
+  }, [mid]);
 
   /* Real-time messages */
   useEffect(() => {
@@ -29,7 +39,6 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
       snap => {
         setLoading(false);
         setMessages(snap.docs.slice(-100).map(d => ({ id: d.id, ...d.data() })));
-        // Always scroll to bottom — if minimized the element is hidden so it's a no-op
         setTimeout(() => {
           if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
         }, 50);
@@ -79,16 +88,25 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
   const isTrusted = url =>
     url && (url.startsWith('https://res.cloudinary.com') || url.startsWith('https://firebasestorage.googleapis.com'));
 
-  const title       = prod?.title || 'Chat';
-  const person      = prod?.owner || '';
-  const isCompleted = prod?.matchStatus === 'completed';
+  const title      = prod?.title || 'Chat';
+  const person     = prod?.owner || '';
+
+  // Estado de completación en tiempo real desde Firestore
+  const isCompleted  = matchData?.status === 'completed';
+  const confirmed    = matchData?.completionConfirmedBy || [];
+  const iConfirmed   = confirmed.includes(currentUser?.uid);
+  const otherConfirmed = confirmed.some(uid => uid !== currentUser?.uid);
 
   async function handleComplete() {
-    if (!confirm('¿Confirmar que el trueque se realizó? La publicación se marcará como completada y saldrá del feed.')) return;
+    if (!confirm('¿Confirmas que el trueque se realizó? El otro usuario también deberá confirmarlo para cerrar el acuerdo.')) return;
     try {
-      await completeMatch(mid);
-      showToast('¡Trueque completado! 🎉 Ahora puedes calificar al otro usuario.');
-      onClose();
+      const result = await completeMatch(mid);
+      if (result?.status === 'completed') {
+        showToast('¡Trueque completado! 🎉 Ahora pueden calificarse mutuamente.');
+        onClose();
+      } else {
+        showToast('✅ Confirmaste. Esperando que el otro usuario confirme también.');
+      }
     } catch (err) {
       showToast(err.message);
     }
@@ -140,12 +158,24 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
       {!minimized && (
         <div className="cw-body">
 
-          {/* Banner acuerdo completado / botón completar */}
+          {/* Banner de confirmación bilateral */}
           {isCompleted ? (
+            // Ambos confirmaron
             <div className="cw-done-banner cw-done-banner--done">
               ✅ Trueque completado
             </div>
+          ) : iConfirmed ? (
+            // Este usuario ya confirmó, esperando al otro
+            <div className="cw-done-banner cw-done-banner--waiting">
+              ⏳ Confirmaste. Esperando que el otro usuario confirme...
+            </div>
+          ) : otherConfirmed ? (
+            // El otro confirmó, falta este usuario
+            <button className="cw-done-banner cw-done-banner--confirm" onClick={handleComplete}>
+              🤝 ¡El otro usuario confirmó el trueque! Confirmar también
+            </button>
           ) : (
+            // Nadie ha confirmado aún
             <button className="cw-done-banner cw-done-banner--btn" onClick={handleComplete}>
               ✅ Marcar trueque como completado
             </button>

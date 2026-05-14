@@ -112,7 +112,10 @@ export default function AgreementsModal() {
         const otherUid  = isOwner ? m.requesterId   : m.ownerId;
         const alreadyRated = ratedIds.has(m.id);
 
-        const isCompleted = m.status === 'completed';
+        const isCompleted   = m.status === 'completed';
+        const confirmedBy   = m.completionConfirmedBy || [];
+        const isPending     = !isCompleted && confirmedBy.length > 0;
+        const iConfirmed    = confirmedBy.includes(currentUser.uid);
 
         return (
           <div key={m.id} className={`mk${isCompleted ? ' mk--done' : ''}`}>
@@ -143,6 +146,11 @@ export default function AgreementsModal() {
                   {isCompleted && (
                     <span style={{ marginLeft: 8, fontSize: 11, background: 'rgba(16,185,129,.12)', color: '#059669', borderRadius: 6, padding: '1px 7px', fontWeight: 700 }}>
                       ✅ Completado
+                    </span>
+                  )}
+                  {isPending && (
+                    <span style={{ marginLeft: 8, fontSize: 11, background: 'rgba(245,158,11,.12)', color: '#92400e', borderRadius: 6, padding: '1px 7px', fontWeight: 700 }}>
+                      {iConfirmed ? '⏳ Esperando confirmación' : '🤝 Pendiente tu confirmación'}
                     </span>
                   )}
                 </div>
