@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { CATEGORIES } from '@/lib/categories';
 import { uploadToCloudinary } from '@/lib/firebase';
-import { FIELD_GROUPS, DEFAULT_FIELDS, CONDITIONS, NO_CONDITION_CATEGORIES, NO_CONDITION_SUBCATEGORIES } from '@/lib/productFields';
+import { FIELD_GROUPS, DEFAULT_FIELDS, CATEGORY_DEFAULT_FIELDS, CONDITIONS, NO_CONDITION_CATEGORIES, NO_CONDITION_SUBCATEGORIES } from '@/lib/productFields';
 import { REGIONES_CHILE } from '@/lib/regions';
 import { COMUNAS_POR_REGION } from '@/lib/communes';
 
@@ -149,7 +149,11 @@ export default function PublishModal() {
   /* ── Helpers ───────────────────────────────── */
   const catObj    = CATEGORIES.find(c => c.n === selectedCat);
   const subList   = catObj?.subs || [];
-  const dynFields = selectedSub ? (FIELD_GROUPS[selectedSub] || DEFAULT_FIELDS) : DEFAULT_FIELDS;
+  // Campos dinámicos: prioridad subcategoría → default de categoría → default global
+  const catDefault = CATEGORY_DEFAULT_FIELDS[selectedCat] ?? DEFAULT_FIELDS;
+  const dynFields  = selectedSub
+    ? (FIELD_GROUPS[selectedSub] ?? catDefault)
+    : catDefault;
   const communes  = selectedRegion ? (COMUNAS_POR_REGION[selectedRegion] || []) : [];
 
   // ¿La categoría/subcategoría actual necesita campo "Condición"?
