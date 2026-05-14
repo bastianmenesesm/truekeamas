@@ -353,6 +353,7 @@ select.fs {
 }
 select.fs:focus { border-color: var(--v); background: var(--sf2); }
 select.fs:hover { border-color: var(--ln2); }
+select.fs:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
 
 /* Product grid */
 .pg { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 20px; }

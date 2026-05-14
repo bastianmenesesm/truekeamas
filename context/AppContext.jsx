@@ -81,7 +81,7 @@ export function AppProvider({ children }) {
   const [levelFilter, setLevelFilter]       = useState('all');
   const [regionFilter, setRegionFilter]     = useState('all');
   const [stats, setStats]                   = useState({ products: '—', users: '—', matches: '—' });
-  const [sortBy, setSortBy]                 = useState('likes');
+  const [sortBy, setSortBy]                 = useState('none');
   const [communeFilter, setCommuneFilter]   = useState('all');
   const [priceFilter,   setPriceFilter]     = useState(false);
 

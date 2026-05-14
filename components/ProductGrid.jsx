@@ -45,11 +45,11 @@ export default function ProductGrid() {
     return 0;
   });
 
-  // Comunas disponibles para la región seleccionada (dinámico — solo las que tienen productos)
+  // Comunas disponibles (dinámico — solo las que tienen productos activos en la región elegida)
   const availableCommunes = regionFilter && regionFilter !== 'all'
     ? [...new Set(
         products
-          .filter(p => p.region === regionFilter && p.commune && p.status === 'active')
+          .filter(p => p.region === regionFilter && p.commune && p.status !== 'deleted')
           .map(p => p.commune)
       )].sort()
     : [];
@@ -69,7 +69,6 @@ export default function ProductGrid() {
     modeFilter !== 'all',
     regionFilter && regionFilter !== 'all',
     communeFilter && communeFilter !== 'all',
-    priceFilter,
   ].filter(Boolean).length;
 
   return (
@@ -105,13 +104,18 @@ export default function ProductGrid() {
             {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
 
-          {/* 3. Comuna — solo visible cuando hay región seleccionada con comunas disponibles */}
-          {availableCommunes.length > 0 && (
-            <select className="fs" value={communeFilter} onChange={e => setCommuneFilter(e.target.value)}>
-              <option value="all">Comuna</option>
-              {availableCommunes.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          )}
+          {/* 3. Comuna — siempre visible; muestra comunas de la región seleccionada */}
+          <select
+            className="fs"
+            value={communeFilter}
+            onChange={e => setCommuneFilter(e.target.value)}
+            disabled={availableCommunes.length === 0}
+          >
+            <option value="all">
+              {availableCommunes.length === 0 ? 'Comuna' : 'Comuna'}
+            </option>
+            {availableCommunes.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
 
           {/* 4. Categoría */}
           <select className="fs" value={activeCategory} onChange={e => setActiveCategory(e.target.value)}>
@@ -121,21 +125,13 @@ export default function ProductGrid() {
 
           {/* 5. Ordenar */}
           <select className="fs" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+            <option value="none">Ordenar</option>
             <option value="likes">❤️ Más populares</option>
             <option value="newest">🕐 Más recientes</option>
             <option value="rating">⭐ Mejor calificados</option>
             <option value="price_asc">💰 Precio ↑</option>
             <option value="price_desc">💰 Precio ↓</option>
           </select>
-
-          {/* 6. Chip "Con precio" */}
-          <button
-            className={`pg-price-chip${priceFilter ? ' pg-price-chip--on' : ''}`}
-            onClick={() => setPriceFilter(v => !v)}
-            title="Mostrar solo productos con precio definido"
-          >
-            💰 Con precio
-          </button>
         </div>
       </div>
 
