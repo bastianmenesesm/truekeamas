@@ -7,7 +7,7 @@ import {
   setPersistence, browserSessionPersistence
 } from 'firebase/auth';
 import {
-  collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
+  collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, onSnapshot, increment,
   arrayUnion, arrayRemove
 } from 'firebase/firestore';
@@ -27,6 +27,35 @@ function rateLimit(key, maxCalls, windowMs) {
   }
   _rl[key].push(now);
   try { sessionStorage.setItem('rl_' + key, JSON.stringify(_rl[key])); } catch (e) { }
+}
+
+/* ── Chime de notificación (Web Audio API, sin archivos externos) ── */
+function playNotifChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[880, 0], [1100, 0.15]].forEach(([freq, delay]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+      gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.38);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime  + delay + 0.4);
+    });
+  } catch { /* silencia errores de autoplay */ }
+}
+
+/* ── Notificación nativa del navegador ─────────────────────────── */
+function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
+  if (typeof window === 'undefined') return;
+  if (document.hasFocus())           return; // página activa → no necesario
+  if (Notification?.permission === 'granted') {
+    try { new Notification(title, { body, icon: '/logo-icon.ico' }); } catch { }
+  }
 }
 
 export function AppProvider({ children }) {
@@ -59,8 +88,9 @@ export function AppProvider({ children }) {
   // Proposals sent by current user
   const [sentProposals, setSentProposals]         = useState([]);
 
-  const toastTimer  = useRef(null);
-  const lastLoadRef = useRef(0);
+  const toastTimer    = useRef(null);
+  const lastLoadRef   = useRef(0);
+  const notifInitRef  = useRef(false); // detectar primera carga vs. notif nueva
 
   const isAdmin      = userData?.role === 'admin';
   const unreadNotifs = notifications.filter(n => !n.read).length;
@@ -113,13 +143,28 @@ export function AppProvider({ children }) {
   /* ── Notifications listener ───────────────── */
   useEffect(() => {
     if (!currentUser) { setNotifications([]); return; }
-    // Sin orderBy — ordenamos en cliente para evitar índice compuesto
-    const q = query(
-      collection(db, 'notifications', currentUser.uid, 'items')
-    );
+    notifInitRef.current = false; // reset para este usuario
+
+    // Pedir permiso de notificaciones nativas (solo pregunta una vez)
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    const q = query(collection(db, 'notifications', currentUser.uid, 'items'));
     const unsub = onSnapshot(q, snap => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+      // Solo reproducir sonido para notifs que llegan DESPUÉS de la carga inicial
+      if (notifInitRef.current) {
+        snap.docChanges().forEach(change => {
+          if (change.type === 'added' && !change.doc.data().read) {
+            playNotifChime();
+            showBrowserNotif(change.doc.data());
+          }
+        });
+      }
+      notifInitRef.current = true;
       setNotifications(list);
     }, () => {});
     return unsub;
@@ -260,44 +305,18 @@ export function AppProvider({ children }) {
   /* ── Proposals ────────────────────────────── */
   async function submitProposal(productId, offerData) {
     if (!currentUser) { openModal('auth'); return; }
-    const prod = products.find(p => p.id === productId);
-    if (!prod) throw new Error('Publicación no encontrada');
-    if (prod.ownerId === currentUser.uid) throw new Error('No puedes enviar una propuesta a tu propia publicación.');
     try { rateLimit('prop_' + currentUser.uid, 5, 3600000); } catch (e) { throw e; }
 
-    // Chequeo de duplicado en cliente (evita índice compuesto de Firestore)
-    const existingPending = sentProposals.find(
-      p => p.productId === productId && p.status === 'pending'
-    );
-    if (existingPending) throw new Error('Ya tienes una propuesta pendiente para esta publicación.');
-
-    const myName = userData?.displayName || currentUser.displayName || 'Usuario';
-    const ref = await addDoc(collection(db, 'proposals'), {
-      productId,
-      productTitle: prod.title,
-      productPhoto: prod.photos?.[0] || null,
-      productOwnerUid: prod.ownerId,
-      proposerUid: currentUser.uid,
-      proposerName: myName,
-      offerType: offerData.offerType,
-      offerDescription: offerData.offerDescription || '',
-      offerPhotos: offerData.offerPhotos || [],
-      offerAmount: offerData.offerAmount || null,
-      message: offerData.message || '',
-      status: 'pending',
-      matchId: null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    // Validación server-side vía API (incluye lock de propuesta única por producto)
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/submit-proposal', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body:    JSON.stringify({ productId, ...offerData }),
     });
-
-    await createNotif(prod.ownerId, {
-      type: 'proposal_received',
-      title: '¡Nueva propuesta de trueque!',
-      body: `Propuesta para "${prod.title}"`,
-      proposalId: ref.id,
-      productId
-    });
-    return ref.id;
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al enviar propuesta');
+    return data.proposalId;
   }
 
   async function acceptProposal(proposalId) {
@@ -327,6 +346,9 @@ export function AppProvider({ children }) {
       status: 'accepted', matchId: matchRef.id, updatedAt: serverTimestamp()
     });
 
+    // Liberar el lock para que el proponente pueda volver a proponer si quiere
+    deleteDoc(doc(db, 'proposal_locks', `${proposal.proposerUid}_${proposal.productId}`)).catch(() => {});
+
     await createNotif(proposal.proposerUid, {
       type: 'proposal_accepted',
       title: '¡Propuesta aceptada! 🎉',
@@ -348,6 +370,9 @@ export function AppProvider({ children }) {
     await updateDoc(doc(db, 'proposals', proposalId), {
       status: 'declined', updatedAt: serverTimestamp()
     });
+
+    // Liberar lock para que pueda volver a proponer
+    deleteDoc(doc(db, 'proposal_locks', `${proposal.proposerUid}_${proposal.productId}`)).catch(() => {});
 
     await createNotif(proposal.proposerUid, {
       type: 'proposal_declined',
@@ -571,6 +596,42 @@ export function AppProvider({ children }) {
 
   function rlMessage() { rateLimit('msg_' + (currentUser?.uid || 'x'), 30, 60000); }
 
+  /* ── Archivar chat (se muestra como "Eliminar" en UI) ─────────── */
+  async function archiveChat(matchId) {
+    if (!currentUser) return;
+    await updateDoc(doc(db, 'matches', matchId), {
+      archived:   true,
+      archivedAt: serverTimestamp(),
+      archivedBy: currentUser.uid,
+    });
+    // Cerrar la ventana flotante si estaba abierta
+    closeChatWindow(matchId);
+  }
+
+  /* ── Completar acuerdo ────────────────────────────────────────── */
+  async function completeMatch(matchId) {
+    if (!currentUser) return;
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/complete-match', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body:    JSON.stringify({ matchId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al completar el acuerdo');
+    await loadProducts(); // refrescar feed (producto desaparece)
+    return data;
+  }
+
+  /* ── Abrir sidebar en modo cajón (móvil) ─────────────────────── */
+  function openSidebarDrawer() {
+    if (sidebarPinned) {
+      setSidebarPinnedState(false);
+      if (typeof window !== 'undefined') localStorage.setItem('tk_sb_pin', '0');
+    }
+    setSidebarOpen(true);
+  }
+
   const value = {
     currentUser, userData, authLoading, isAdmin,
     products, saved, modal, toast,
@@ -592,8 +653,9 @@ export function AppProvider({ children }) {
     publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
     blockProduct, unblockProduct, reportProduct,
     blockUser, unblockUser,
-    sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin,
+    sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin, openSidebarDrawer,
     openChats, openChatWindow, closeChatWindow, toggleMinimizeChat,
+    archiveChat, completeMatch,
     loadProducts, loadStats, rlMessage,
     db, collection, query, where, orderBy, addDoc, updateDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
   };

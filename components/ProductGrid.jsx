@@ -11,6 +11,7 @@ export default function ProductGrid() {
     regionFilter, setRegionFilter,
     setActiveCategory, setSearchQuery,
     sortBy, setSortBy,
+    openSidebarDrawer,
   } = useApp();
 
   const blockedUsers = userData?.blockedUsers || [];
@@ -50,6 +51,12 @@ export default function ProductGrid() {
 
   return (
     <section className="sec" id="vitrina">
+      {/* Botón filtros — solo visible en móvil (≤900px) */}
+      <button className="pg-filter-mob" onClick={openSidebarDrawer}>
+        🎛️ Filtros
+        {activeCount > 0 && <span className="pg-count">{activeCount}</span>}
+      </button>
+
       <div className="pg-header">
         <div className="pg-title-row">
           <h3>Publicaciones</h3>

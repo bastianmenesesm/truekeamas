@@ -8,6 +8,7 @@ const TYPE_META = {
   proposal_accepted: { icon: '🎉', color: 'var(--lm)', label: 'Propuesta aceptada' },
   proposal_declined: { icon: '❌', color: 'var(--dg)', label: 'Propuesta declinada' },
   new_message:       { icon: '💬', color: 'var(--v)',  label: 'Nuevo mensaje' },
+  trade_completed:   { icon: '✅', color: '#059669',   label: 'Trueque completado' },
 };
 
 function fmtDate(ts) {
@@ -34,10 +35,11 @@ export default function NotificationsModal() {
           const m = snap.data();
           const otherName = m.ownerId === currentUser?.uid ? m.requesterName : m.ownerName;
           openChatWindow(notif.chatId, {
-            title: m.productTitle || 'Chat',
-            owner: otherName || '',
-            ownerId: m.ownerId,
+            title:       m.productTitle || 'Chat',
+            owner:       otherName || '',
+            ownerId:     m.ownerId,
             requesterId: m.requesterId,
+            matchStatus: m.status,
           });
           return;
         }

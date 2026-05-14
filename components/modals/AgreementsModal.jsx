@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 
 export default function AgreementsModal() {
-  const { currentUser, openModal, closeModal, openChatWindow } = useApp();
+  const { currentUser, openModal, closeModal, openChatWindow, archiveChat } = useApp();
   const [matches,   setMatches]   = useState([]);
   const [ratedIds,  setRatedIds]  = useState(new Set());
   const [loading,   setLoading]   = useState(true);
@@ -21,6 +21,7 @@ export default function AgreementsModal() {
     function flush() {
       if (!done.a || !done.b) return;
       const sorted = Array.from(map.values())
+        .filter(m => !m.archived) // ocultar archivados
         .sort((x, y) => (y.lastMessageAt?.seconds || 0) - (x.lastMessageAt?.seconds || 0));
       setMatches(sorted);
       setLoading(false);
@@ -111,8 +112,10 @@ export default function AgreementsModal() {
         const otherUid  = isOwner ? m.requesterId   : m.ownerId;
         const alreadyRated = ratedIds.has(m.id);
 
+        const isCompleted = m.status === 'completed';
+
         return (
-          <div key={m.id} className="mk">
+          <div key={m.id} className={`mk${isCompleted ? ' mk--done' : ''}`}>
             {/* Fila principal → abre chat flotante */}
             <div
               className="mk-main"
@@ -125,6 +128,7 @@ export default function AgreementsModal() {
                   emoji:       m.productEmoji,
                   ownerId:     m.ownerId,
                   requesterId: m.requesterId,
+                  matchStatus: m.status,
                 });
               }}
             >
@@ -134,7 +138,14 @@ export default function AgreementsModal() {
                   : (m.productEmoji || '📦')}
               </div>
               <div className="mki">
-                <div className="mkt">{m.productTitle}</div>
+                <div className="mkt">
+                  {m.productTitle}
+                  {isCompleted && (
+                    <span style={{ marginLeft: 8, fontSize: 11, background: 'rgba(16,185,129,.12)', color: '#059669', borderRadius: 6, padding: '1px 7px', fontWeight: 700 }}>
+                      ✅ Completado
+                    </span>
+                  )}
+                </div>
                 <div className="mks">Con: {otherName} · {m.lastMessage || 'Sin mensajes aún'}</div>
               </div>
             </div>
@@ -154,6 +165,7 @@ export default function AgreementsModal() {
                     emoji:       m.productEmoji,
                     ownerId:     m.ownerId,
                     requesterId: m.requesterId,
+                    matchStatus: m.status,
                   });
                 }}
               >
@@ -183,6 +195,17 @@ export default function AgreementsModal() {
                   ⭐ Calificar
                 </button>
               )}
+              <button
+                className="btn bd2 bsm"
+                style={{ fontSize: 12 }}
+                onClick={async e => {
+                  e.stopPropagation();
+                  if (!confirm('¿Eliminar este chat? Quedará archivado y no aparecerá más en tu lista.')) return;
+                  await archiveChat(m.id);
+                }}
+              >
+                🗑️ Eliminar
+              </button>
             </div>
           </div>
         );

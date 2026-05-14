@@ -9,7 +9,7 @@ import {
 
 /* ── Single floating chat window ─────────────── */
 function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
-  const { currentUser, userData, showToast, rlMessage, notifyMessage } = useApp();
+  const { currentUser, userData, showToast, rlMessage, notifyMessage, archiveChat, completeMatch } = useApp();
   const { mid, prod, minimized } = chatEntry;
 
   const [messages,    setMessages]    = useState([]);
@@ -79,8 +79,25 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
   const isTrusted = url =>
     url && (url.startsWith('https://res.cloudinary.com') || url.startsWith('https://firebasestorage.googleapis.com'));
 
-  const title  = prod?.title || 'Chat';
-  const person = prod?.owner || '';
+  const title       = prod?.title || 'Chat';
+  const person      = prod?.owner || '';
+  const isCompleted = prod?.matchStatus === 'completed';
+
+  async function handleComplete() {
+    if (!confirm('¿Confirmar que el trueque se realizó? La publicación se marcará como completada y saldrá del feed.')) return;
+    try {
+      await completeMatch(mid);
+      showToast('¡Trueque completado! 🎉 Ahora puedes calificar al otro usuario.');
+      onClose();
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  async function handleArchive() {
+    if (!confirm('¿Eliminar este chat? Quedará archivado y no aparecerá más en tu lista.')) return;
+    await archiveChat(mid);
+  }
 
   return (
     <div className={`cw${minimized ? ' cw-min' : ''}`}>
@@ -92,6 +109,15 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
           {person && <div className="cw-hdr-sub">con {person}</div>}
         </div>
         <div className="cw-hdr-btns" onClick={e => e.stopPropagation()}>
+          {/* Eliminar chat */}
+          <button className="cw-btn" onClick={handleArchive} title="Eliminar chat">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4h6v2"/>
+            </svg>
+          </button>
           <button
             className="cw-btn"
             onClick={onToggleMinimize}
@@ -113,6 +139,18 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
       {/* Body — hidden when minimized */}
       {!minimized && (
         <div className="cw-body">
+
+          {/* Banner acuerdo completado / botón completar */}
+          {isCompleted ? (
+            <div className="cw-done-banner cw-done-banner--done">
+              ✅ Trueque completado
+            </div>
+          ) : (
+            <button className="cw-done-banner cw-done-banner--btn" onClick={handleComplete}>
+              ✅ Marcar trueque como completado
+            </button>
+          )}
+
           {/* Messages */}
           <div className="cw-msgs" ref={msgsRef}>
             {loading && (

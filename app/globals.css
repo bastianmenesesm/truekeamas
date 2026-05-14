@@ -987,7 +987,8 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 @media(max-width:900px) {
   body { padding-bottom: 68px; }
   .app { display: block; }
-  .sidebar { display: none; }
+  /* Solo ocultar sidebar fija; la sidebar-drawer sigue funcionando */
+  .sidebar:not(.sidebar-drawer) { display: none; }
   .main { padding: 0 16px 48px; }
   .topbar { margin: 0 -16px 20px; padding: 10px 16px; flex-wrap: wrap; }
   .ta { display: none; }
@@ -2168,6 +2169,53 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   }
   .cw { width: 100%; border-radius: 12px 12px 0 0; }
   .cw-msgs { height: 200px; }
+}
+
+/* ─── CHAT — banner completar acuerdo ──────── */
+.cw-done-banner {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700;
+  flex-shrink: 0;
+}
+.cw-done-banner--btn {
+  background: rgba(16,185,129,.1); color: #059669;
+  border: none; cursor: pointer; width: 100%;
+  transition: background .15s;
+}
+.cw-done-banner--btn:hover { background: rgba(16,185,129,.18); }
+.cw-done-banner--done {
+  background: rgba(16,185,129,.07); color: #059669;
+  border-bottom: 1px solid rgba(16,185,129,.2);
+}
+
+/* ─── NOTIFICACIONES — badge animado ─────────── */
+@keyframes notif-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.45); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.bd-new { animation: notif-pop 0.45s ease forwards; }
+
+/* ─── FILTROS MÓVIL — botón sobre publicaciones ── */
+.pg-filter-mob {
+  display: none; /* oculto en desktop */
+}
+@media(max-width:900px) {
+  .pg-filter-mob {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 20px;
+    background: var(--v); color: #fff;
+    font-size: 13px; font-weight: 700; border: none;
+    cursor: pointer; margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(27,111,202,.25);
+    transition: opacity .15s;
+  }
+  .pg-filter-mob:hover { opacity: .88; }
+  .pg-filter-mob .pg-count {
+    background: rgba(255,255,255,.25); color: #fff;
+    font-size: 11px;
+  }
 }
 
 /* ─── ADMIN — users tab extras ────────────── */

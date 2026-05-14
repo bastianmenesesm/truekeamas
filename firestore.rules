@@ -107,5 +107,12 @@ service cloud.firestore {
       allow create: if isAuth();
       allow read, update, delete: if isAdmin();
     }
+
+    // ── Proposal locks ────────────────────────────────────────
+    // Solo el Admin SDK (servidor) escribe y elimina estos documentos.
+    // El cliente nunca debe tocarlos directamente.
+    match /proposal_locks/{lockId} {
+      allow read, write: if false;
+    }
   }
 }
