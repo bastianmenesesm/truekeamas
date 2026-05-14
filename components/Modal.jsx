@@ -23,7 +23,7 @@ const TITLES = {
   auth:            'Acceder',
   publish:         '✍️ Publicar',
   cart:            '🤍 Guardados',
-  agreements:      '🤝 Mis acuerdos',
+  agreements:      '💬 Chats',
   proposals:       '📬 Propuestas de trueque',
   myposts:         '📦 Mis publicaciones',
   profile:         '👤 Mi perfil',

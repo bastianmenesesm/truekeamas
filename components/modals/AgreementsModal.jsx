@@ -137,11 +137,28 @@ export default function AgreementsModal() {
                 <div className="mkt">{m.productTitle}</div>
                 <div className="mks">Con: {otherName} · {m.lastMessage || 'Sin mensajes aún'}</div>
               </div>
-              <div style={{ fontSize: 18, opacity: .5, flexShrink: 0 }}>💬</div>
             </div>
 
             {/* Acciones */}
             <div className="mk-actions">
+              <button
+                className="btn bv bsm"
+                style={{ fontSize: 12 }}
+                onClick={e => {
+                  e.stopPropagation();
+                  closeModal();
+                  openChatWindow(m.id, {
+                    title:       m.productTitle,
+                    owner:       otherName,
+                    photos:      m.productPhoto ? [m.productPhoto] : [],
+                    emoji:       m.productEmoji,
+                    ownerId:     m.ownerId,
+                    requesterId: m.requesterId,
+                  });
+                }}
+              >
+                💬 Chat
+              </button>
               <button
                 className="btn bo bsm"
                 style={{ fontSize: 12 }}

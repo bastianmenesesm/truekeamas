@@ -4,7 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { db, optimizeCloudinaryUrl } from '@/lib/firebase';
 import {
   doc, getDoc, collection, query, where,
-  getDocs, orderBy, limit,
+  getDocs, limit,
 } from 'firebase/firestore';
 
 /* ── Helpers ─────────────────────────────── */
@@ -110,13 +110,17 @@ export default function UserProfileModal({ userId }) {
 
       /* 3 ─ Load ratings (independent — may also fail if rules block it) */
       try {
+        // Un solo filtro → no requiere índice compuesto; orden en cliente
         const ratSnap = await getDocs(query(
           collection(db, 'ratings'),
           where('toUid', '==', userId),
-          orderBy('createdAt', 'desc'),
-          limit(20)
+          limit(30)
         ));
-        setRatings(ratSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const sorted = ratSnap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+          .slice(0, 20);
+        setRatings(sorted);
       } catch (e) {
         console.warn('[UserProfile] ratings unavailable:', e?.code);
       }
@@ -124,14 +128,19 @@ export default function UserProfileModal({ userId }) {
 
     async function loadProducts() {
       try {
+        // Un solo filtro de igualdad → no requiere índice compuesto
+        // El filtro por status y el orden se aplican en el cliente
         const snap = await getDocs(query(
           collection(db, 'products'),
           where('ownerId', '==', userId),
-          where('status', '==', 'active'),
-          orderBy('createdAt', 'desc'),
-          limit(12)
+          limit(50)
         ));
-        setOwnProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const active = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(p => p.status === 'active')
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+          .slice(0, 12);
+        setOwnProducts(active);
       } catch (e) {
         console.warn('[UserProfile] products list failed:', e?.code);
       } finally {

@@ -3,25 +3,39 @@ import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 import admin from 'firebase-admin';
 
 export async function POST(request) {
+  // ── 1. Parse body ─────────────────────────────────────────────
+  let body;
+  try { body = await request.json(); }
+  catch { return NextResponse.json({ error: 'Cuerpo de solicitud inválido' }, { status: 400 }); }
+
+  const { matchId, toUid, stars, comment } = body;
+
+  if (!matchId || !toUid || !stars || stars < 1 || stars > 5) {
+    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
+  }
+
+  // ── 2. Verify auth token ───────────────────────────────────────
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
+  let fromUid;
   try {
-    const { matchId, toUid, stars, comment } = await request.json();
+    const decoded = await getAdminAuth().verifyIdToken(authHeader.slice(7));
+    fromUid = decoded.uid;
+  } catch (err) {
+    console.error('[rate-user] Token inválido:', err.message);
+    return NextResponse.json({ error: 'Sesión expirada, vuelve a iniciar sesión' }, { status: 401 });
+  }
 
-    if (!matchId || !toUid || !stars || stars < 1 || stars > 5) {
-      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
-    }
+  if (fromUid === toUid) {
+    return NextResponse.json({ error: 'No puedes calificarte a ti mismo' }, { status: 400 });
+  }
 
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    const decoded  = await getAdminAuth().verifyIdToken(authHeader.slice(7));
-    const fromUid  = decoded.uid;
-    if (fromUid === toUid) {
-      return NextResponse.json({ error: 'No puedes calificarte a ti mismo' }, { status: 400 });
-    }
-
-    const adminDb  = getAdminDb();
+  // ── 3. Business logic ─────────────────────────────────────────
+  try {
+    const adminDb    = getAdminDb();
     const FieldValue = admin.firestore.FieldValue;
 
     // Verificar que el match existe y ambos UIDs participan
@@ -34,15 +48,15 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No eres parte de este acuerdo' }, { status: 403 });
     }
     if (match.ownerId !== toUid && match.requesterId !== toUid) {
-      return NextResponse.json({ error: 'El usuario no es parte de este acuerdo' }, { status: 400 });
+      return NextResponse.json({ error: 'El destinatario no es parte de este acuerdo' }, { status: 400 });
     }
 
-    // Verificar calificación duplicada (mismo fromUid + matchId)
-    const dup = await adminDb.collection('ratings')
-      .where('fromUid', '==', fromUid)
-      .where('matchId', '==', matchId)
-      .get();
-    if (!dup.empty) {
+    // Verificar duplicado usando ID determinístico — evita necesitar índice compuesto
+    // El ID único por (quién califica × acuerdo) previene duplicados de forma atómica
+    const ratingId  = `${fromUid}_${matchId}`;
+    const ratingRef = adminDb.collection('ratings').doc(ratingId);
+    const existing  = await ratingRef.get();
+    if (existing.exists) {
       return NextResponse.json({ error: 'Ya calificaste este acuerdo' }, { status: 409 });
     }
 
@@ -50,16 +64,16 @@ export async function POST(request) {
     const fromSnap = await adminDb.collection('users').doc(fromUid).get();
     const fromUser = fromSnap.data() || {};
 
-    // Crear rating
-    await adminDb.collection('ratings').add({
+    // Crear rating con ID determinístico (set, no add)
+    await ratingRef.set({
       fromUid,
       toUid,
       matchId,
-      stars:        Number(stars),
-      comment:      comment?.trim() || '',
-      fromName:     fromUser.displayName || 'Usuario',
-      fromAvatarUrl: fromUser.avatarUrl  || null,
-      createdAt:    FieldValue.serverTimestamp(),
+      stars:         Number(stars),
+      comment:       comment?.trim() || '',
+      fromName:      fromUser.displayName  || 'Usuario',
+      fromAvatarUrl: fromUser.avatarUrl    || null,
+      createdAt:     FieldValue.serverTimestamp(),
     });
 
     // Actualizar stats del usuario calificado (incremento atómico)
@@ -71,8 +85,8 @@ export async function POST(request) {
     // Leer DESPUÉS del incremento — los valores ya son los definitivos
     const toSnap   = await adminDb.collection('users').doc(toUid).get();
     const toUser   = toSnap.data() || {};
-    const newSum   = toUser.ratingSum   || 0;   // ya actualizado por increment
-    const newCount = toUser.ratingCount || 0;   // ya actualizado por increment
+    const newSum   = toUser.ratingSum   || 0;
+    const newCount = toUser.ratingCount || 0;
     const newAvg   = newCount > 0 ? Math.round((newSum / newCount) * 10) / 10 : 0;
 
     // Nivel automático — no pisamos si el admin ya lo configuró manualmente
@@ -89,8 +103,13 @@ export async function POST(request) {
     });
 
     return NextResponse.json({ ok: true, newAvg, newCount });
+
   } catch (err) {
-    console.error('[rate-user]', err);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    console.error('[rate-user]', err.code, err.message);
+    // Devolver el mensaje real para facilitar el diagnóstico
+    return NextResponse.json(
+      { error: err.message || 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }
