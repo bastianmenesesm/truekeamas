@@ -241,6 +241,7 @@ function ChatWindow({ chatEntry, onClose, onToggleMinimize }) {
                 ref={inputRef}
                 placeholder="Mensaje..."
                 autoComplete="off"
+                maxLength={1000}
                 style={{ fontSize: 13 }}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }

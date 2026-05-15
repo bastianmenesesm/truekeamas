@@ -13,6 +13,20 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
   }
 
+  // ── Validación de longitud (previene payloads abusivos) ────────
+  if (typeof productId !== 'string' || productId.length > 128) {
+    return NextResponse.json({ error: 'productId inválido' }, { status: 400 });
+  }
+  if (offerDescription && offerDescription.length > 600) {
+    return NextResponse.json({ error: 'La descripción no puede superar 600 caracteres' }, { status: 400 });
+  }
+  if (message && message.length > 500) {
+    return NextResponse.json({ error: 'El mensaje no puede superar 500 caracteres' }, { status: 400 });
+  }
+  if (offerPhotos && (!Array.isArray(offerPhotos) || offerPhotos.length > 5)) {
+    return NextResponse.json({ error: 'Máximo 5 fotos por propuesta' }, { status: 400 });
+  }
+
   // ── Auth ────────────────────────────────────────────────────────
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {

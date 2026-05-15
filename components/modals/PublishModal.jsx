@@ -313,6 +313,7 @@ export default function PublishModal() {
             <input
               required
               name="title"
+              maxLength={120}
               placeholder={getTitlePlaceholder(selectedCat, selectedSub, action)}
             />
           </label>
@@ -378,7 +379,7 @@ export default function PublishModal() {
           {(action === 'cambiar' || action === 'mixto') && (
             <label className="fd fl">
               ¿Qué buscas a cambio? <span style={{ color: 'var(--dg)' }}>*</span>
-              <textarea required name="wants" placeholder="Ej: teclado mecánico, silla ergonómica, o efectivo" rows={2} />
+              <textarea required name="wants" maxLength={300} placeholder="Ej: teclado mecánico, silla ergonómica, o efectivo" rows={2} />
             </label>
           )}
 
@@ -410,7 +411,7 @@ export default function PublishModal() {
           {/* Descripción libre */}
           <label className="fd fl">
             Descripción adicional <span style={{ color: 'var(--mu)', fontWeight: 400 }}>(opcional)</span>
-            <textarea name="description" placeholder="Detalles sobre el estado, accesorios incluidos, condiciones del intercambio…" rows={3} />
+            <textarea name="description" maxLength={800} placeholder="Detalles sobre el estado, accesorios incluidos, condiciones del intercambio…" rows={3} />
           </label>
 
           {/* Fotos */}

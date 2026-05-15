@@ -4,8 +4,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── Helpers ──────────────────────────────────────────────
-    function isAuth() { return request.auth != null; }
-    function isOwner(uid) { return request.auth.uid == uid; }
+    function isAuth()          { return request.auth != null; }
+    function isOwner(uid)      { return request.auth.uid == uid; }
     function isAdmin() {
       return isAuth() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
@@ -23,7 +23,6 @@ service cloud.firestore {
 
     // ── Products ──────────────────────────────────────────────
     // Lectura pública (la vitrina es visible sin login)
-    // Escritura solo autenticados
     match /products/{productId} {
       allow read:   if true;
       allow create: if isAuth();
@@ -36,14 +35,15 @@ service cloud.firestore {
     }
 
     // ── Proposals ─────────────────────────────────────────────
-    // Solo los participantes pueden leer/escribir sus propuestas
+    // Las propuestas se crean SOLO vía API (Admin SDK). El cliente no puede crearlas
+    // directamente, lo que evita propuestas malformadas o manipuladas.
     match /proposals/{proposalId} {
       allow read:   if isAuth() && (
         resource.data.proposerUid      == request.auth.uid ||
         resource.data.productOwnerUid  == request.auth.uid ||
         isAdmin()
       );
-      allow create: if isAuth();
+      allow create: if false; // Solo Admin SDK via /api/submit-proposal
       allow update: if isAuth() && (
         resource.data.productOwnerUid == request.auth.uid || isAdmin()
       );
@@ -51,13 +51,16 @@ service cloud.firestore {
     }
 
     // ── Matches (chats) ───────────────────────────────────────
+    // Solo el dueño del producto puede crear un match (al aceptar propuesta)
     match /matches/{matchId} {
       allow read:   if isAuth() && (
         resource.data.ownerId     == request.auth.uid ||
         resource.data.requesterId == request.auth.uid ||
         isAdmin()
       );
-      allow create: if isAuth();
+      // Solo el product owner puede crear el match (flujo de acceptProposal)
+      allow create: if isAuth() &&
+        request.resource.data.ownerId == request.auth.uid;
       allow update: if isAuth() && (
         resource.data.ownerId     == request.auth.uid ||
         resource.data.requesterId == request.auth.uid ||
@@ -76,17 +79,18 @@ service cloud.firestore {
     }
 
     // ── Ratings ───────────────────────────────────────────────
-    // Cualquier usuario autenticado puede leer calificaciones (para mostrar en perfiles)
-    // Solo el API server (admin SDK) puede escribir
+    // Solo lectura para autenticados. Solo Admin SDK puede escribir.
     match /ratings/{ratingId} {
-      allow read:   if isAuth();
-      allow write:  if false; // Solo vía API route con Admin SDK
+      allow read:  if isAuth();
+      allow write: if false; // Solo vía /api/rate-user con Admin SDK
     }
 
     // ── Notifications ─────────────────────────────────────────
+    // Un usuario puede crear notificaciones para OTRO usuario (no para sí mismo)
+    // Solo el destinatario puede leer/actualizar/borrar sus propias notificaciones
     match /notifications/{userId}/items/{notifId} {
       allow read, update: if isOwner(userId) || isAdmin();
-      allow create:       if isAuth();
+      allow create:       if isAuth() && request.auth.uid != userId; // no auto-notifs
       allow delete:       if isOwner(userId) || isAdmin();
     }
 
@@ -109,10 +113,10 @@ service cloud.firestore {
     }
 
     // ── Proposal locks ────────────────────────────────────────
-    // Solo el Admin SDK (servidor) escribe y elimina estos documentos.
-    // El cliente nunca debe tocarlos directamente.
+    // Solo el Admin SDK (servidor) puede leer, escribir y eliminar estos documentos.
     match /proposal_locks/{lockId} {
       allow read, write: if false;
     }
+
   }
 }
