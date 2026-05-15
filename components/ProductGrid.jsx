@@ -23,7 +23,7 @@ export default function ProductGrid() {
     if (blockedUsers.includes(p.ownerId)) return false;
     const q = searchQuery.trim().toLowerCase();
     const bq = !q || (p.tags || []).some(t => t.includes(q))
-      || [p.title, p.category, p.subcategory, p.wants, p.region, p.commune].join(' ').toLowerCase().includes(q);
+      || [p.title, p.description, p.category, p.subcategory, p.wants, p.region, p.commune].join(' ').toLowerCase().includes(q);
     const bc = activeCategory === 'all' || p.category === activeCategory;
     const bm = modeFilter === 'all'
       || (modeFilter === 'barter' && p.barter)

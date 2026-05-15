@@ -11,6 +11,7 @@ import Truki from '@/components/Truki';
 import Toast from '@/components/Toast';
 import LandingPage from '@/components/LandingPage';
 import ChatDock from '@/components/ChatDock';
+import VerifyEmailBanner from '@/components/VerifyEmailBanner';
 
 export default function Home() {
   const { currentUser, authLoading, sidebarPinned, sidebarOpen, setSidebarOpen } = useApp();
@@ -41,6 +42,7 @@ export default function Home() {
         <Sidebar />
         <main className="main">
           <TopBar />
+          <VerifyEmailBanner />
           <HeroSection />
           <ProductGrid />
           <ProcessSection />

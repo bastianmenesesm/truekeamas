@@ -42,12 +42,20 @@ export default function TopBar() {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
         />
-        <button className="sb" aria-label="Buscar">
-          <svg viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7"/>
-            <path d="m20 20-3.5-3.5"/>
-          </svg>
-        </button>
+        {searchQuery ? (
+          <button className="sb sb-clear" onClick={() => setSearchQuery('')} aria-label="Limpiar búsqueda">
+            <svg viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        ) : (
+          <button className="sb" aria-label="Buscar">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7"/>
+              <path d="m20 20-3.5-3.5"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Action buttons */}

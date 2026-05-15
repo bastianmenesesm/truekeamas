@@ -2329,3 +2329,37 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   padding: 2px 8px;
   white-space: nowrap;
 }
+
+/* ─── VERIFY EMAIL BANNER ─────────────────── */
+.veb {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 20px;
+  background: #EFF6FF;
+  border-bottom: 1px solid #BFDBFE;
+  font-size: 13px; color: #1D4ED8;
+}
+.veb-icon { font-size: 15px; flex-shrink: 0; }
+.veb-text { flex: 1; line-height: 1.4; }
+.veb-text strong { font-weight: 700; }
+.veb-btn {
+  padding: 5px 14px; border-radius: 7px;
+  background: var(--v); color: #fff;
+  font-size: 12px; font-weight: 600; flex-shrink: 0;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.veb-btn:hover { background: var(--vd); }
+.veb-btn:disabled { opacity: .6; cursor: not-allowed; }
+.veb-close {
+  display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 6px;
+  color: #93C5FD; flex-shrink: 0;
+  transition: color .15s, background .15s;
+}
+.veb-close:hover { color: #1D4ED8; background: #DBEAFE; }
+.veb-close svg { stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Search clear button */
+.sb-clear { background: var(--mu); }
+.sb-clear:hover { background: var(--is); }
+.sb-clear svg { stroke: #fff; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; width: 14px; height: 14px; }
