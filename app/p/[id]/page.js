@@ -77,7 +77,7 @@ export default async function ProductPage({ params }) {
       {/* Nav */}
       <nav className="pp-nav">
         <Link href="/" className="pp-nav-brand">Truekeamas</Link>
-        <Link href="/" className="pp-nav-cta">Ir al marketplace →</Link>
+        <Link href={`/?open=${p.id}`} className="pp-nav-cta">Ver en marketplace →</Link>
       </nav>
 
       {/* Card */}
@@ -144,7 +144,7 @@ export default async function ProductPage({ params }) {
             </div>
 
             {/* CTA */}
-            <Link href="/" className="pp-cta">
+            <Link href={`/?open=${p.id}`} className="pp-cta">
               Ver en Truekeamas para hacer match
             </Link>
           </div>

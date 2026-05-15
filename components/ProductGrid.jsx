@@ -1,7 +1,7 @@
 'use client';
 import { useApp, CATS } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
-import ProductCard from './ProductCard';
+import ProductCard, { ProductCardSkeleton } from './ProductCard';
 
 export default function ProductGrid() {
   const {
@@ -14,6 +14,7 @@ export default function ProductGrid() {
     setActiveCategory, setSearchQuery,
     sortBy, setSortBy,
     openSidebarDrawer,
+    productsLoading,
     hasMoreProducts, loadingMore, loadMoreProducts,
   } = useApp();
 
@@ -139,8 +140,8 @@ export default function ProductGrid() {
       </div>
 
       <div className="pg">
-        {products.length === 0 ? (
-          <div className="es"><span className="ei">🔄</span><p>Cargando...</p><div className="sp sp2" style={{ margin: '0 auto' }} /></div>
+        {productsLoading ? (
+          Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
         ) : sorted.length === 0 ? (
           <div className="es"><span className="ei">🔍</span><p>Sin resultados.</p><button className="btn bv bsm" onClick={clearFilters}>Ver todas</button></div>
         ) : (

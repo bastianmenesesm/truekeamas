@@ -72,6 +72,7 @@ export function AppProvider({ children }) {
   const [userData, setUserData]             = useState(null);
   const [authLoading, setAuthLoading]       = useState(true);
   const [products, setProducts]             = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [saved, setSaved]                   = useState([]);
   const [modal, setModal]                   = useState(null);
   const [toast, setToast]                   = useState({ msg: '', visible: false });
@@ -260,6 +261,7 @@ export function AppProvider({ children }) {
       setHasMoreProducts(docs.length === PAGE_SIZE);
       setStats(prev => ({ ...prev, products: list.length }));
     } catch { }
+    finally { setProductsLoading(false); }
   }
 
   async function loadMoreProducts() {
@@ -719,6 +721,7 @@ export function AppProvider({ children }) {
     sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin, openSidebarDrawer,
     openChats, openChatWindow, closeChatWindow, toggleMinimizeChat,
     archiveChat, completeMatch,
+    productsLoading,
     hasMoreProducts, loadingMore, loadMoreProducts,
     loadProducts, loadStats, rlMessage,
     db, collection, query, where, orderBy, addDoc, updateDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot

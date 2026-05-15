@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 import { useApp } from '@/context/AppContext';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
@@ -12,6 +13,7 @@ import Toast from '@/components/Toast';
 import LandingPage from '@/components/LandingPage';
 import ChatDock from '@/components/ChatDock';
 import VerifyEmailBanner from '@/components/VerifyEmailBanner';
+import AutoOpenProduct from '@/components/AutoOpenProduct';
 
 export default function Home() {
   const { currentUser, authLoading, sidebarPinned, sidebarOpen, setSidebarOpen } = useApp();
@@ -54,6 +56,7 @@ export default function Home() {
       <ChatDock />
       <Modal />
       <Toast />
+      <Suspense><AutoOpenProduct /></Suspense>
     </>
   );
 }

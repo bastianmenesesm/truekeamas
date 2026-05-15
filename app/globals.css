@@ -26,6 +26,21 @@
   --r-xl: 28px;
 }
 
+/* ─── SKELETON SHIMMER ────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.sk-block {
+  background: linear-gradient(90deg, var(--ln) 25%, #f1f5f9 50%, var(--ln) 75%);
+  background-size: 1200px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 6px;
+  display: block;
+}
+.pk-sk { pointer-events: none; }
+.pk-sk .pk-img-wrap { background: var(--ln); }
+
 /* ─── RESET ───────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; font-size: 15px; }

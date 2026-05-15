@@ -48,6 +48,29 @@ function getActionBadge(p) {
   return ACTION_BADGE.cambiar;
 }
 
+/* ── Skeleton loader ──────────────────────── */
+export function ProductCardSkeleton() {
+  return (
+    <article className="pk pk-sk">
+      <div className="pk-img-wrap">
+        <div className="sk sk-block" style={{ width: '100%', height: '100%' }} />
+      </div>
+      <div className="pk-body">
+        <div className="sk sk-block" style={{ height: 17, width: '78%', marginBottom: 10 }} />
+        <div className="sk sk-block" style={{ height: 12, width: '45%', marginBottom: 8 }} />
+        <div className="sk sk-block" style={{ height: 12, width: '62%', marginBottom: 18 }} />
+        <div className="pk-footer" style={{ pointerEvents: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="sk sk-block" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />
+            <div className="sk sk-block" style={{ height: 12, width: 72 }} />
+          </div>
+          <div className="sk sk-block" style={{ height: 30, width: 76, borderRadius: 8 }} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function ProductCard({ product: p }) {
   const { currentUser, saved, toggleLike, openModal } = useApp();
   const [imgIdx, setImgIdx] = useState(0);
