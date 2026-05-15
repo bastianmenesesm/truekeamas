@@ -43,6 +43,18 @@ export default function ProfileModal() {
 
   if (!currentUser) return <div className="nb nbd">No has iniciado sesión.</div>;
 
+  /* ── Completitud del perfil ─────────────────────────── */
+  const profileFields = [
+    { label: 'Nombre',          done: !!(userData?.displayName) },
+    { label: 'Teléfono',        done: !!(userData?.phone)       },
+    { label: 'Región',          done: !!(userData?.region)      },
+    { label: 'Foto de perfil',  done: !!(userData?.avatarUrl)   },
+    { label: 'Email verificado',done: !!currentUser.emailVerified },
+  ];
+  const doneCount  = profileFields.filter(f => f.done).length;
+  const pct        = Math.round((doneCount / profileFields.length) * 100);
+  const pctColor   = pct === 100 ? '#22C55E' : pct >= 60 ? '#F59E0B' : '#EF4444';
+
   async function handleSave(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -71,6 +83,26 @@ export default function ProfileModal() {
 
   return (
     <div>
+      {/* ── Completitud del perfil ───────────── */}
+      {pct < 100 && (
+        <div className="pc-wrap">
+          <div className="pc-header">
+            <span className="pc-label">Perfil {pct}% completo</span>
+            <span className="pc-pct" style={{ color: pctColor }}>{doneCount}/{profileFields.length}</span>
+          </div>
+          <div className="pc-bar-bg">
+            <div className="pc-bar-fill" style={{ width: `${pct}%`, background: pctColor }} />
+          </div>
+          <div className="pc-items">
+            {profileFields.map(f => (
+              <span key={f.label} className={`pc-item${f.done ? ' pc-item--done' : ''}`}>
+                {f.done ? '✓' : '○'} {f.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Header con avatar ─────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 20, background: 'var(--sf)', borderRadius: 14, border: '1.5px solid var(--ln)' }}>
         {/* Avatar clickeable */}

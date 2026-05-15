@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, limit, serverTimestamp, onSnapshot, increment,
+  query, where, orderBy, limit, startAfter, serverTimestamp, onSnapshot, increment,
   arrayUnion, arrayRemove
 } from 'firebase/firestore';
 
@@ -99,9 +99,15 @@ export function AppProvider({ children }) {
   // Proposals sent by current user
   const [sentProposals, setSentProposals]         = useState([]);
 
+  const [hasMoreProducts, setHasMoreProducts] = useState(false);
+  const [loadingMore,     setLoadingMore]     = useState(false);
+
   const toastTimer    = useRef(null);
   const lastLoadRef   = useRef(0);
+  const lastDocRef    = useRef(null); // cursor para paginación
   const notifInitRef  = useRef(false); // detectar primera carga vs. notif nueva
+
+  const PAGE_SIZE = 40;
 
   const isAdmin      = userData?.role === 'admin';
   const unreadNotifs = notifications.filter(n => !n.read).length;
@@ -245,12 +251,31 @@ export function AppProvider({ children }) {
     lastLoadRef.current = now;
     try {
       const snap = await getDocs(
-        query(collection(db, 'products'), orderBy('createdAt', 'desc'), limit(80))
+        query(collection(db, 'products'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE))
       );
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted');
+      const docs = snap.docs;
+      lastDocRef.current = docs[docs.length - 1] || null;
+      const list = docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted');
       setProducts(list);
+      setHasMoreProducts(docs.length === PAGE_SIZE);
       setStats(prev => ({ ...prev, products: list.length }));
     } catch { }
+  }
+
+  async function loadMoreProducts() {
+    if (!lastDocRef.current || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const snap = await getDocs(
+        query(collection(db, 'products'), orderBy('createdAt', 'desc'), startAfter(lastDocRef.current), limit(PAGE_SIZE))
+      );
+      const docs = snap.docs;
+      lastDocRef.current = docs[docs.length - 1] || null;
+      const list = docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted');
+      setProducts(prev => [...prev, ...list]);
+      setHasMoreProducts(docs.length === PAGE_SIZE);
+    } catch { }
+    finally { setLoadingMore(false); }
   }
 
   async function loadStats() {
@@ -694,6 +719,7 @@ export function AppProvider({ children }) {
     sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin, openSidebarDrawer,
     openChats, openChatWindow, closeChatWindow, toggleMinimizeChat,
     archiveChat, completeMatch,
+    hasMoreProducts, loadingMore, loadMoreProducts,
     loadProducts, loadStats, rlMessage,
     db, collection, query, where, orderBy, addDoc, updateDoc, serverTimestamp, getDocs, doc, getDoc, onSnapshot
   };

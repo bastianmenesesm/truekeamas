@@ -3,6 +3,34 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
+function ShareButton({ productId, title }) {
+  const [copied, setCopied] = useState(false);
+  const url = typeof window !== 'undefined'
+    ? `${window.location.origin}/p/${productId}`
+    : `/p/${productId}`;
+
+  function handleShare(e) {
+    e.stopPropagation();
+    if (navigator.share) {
+      navigator.share({ title, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  }
+
+  return (
+    <button className="share-btn" onClick={handleShare} title="Compartir publicación">
+      {copied
+        ? <><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copiado</>
+        : <><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartir</>
+      }
+    </button>
+  );
+}
+
 function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : null; }
 
 const ACTION_BADGE = {
@@ -148,20 +176,23 @@ export default function ProductCard({ product: p }) {
           )}
         </div>
 
-        {/* Report link */}
-        {!own && (
-          <button
-            className="report-btn"
-            onClick={e => { e.stopPropagation(); openModal({ type: 'report', productId: p.id }); }}
-            title="Denunciar publicación"
-          >
-            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-              <line x1="4" y1="22" x2="4" y2="15"/>
-            </svg>
-            Denunciar
-          </button>
-        )}
+        {/* Share + Report */}
+        <div className="pk-bottom-row">
+          <ShareButton productId={p.id} title={p.title} />
+          {!own && (
+            <button
+              className="report-btn"
+              onClick={e => { e.stopPropagation(); openModal({ type: 'report', productId: p.id }); }}
+              title="Denunciar publicación"
+            >
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                <line x1="4" y1="22" x2="4" y2="15"/>
+              </svg>
+              Denunciar
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );

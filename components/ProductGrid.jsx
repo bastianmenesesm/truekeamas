@@ -14,6 +14,7 @@ export default function ProductGrid() {
     setActiveCategory, setSearchQuery,
     sortBy, setSortBy,
     openSidebarDrawer,
+    hasMoreProducts, loadingMore, loadMoreProducts,
   } = useApp();
 
   const blockedUsers = userData?.blockedUsers || [];
@@ -144,11 +145,26 @@ export default function ProductGrid() {
           <div className="es"><span className="ei">🔍</span><p>Sin resultados.</p><button className="btn bv bsm" onClick={clearFilters}>Ver todas</button></div>
         ) : (
           <>
-            {sorted.slice(0, 50).map(p => <ProductCard key={p.id} product={p} />)}
-            {sorted.length > 50 && <div className="es" style={{ gridColumn: '1/-1' }}><p>Mostrando 50 de {sorted.length}. Usa los filtros para buscar.</p></div>}
+            {sorted.map(p => <ProductCard key={p.id} product={p} />)}
           </>
         )}
       </div>
+
+      {/* Cargar más */}
+      {hasMoreProducts && (
+        <div className="pg-load-more-wrap">
+          <button
+            className="pg-load-more-btn"
+            onClick={loadMoreProducts}
+            disabled={loadingMore}
+          >
+            {loadingMore
+              ? <><div className="sp" style={{ width: 16, height: 16, borderWidth: 2 }} />Cargando...</>
+              : '⬇ Cargar más publicaciones'
+            }
+          </button>
+        </div>
+      )}
     </section>
   );
 }
