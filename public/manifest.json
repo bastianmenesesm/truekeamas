@@ -1,0 +1,68 @@
+{
+  "name": "Truekeamas",
+  "short_name": "Truekeamas",
+  "description": "Plataforma de trueque digital en Chile. Publica lo que tienes, encuentra lo que necesitas.",
+  "lang": "es-CL",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait-primary",
+  "background_color": "#1677FF",
+  "theme_color": "#1677FF",
+  "categories": ["shopping", "social", "lifestyle"],
+
+  "icons": [
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Explorar trueques",
+      "short_name": "Explorar",
+      "description": "Ir al marketplace principal",
+      "url": "/?source=shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nueva publicación",
+      "short_name": "Publicar",
+      "description": "Publicar un artículo para intercambiar",
+      "url": "/?action=publish&source=shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+
+  "prefer_related_applications": false,
+  "related_applications": []
+}

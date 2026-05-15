@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1677FF" />
+  <title>Sin conexión | Truekeamas</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F5F8FC;
+      color: #0F172A;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0,0,0,.10);
+      border: 1px solid #E2E8F0;
+    }
+
+    .icon {
+      width: 72px; height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #1677FF, #4096FF);
+      display: grid; place-items: center;
+      margin: 0 auto 24px;
+      font-size: 36px;
+    }
+
+    .brand {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: #1677FF;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    p {
+      font-size: 14px;
+      color: #64748B;
+      line-height: 1.65;
+      margin-bottom: 28px;
+    }
+
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      background: #1677FF;
+      color: #fff;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s;
+      width: 100%;
+      justify-content: center;
+    }
+    .retry-btn:hover { background: #0958D9; }
+
+    .tips {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #E2E8F0;
+    }
+    .tips-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 12px;
+    }
+    .tip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #64748B;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+    .tip-icon {
+      width: 28px; height: 28px;
+      background: #F1F5F9;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 12px;
+      color: #CBD5E1;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <div class="brand">Truekeamas</div>
+    <h1>Sin conexión a internet</h1>
+    <p>
+      No podemos conectarnos al marketplace ahora mismo.
+      Revisa tu conexión y vuelve a intentarlo.
+    </p>
+
+    <button class="retry-btn" onclick="window.location.reload()">
+      🔄 Reintentar
+    </button>
+
+    <div class="tips">
+      <div class="tips-title">Mientras tanto</div>
+      <div class="tip">
+        <div class="tip-icon">📶</div>
+        <span>Activa el WiFi o los datos móviles</span>
+      </div>
+      <div class="tip">
+        <div class="tip-icon">✈️</div>
+        <span>Verifica que el modo avión esté desactivado</span>
+      </div>
+      <div class="tip">
+        <div class="tip-icon">🔁</div>
+        <span>Si el problema persiste, reinicia tu conexión</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Truekeamas · Plataforma de trueque digital en Chile</footer>
+
+  <script>
+    // Detectar cuando vuelve la conexión y recargar automáticamente
+    window.addEventListener('online', () => window.location.reload());
+  </script>
+</body>
+</html>
