@@ -1,55 +1,19 @@
 /**
- * Truekeamas Service Worker
- * Estrategias de caché profesionales para PWA
+ * Truekeamas Service Worker v2
+ * Estrategia conservadora: solo cachea recursos propios y Cloudinary.
+ * Nunca intercepta Firebase, Google APIs ni autenticación.
  */
 
-const CACHE_VERSION    = 'v1';
-const STATIC_CACHE     = `truekeamas-static-${CACHE_VERSION}`;
-const IMAGE_CACHE      = `truekeamas-images-${CACHE_VERSION}`;
-const PAGES_CACHE      = `truekeamas-pages-${CACHE_VERSION}`;
-const ALL_CACHES       = [STATIC_CACHE, IMAGE_CACHE, PAGES_CACHE];
+const CACHE_VERSION = 'v2';
+const STATIC_CACHE  = `truekeamas-static-${CACHE_VERSION}`;
+const IMAGE_CACHE   = `truekeamas-images-${CACHE_VERSION}`;
+const PAGES_CACHE   = `truekeamas-pages-${CACHE_VERSION}`;
+const ALL_CACHES    = [STATIC_CACHE, IMAGE_CACHE, PAGES_CACHE];
 
-// URLs a pre-cachear al instalar (app shell mínimo)
-const PRECACHE_URLS = [
-  '/offline.html',
-  '/manifest.json',
-  '/logo-icon.svg',
-];
+// App shell mínimo a pre-cachear
+const PRECACHE_URLS = ['/offline.html', '/manifest.json'];
 
-// ── Dominios/rutas que NUNCA se cachean ──────────────────────────
-const SKIP_CACHE_PATTERNS = [
-  /firestore\.googleapis\.com/,
-  /identitytoolkit\.googleapis\.com/,
-  /securetoken\.googleapis\.com/,
-  /firebaseio\.com/,
-  /firebase\.googleapis\.com/,
-  /googleapis\.com\/identitytoolkit/,
-  /\/api\//,
-  /chrome-extension/,
-];
-
-// ── Utilidades ───────────────────────────────────────────────────
-function shouldSkip(url) {
-  return SKIP_CACHE_PATTERNS.some(p => p.test(url));
-}
-
-function isStaticAsset(url) {
-  return url.includes('/_next/static/') ||
-         url.includes('/fonts/') ||
-         /\.(ico|svg|woff2?|ttf|eot)(\?.*)?$/.test(url);
-}
-
-function isImage(url) {
-  return url.includes('cloudinary.com') ||
-         url.includes('googleusercontent.com') ||
-         /\.(png|jpg|jpeg|gif|webp|avif)(\?.*)?$/.test(url);
-}
-
-function isNavigation(request) {
-  return request.mode === 'navigate';
-}
-
-// ── INSTALL: pre-cachear app shell ───────────────────────────────
+// ── INSTALL ──────────────────────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
@@ -58,57 +22,61 @@ self.addEventListener('install', event => {
   );
 });
 
-// ── ACTIVATE: limpiar cachés obsoletos ───────────────────────────
+// ── ACTIVATE: limpiar cachés viejos ──────────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys
-          .filter(key => !ALL_CACHES.includes(key))
-          .map(key => caches.delete(key))
+        keys.filter(k => !ALL_CACHES.includes(k)).map(k => caches.delete(k))
       ))
       .then(() => self.clients.claim())
   );
 });
 
-// ── FETCH: estrategias por tipo de recurso ───────────────────────
+// ── FETCH ────────────────────────────────────────────────────────
 self.addEventListener('fetch', event => {
   const { request } = event;
-  const url = request.url;
-
-  // Solo interceptar GET
   if (request.method !== 'GET') return;
 
-  // Nunca cachear Firebase, API routes, etc.
-  if (shouldSkip(url)) return;
+  const url = new URL(request.url);
+  const isOwnDomain  = url.hostname === self.location.hostname;
+  const isCloudinary = url.hostname.includes('cloudinary.com');
 
-  // Activos estáticos de Next.js → Cache First (son inmutables con hash)
-  if (isStaticAsset(url)) {
+  // ✅ Solo interceptar nuestro dominio y Cloudinary.
+  // Todo lo demás (Firebase, Google, APIs externas) pasa directo sin tocar.
+  if (!isOwnDomain && !isCloudinary) return;
+
+  // Nunca cachear rutas de API propias
+  if (url.pathname.startsWith('/api/')) return;
+
+  // _next/static → cache-first (archivos inmutables con hash)
+  if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
-  // Imágenes → Stale While Revalidate (Cloudinary + avatares)
-  if (isImage(url)) {
+  // Imágenes Cloudinary → stale-while-revalidate
+  if (isCloudinary) {
     event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE));
     return;
   }
 
-  // Navegación de páginas → Network First con fallback offline
-  if (isNavigation(request)) {
+  // Navegación de páginas → network-first con fallback offline
+  if (request.mode === 'navigate') {
     event.respondWith(networkFirstWithOfflineFallback(request));
     return;
   }
 
-  // Todo lo demás → Network First
-  event.respondWith(networkFirst(request, STATIC_CACHE));
+  // Otros assets propios (svg, png, ico, fonts locales) → cache-first
+  if (isOwnDomain) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+  }
 });
 
-// ── Estrategia: Cache First ──────────────────────────────────────
+// ── Cache First ───────────────────────────────────────────────────
 async function cacheFirst(request, cacheName) {
   const cached = await caches.match(request);
   if (cached) return cached;
-
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -117,41 +85,22 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
-    return new Response('', { status: 408, statusText: 'Network error' });
+    return new Response('', { status: 408 });
   }
 }
 
-// ── Estrategia: Network First ────────────────────────────────────
-async function networkFirst(request, cacheName) {
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    return new Response('', { status: 503, statusText: 'Service unavailable' });
-  }
-}
-
-// ── Estrategia: Stale While Revalidate ──────────────────────────
+// ── Stale While Revalidate ────────────────────────────────────────
 async function staleWhileRevalidate(request, cacheName) {
   const cache  = await caches.open(cacheName);
   const cached = await cache.match(request);
-
-  // Fetch en paralelo (no await) para actualizar el caché
-  const fetchPromise = fetch(request).then(response => {
-    if (response.ok) cache.put(request, response.clone());
-    return response;
+  const fetchPromise = fetch(request).then(res => {
+    if (res.ok) cache.put(request, res.clone());
+    return res;
   }).catch(() => {});
-
   return cached || fetchPromise;
 }
 
-// ── Estrategia: Network First + Fallback Offline ─────────────────
+// ── Network First + Fallback Offline ─────────────────────────────
 async function networkFirstWithOfflineFallback(request) {
   try {
     const response = await fetch(request);
@@ -161,31 +110,16 @@ async function networkFirstWithOfflineFallback(request) {
     }
     return response;
   } catch {
-    // 1. Intentar desde caché de páginas
-    const cachedPage = await caches.match(request);
-    if (cachedPage) return cachedPage;
-
-    // 2. Fallback: página offline
-    const offlinePage = await caches.match('/offline.html');
-    if (offlinePage) return offlinePage;
-
-    // 3. Respuesta mínima de emergencia
-    return new Response(
-      '<html><body><h1>Sin conexión</h1><p>Revisa tu internet e intenta de nuevo.</p></body></html>',
-      { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-    );
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    const offline = await caches.match('/offline.html');
+    return offline || new Response('<h1>Sin conexión</h1>', {
+      status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
   }
 }
 
 // ── Mensajes desde el cliente ────────────────────────────────────
 self.addEventListener('message', event => {
-  // El cliente solicita activar la nueva versión inmediatamente
-  if (event.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-
-  // El cliente solicita limpiar el caché de imágenes
-  if (event.data?.type === 'CLEAR_IMAGE_CACHE') {
-    caches.delete(IMAGE_CACHE);
-  }
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
