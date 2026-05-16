@@ -3,8 +3,8 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import {
   onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, updateProfile, signInWithPopup, GoogleAuthProvider,
-  setPersistence, browserSessionPersistence, sendEmailVerification
+  signOut, updateProfile, signInWithPopup, signInWithRedirect, getRedirectResult,
+  GoogleAuthProvider, setPersistence, browserSessionPersistence, sendEmailVerification
 } from 'firebase/auth';
 import {
   collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc,
@@ -56,6 +56,15 @@ function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
   if (Notification?.permission === 'granted') {
     try { new Notification(title, { body, icon: '/logo-icon.ico' }); } catch { }
   }
+}
+
+/* ── Detectar si debe usar redirect en vez de popup ───────────── */
+function shouldUseRedirect() {
+  if (typeof window === 'undefined') return false;
+  const isMobile     = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       window.navigator.standalone === true;
+  return isMobile || isStandalone;
 }
 
 /* ── Nivel automático de usuario ──────────────────────────────── */
@@ -126,6 +135,28 @@ export function AppProvider({ children }) {
         setSidebarOpen(false);
       }
     }
+  }, []);
+
+  /* ── Manejar resultado de signInWithRedirect (móvil) ─────────── */
+  useEffect(() => {
+    getRedirectResult(auth).then(async result => {
+      if (!result?.user) return;
+      const user    = result.user;
+      const userRef = doc(db, 'users', user.uid);
+      const snap    = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          displayName: user.displayName || user.email?.split('@')[0] || 'Usuario',
+          email:       user.email || '',
+          phone: '', region: '',
+          level: 'Nuevo', role: 'user',
+          provider: 'google',
+          createdAt: serverTimestamp(),
+        });
+      }
+      const ud = await loadUserData(user.uid);
+      setUserData(ud);
+    }).catch(() => {});
   }, []);
 
   /* ── Auth listener ────────────────────────── */
@@ -463,20 +494,24 @@ export function AppProvider({ children }) {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
+    if (shouldUseRedirect()) {
+      // Móvil / PWA standalone: redirigir a Google (no popup)
+      await signInWithRedirect(auth, provider);
+      return; // la página se redirige, el resultado se maneja en el useEffect de arriba
+    }
+
+    // Escritorio: popup normal
     const cred = await signInWithPopup(auth, provider);
     const user = cred.user;
 
-    // Si el usuario es nuevo, crear doc en Firestore
     const userRef = doc(db, 'users', user.uid);
     const snap    = await getDoc(userRef);
     if (!snap.exists()) {
       await setDoc(userRef, {
         displayName: user.displayName || user.email?.split('@')[0] || 'Usuario',
         email: user.email || '',
-        phone: '',
-        region: '',
-        level: 'Nuevo',
-        role: 'user',
+        phone: '', region: '',
+        level: 'Nuevo', role: 'user',
         provider: providerName,
         createdAt: serverTimestamp()
       });
