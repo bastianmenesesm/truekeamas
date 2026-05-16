@@ -57,8 +57,27 @@ export default async function ProductPage({ params }) {
     if (!snap.exists) notFound();
     const data = snap.data();
     if (data?.status === 'deleted' || data?.status === 'blocked') notFound();
-    p = { id: snap.id, ...data };
-  } catch {
+
+    // Extraer solo campos serializables (Firestore Timestamps rompen RSC)
+    p = {
+      id:             snap.id,
+      title:          data.title          || '',
+      description:    data.description    || '',
+      category:       data.category       || '',
+      subcategory:    data.subcategory    || '',
+      action:         data.action         || '',
+      price:          typeof data.price === 'number' ? data.price : (Number(data.price) || 0),
+      region:         data.region         || '',
+      commune:        data.commune        || '',
+      wants:          data.wants          || '',
+      photos:         Array.isArray(data.photos) ? data.photos : [],
+      ownerName:      data.ownerName      || data.owner || '',
+      ownerAvatarUrl: data.ownerAvatarUrl || null,
+      ownerRatingAvg: typeof data.ownerRatingAvg === 'number' ? data.ownerRatingAvg : 0,
+      status:         data.status         || 'active',
+    };
+  } catch (err) {
+    console.error('[ProductPage] Error fetching product:', err);
     notFound();
   }
 
@@ -70,7 +89,7 @@ export default async function ProductPage({ params }) {
   };
   const actionLabel = ACTION_LABEL[p.action] || '🔄 Trueque';
   const location    = [p.commune, p.region].filter(Boolean).join(', ');
-  const initial     = (p.ownerName || p.owner || 'U').charAt(0).toUpperCase();
+  const initial     = (p.ownerName || 'U').charAt(0).toUpperCase();
 
   return (
     <div className="pp-root">
@@ -136,7 +155,7 @@ export default async function ProductPage({ params }) {
                 }
               </div>
               <div className="pp-owner-info">
-                <span className="pp-owner-name">{p.ownerName || p.owner || 'Usuario'}</span>
+                <span className="pp-owner-name">{p.ownerName || 'Usuario'}</span>
                 {p.ownerRatingAvg > 0 && (
                   <span className="pp-owner-rating">⭐ {Number(p.ownerRatingAvg).toFixed(1)}</span>
                 )}
