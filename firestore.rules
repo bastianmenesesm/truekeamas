@@ -118,5 +118,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── Rate limits (internal) ────────────────────────────────
+    // Colección interna usada por el servidor para rate limiting distribuido.
+    // Ningún cliente puede leer ni escribir directamente.
+    match /_rate_limits/{docId} {
+      allow read, write: if false;
+    }
+
+    // ── Password resets ───────────────────────────────────────
+    match /passwordResets/{token} {
+      allow read, write: if false; // Solo Admin SDK
+    }
+
   }
 }

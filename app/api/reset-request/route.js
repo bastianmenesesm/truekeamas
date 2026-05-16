@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { firestoreRateLimit, rateLimitResponse, getClientIp } from '@/lib/rateLimit';
 import crypto from 'crypto';
 
 export async function POST(request) {
@@ -8,6 +9,24 @@ export async function POST(request) {
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Correo inválido.' }, { status: 400 });
+    }
+
+    const db  = getAdminDb();
+    const ip  = getClientIp(request);
+
+    // ── Rate limit por IP: 5 intentos por 15 minutos ────────────
+    const ipCheck = await firestoreRateLimit(db, `reset_ip_${ip}`, 5, 15 * 60 * 1000);
+    if (!ipCheck.allowed) {
+      return rateLimitResponse(ipCheck.retryAfter,
+        'Demasiados intentos desde tu red. Espera unos minutos antes de reintentar.');
+    }
+
+    // ── Rate limit por email: 1 intento por 3 minutos ────────────
+    const emailKey   = email.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const emailCheck = await firestoreRateLimit(db, `reset_email_${emailKey}`, 1, 3 * 60 * 1000);
+    if (!emailCheck.allowed) {
+      return rateLimitResponse(emailCheck.retryAfter,
+        'Ya enviamos un correo a esa dirección. Revisa tu bandeja y espera unos minutos.');
     }
 
     // Verify the user exists in Firebase Auth
@@ -24,7 +43,6 @@ export async function POST(request) {
     const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
 
     // Save token to Firestore
-    const db = getAdminDb();
     await db.collection('passwordResets').doc(token).set({
       uid: userRecord.uid,
       email,

@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://truekeamas.cl';
+
 function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : null; }
 function fmtDate(ts) {
   if (!ts?.seconds) return null;
@@ -25,7 +27,8 @@ function getBadge(p) {
 
 export default function ProductDetailModal({ productId }) {
   const { products, currentUser, saved, toggleLike, openModal, closeModal } = useApp();
-  const [imgIdx, setImgIdx] = useState(0);
+  const [imgIdx,  setImgIdx]  = useState(0);
+  const [copied,  setCopied]  = useState(false);
 
   const p = products.find(x => x.id === productId);
   if (!p) return (
@@ -51,6 +54,21 @@ export default function ProductDetailModal({ productId }) {
   function handleReport() {
     closeModal();
     setTimeout(() => openModal({ type: 'report', productId: p.id }), 150);
+  }
+  async function handleShare() {
+    const url   = `${BASE_URL}/p/${p.id}`;
+    const title = p.title || 'Publicación en Truekeamas';
+    const text  = [p.description?.slice(0, 80), p.region].filter(Boolean).join(' · ');
+    if (navigator.share) {
+      try { await navigator.share({ title, text, url }); return; } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      prompt('Copia el enlace:', url);
+    }
   }
 
   return (
@@ -242,16 +260,37 @@ export default function ProductDetailModal({ productId }) {
             </div>
           )}
 
-          {/* Report */}
-          {!own && (
-            <button className="report-btn" style={{ marginTop: 8 }} onClick={handleReport}>
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                <line x1="4" y1="22" x2="4" y2="15"/>
-              </svg>
-              Denunciar publicación
+          {/* Share + Report row */}
+          <div className="pd-bottom-row">
+            <button className="pd-share-btn" onClick={handleShare}>
+              {copied ? (
+                <>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  ¡Enlace copiado!
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                  Compartir
+                </>
+              )}
             </button>
-          )}
+
+            {!own && (
+              <button className="report-btn" onClick={handleReport}>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                  <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
+                Denunciar publicación
+              </button>
+            )}
+          </div>
 
         </div>
       </div>

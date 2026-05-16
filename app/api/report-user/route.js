@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { inMemoryRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 import admin from 'firebase-admin';
 
 export async function POST(request) {
@@ -18,6 +19,13 @@ export async function POST(request) {
     const reporterUid = decoded.uid;
     if (reporterUid === reportedUid) {
       return NextResponse.json({ error: 'No puedes denunciarte a ti mismo' }, { status: 400 });
+    }
+
+    // ── Rate limit: 5 denuncias por usuario por 24 horas ─────────
+    const rl = inMemoryRateLimit(`report:${reporterUid}`, 5, 24 * 60 * 60 * 1000);
+    if (!rl.allowed) {
+      return rateLimitResponse(rl.retryAfter,
+        'Alcanzaste el límite de denuncias por hoy. Podrás enviar más mañana.');
     }
 
     const adminDb    = getAdminDb();

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { inMemoryRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 import admin from 'firebase-admin';
 
 export async function POST(request) {
@@ -39,6 +40,13 @@ export async function POST(request) {
     fromUid = decoded.uid;
   } catch {
     return NextResponse.json({ error: 'Sesión expirada, vuelve a iniciar sesión' }, { status: 401 });
+  }
+
+  // ── Rate limit: 10 propuestas por usuario por hora ──────────────
+  const rl = inMemoryRateLimit(`proposal:${fromUid}`, 10, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return rateLimitResponse(rl.retryAfter,
+      `Enviaste demasiadas propuestas seguidas. Espera ${Math.ceil(rl.retryAfter / 60)} minuto${Math.ceil(rl.retryAfter / 60) !== 1 ? 's' : ''} antes de intentarlo de nuevo.`);
   }
 
   try {
