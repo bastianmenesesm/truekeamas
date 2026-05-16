@@ -7,8 +7,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://truekeamas.cl';
 /* ── Metadata dinámica (OG + Twitter cards) ───────────────────── */
 export async function generateMetadata({ params }) {
   try {
+    const { id } = await params;   // Next.js 15+ params es Promise
     const db   = getAdminDb();
-    const snap = await db.collection('products').doc(params.id).get();
+    const snap = await db.collection('products').doc(id).get();
     if (!snap.exists) return { title: 'Publicación no encontrada | Truekeamas' };
 
     const p = snap.data();
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }) {
     ].filter(Boolean).join(' — ') || 'Publicación en Truekeamas';
 
     const image = p.photos?.[0] || null;
-    const url   = `${BASE_URL}/p/${params.id}`;
+    const url   = `${BASE_URL}/p/${id}`;
 
     return {
       title:      p.title,
@@ -50,10 +51,11 @@ export async function generateMetadata({ params }) {
 
 /* ── Página ───────────────────────────────────────────────────── */
 export default async function ProductPage({ params }) {
+  const { id } = await params;   // Next.js 15+ params es Promise
   let p = null;
   try {
     const db   = getAdminDb();
-    const snap = await db.collection('products').doc(params.id).get();
+    const snap = await db.collection('products').doc(id).get();
     if (!snap.exists) notFound();
     const data = snap.data();
     if (data?.status === 'deleted' || data?.status === 'blocked') notFound();
