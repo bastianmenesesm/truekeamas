@@ -383,6 +383,7 @@ select.fs:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
 .pk:hover { transform: translateY(-3px); box-shadow: var(--sd); border-color: rgba(22,119,255,.2); }
 .pk-img-wrap { position: relative; aspect-ratio: 4/3; overflow: hidden; background: #f0f0f0; flex-shrink: 0; }
 .pk-img-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; background: #f8f8f8; }
+.pk-img-fill { object-fit: contain !important; background: #f8f8f8; }
 .pi { width: 100%; height: 100%; display: grid; place-items: center; font-size: 52px; background: linear-gradient(135deg, #EEF4FF, #DCF0FF); }
 .gal { position: relative; width: 100%; height: 100%; }
 .gm { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -977,8 +978,9 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .l-products { display: grid; grid-template-columns: repeat(auto-fill,minmax(256px,1fr)); gap: 20px; }
 .lp-card { background: var(--cd); border: 1px solid var(--ln); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sc); transition: all .22s; display: flex; flex-direction: column; }
 .lp-card:hover { transform: translateY(-5px); box-shadow: var(--sd); }
-.lp-card-img { height: 192px; overflow: hidden; background: linear-gradient(135deg,#EBF5FF,#DCF0FF); display: grid; place-items: center; font-size: 50px; }
+.lp-card-img { position: relative; height: 192px; overflow: hidden; background: linear-gradient(135deg,#EBF5FF,#DCF0FF); display: grid; place-items: center; font-size: 50px; }
 .lp-card-img img { width: 100%; height: 100%; object-fit: cover; }
+.lp-card-img-fill { object-fit: cover !important; }
 .lp-card-body { padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 
 /* Steps */
@@ -1884,6 +1886,7 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   background: var(--sf); aspect-ratio: 4/3;
 }
 .pd-main-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pd-img-fill { object-fit: cover !important; }
 .pd-main-emoji { width: 100%; height: 100%; display: grid; place-items: center; font-size: 80px; }
 .pd-nav {
   position: absolute; top: 50%; transform: translateY(-50%);

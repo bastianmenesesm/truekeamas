@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
@@ -101,10 +102,13 @@ export default function ProductCard({ product: p }) {
       <div className="pk-img-wrap" onClick={handleDetail} style={{ cursor: 'pointer' }}>
         {photos.length > 0 ? (
           <>
-            <img
+            <Image
               src={optimizeCloudinaryUrl(photos[imgIdx], 400)}
               alt={p.title}
-              loading="lazy"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="pk-img-fill"
+              unoptimized
             />
             {photos.length > 1 && (
               <>
@@ -173,7 +177,7 @@ export default function ProductCard({ product: p }) {
           >
             <div className="pk-avatar-wrap">
               {p.ownerAvatarUrl
-                ? <img src={p.ownerAvatarUrl} alt={p.ownerName} className="pk-avatar pk-avatar--img" />
+                ? <Image src={p.ownerAvatarUrl} alt={p.ownerName || 'Avatar'} width={32} height={32} className="pk-avatar pk-avatar--img" unoptimized />
                 : <div className="pk-avatar">{initial}</div>
               }
               {p.ownerVerified && (

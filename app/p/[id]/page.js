@@ -92,9 +92,46 @@ export default async function ProductPage({ params }) {
   const actionLabel = ACTION_LABEL[p.action] || '🔄 Trueque';
   const location    = [p.commune, p.region].filter(Boolean).join(', ');
   const initial     = (p.ownerName || 'U').charAt(0).toUpperCase();
+  const pageUrl     = `${BASE_URL}/p/${p.id}`;
+
+  // ── JSON-LD (Schema.org Product) ─────────────────────────────────
+  const availability = p.status === 'active'
+    ? 'https://schema.org/InStock'
+    : 'https://schema.org/SoldOut';
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type':    'Product',
+    name:        p.title,
+    description: p.description || `${p.title} disponible en Truekeamas`,
+    image:       p.photos.length > 0 ? p.photos : undefined,
+    url:         pageUrl,
+    ...(p.category    && { category: p.category }),
+    ...(p.ownerName   && {
+      brand: { '@type': 'Brand', name: p.ownerName },
+    }),
+    offers: {
+      '@type':        'Offer',
+      url:            pageUrl,
+      priceCurrency:  'CLP',
+      price:          p.price > 0 ? p.price : 0,
+      availability,
+      itemCondition:  'https://schema.org/UsedCondition',
+      seller: {
+        '@type': 'Person',
+        name:    p.ownerName || 'Usuario Truekeamas',
+      },
+      ...(location && { areaServed: location }),
+    },
+  };
 
   return (
     <div className="pp-root">
+      {/* JSON-LD structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Nav */}
       <nav className="pp-nav">
         <Link href="/" className="pp-nav-brand">Truekeamas</Link>

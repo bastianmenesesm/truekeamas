@@ -4,13 +4,13 @@ const CSP = [
   "default-src 'self'",
   // Next.js requiere unsafe-inline/unsafe-eval para su runtime
   // google.com y recaptcha.google.com necesarios para reCAPTCHA v3 (App Check)
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://www.google.com https://recaptcha.google.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://www.google.com https://recaptcha.google.com https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Imágenes: Cloudinary, avatares de Google, Firebase Storage
   "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleusercontent.com https://firebasestorage.googleapis.com https://www.gstatic.com",
   "font-src 'self' https://fonts.gstatic.com",
   // Conexiones: Firebase Auth, Firestore, Realtime DB (wss), Cloudinary upload
-  "connect-src 'self' https://*.googleapis.com https://*.google.com wss://*.firebaseio.com https://*.firebaseio.com https://res.cloudinary.com https://api.cloudinary.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com",
+  "connect-src 'self' https://*.googleapis.com https://*.google.com wss://*.firebaseio.com https://*.firebaseio.com https://res.cloudinary.com https://api.cloudinary.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://www.google-analytics.com https://analytics.google.com https://vitals.vercel-insights.com",
   // Frames: Google Sign-in popup, Firebase Auth redirect y reCAPTCHA
   "frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com",
   "object-src 'none'",   // bloquea Flash y plugins
@@ -41,6 +41,30 @@ const nextConfig = {
         headers: securityHeaders,
       },
     ];
+  },
+
+  images: {
+    // Dominios externos permitidos para next/image
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        pathname: '/**',
+      },
+    ],
+    // Cloudinary ya optimiza las imágenes — evitamos doble optimización
+    // Para imágenes locales Next.js optimiza normalmente
+    formats: ['image/avif', 'image/webp'],
   },
 };
 

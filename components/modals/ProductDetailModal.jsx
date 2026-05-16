@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
@@ -80,9 +81,14 @@ export default function ProductDetailModal({ productId }) {
           <div className="pd-main-img">
             {photos.length > 0 ? (
               <>
-                <img
+                <Image
                   src={optimizeCloudinaryUrl(photos[imgIdx], 800)}
                   alt={p.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="pd-img-fill"
+                  unoptimized
+                  priority={imgIdx === 0}
                 />
                 {photos.length > 1 && (
                   <>
@@ -107,7 +113,7 @@ export default function ProductDetailModal({ productId }) {
                   className={`pd-thumb${i === imgIdx ? ' active' : ''}`}
                   onClick={() => setImgIdx(i)}
                 >
-                  <img src={optimizeCloudinaryUrl(ph, 120)} alt={`foto ${i + 1}`} />
+                  <Image src={optimizeCloudinaryUrl(ph, 120)} alt={`foto ${i + 1}`} width={80} height={80} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
                 </button>
               ))}
             </div>

@@ -1,6 +1,7 @@
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 import PWAProvider from '@/components/PWAProvider';
+import Analytics from '@/components/Analytics';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://truekeamas.cl';
 
@@ -85,6 +86,8 @@ export default function RootLayout({ children }) {
           {children}
           <PWAProvider />
         </AppProvider>
+        {/* Analytics GA4 — activa agregando NEXT_PUBLIC_GA_ID en Vercel */}
+        <Analytics />
       </body>
     </html>
   );

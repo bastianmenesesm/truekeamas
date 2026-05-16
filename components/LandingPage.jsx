@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Image from 'next/image';
 import { useApp, CATS } from '@/context/AppContext';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 import Modal from '@/components/Modal';
@@ -31,7 +32,7 @@ function LandingCard({ p, onLoginGate, onDetail }) {
     <article className="lp-card" onClick={onDetail || onLoginGate}>
       <div className="lp-card-img">
         {photos[0]
-          ? <img src={optimizeCloudinaryUrl(photos[0], 400)} alt={p.title} loading="lazy" />
+          ? <Image src={optimizeCloudinaryUrl(photos[0], 400)} alt={p.title} fill sizes="(max-width: 640px) 50vw, 25vw" className="lp-card-img-fill" unoptimized />
           : <span className="lp-card-emoji">{p.emoji || '📦'}</span>
         }
         {(p.likes || 0) > 0 && (
@@ -89,7 +90,7 @@ export default function LandingPage() {
         {/* ── HEADER ───────────────────────────── */}
         <header className="lh">
           <div className="lh-brand">
-            <img src="/logo-icon.ico" alt="Truekeamas" width={38} height={38} style={{ objectFit: 'contain' }} />
+            <Image src="/favicon-96x96.png" alt="Truekeamas" width={38} height={38} style={{ objectFit: 'contain' }} />
             <span className="lh-name">truekea<span>mas</span></span>
           </div>
           <nav className={`lh-nav${menuOpen ? ' open' : ''}`}>
@@ -249,7 +250,7 @@ export default function LandingPage() {
 
               <div className="l-footer-brand">
                 <div className="l-footer-logo">
-                  <img src="/logo-icon.ico" alt="Truekeamas" width={36} height={36} style={{ objectFit: 'contain' }} />
+                  <Image src="/favicon-96x96.png" alt="Truekeamas" width={36} height={36} style={{ objectFit: 'contain' }} />
                   <span>truekea<strong>mas</strong></span>
                 </div>
                 <p>La plataforma de intercambio, venta y donación de Chile. Sin comisiones, sin intermediarios.</p>
