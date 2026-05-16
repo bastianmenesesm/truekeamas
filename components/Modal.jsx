@@ -18,6 +18,7 @@ import ProductDetailModal  from '@/components/modals/ProductDetailModal';
 import UserProfileModal    from '@/components/modals/UserProfileModal';
 import RateUserModal       from '@/components/modals/RateUserModal';
 import ReportUserModal     from '@/components/modals/ReportUserModal';
+import OnboardingModal    from '@/components/modals/OnboardingModal';
 
 const TITLES = {
   auth:            'Acceder',
@@ -39,6 +40,7 @@ const TITLES = {
   user_profile:    '',
   rate_user:       '⭐ Calificar usuario',
   report_user:     '🚩 Denunciar usuario',
+  onboarding:      '👋 ¡Bienvenido/a a Truekeamas!',
 };
 
 export default function Modal() {
@@ -73,6 +75,7 @@ export default function Modal() {
       case 'user_profile':    return <UserProfileModal userId={modal.userId} />;
       case 'rate_user':       return <RateUserModal matchId={modal.matchId} toUid={modal.toUid} toName={modal.toName} />;
       case 'report_user':     return <ReportUserModal userId={modal.userId} />;
+      case 'onboarding':      return <OnboardingModal />;
       default:                return null;
     }
   }

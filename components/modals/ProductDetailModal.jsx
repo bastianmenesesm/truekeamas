@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
-import { optimizeCloudinaryUrl } from '@/lib/firebase';
+import { optimizeCloudinaryUrl, db } from '@/lib/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://truekeamas.cl';
 
@@ -38,6 +39,15 @@ export default function ProductDetailModal({ productId }) {
       <p>Publicación no encontrada.</p>
     </div>
   );
+
+  // ── Contador de vistas (1 por sesión por producto) ──────────────
+  useEffect(() => {
+    if (!p?.id) return;
+    const key = `tk_viewed_${p.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    updateDoc(doc(db, 'products', p.id), { views: increment(1) }).catch(() => {});
+  }, [p?.id]);
 
   const own    = currentUser && p.ownerId === currentUser.uid;
   const photos = p.photos || [];
@@ -232,14 +242,24 @@ export default function ProductDetailModal({ productId }) {
                 </span>
               </div>
             </div>
-            {(p.likes || 0) > 0 && (
-              <div className="pd-likes-count">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="none">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                {p.likes}
-              </div>
-            )}
+            <div className="pd-stats-row">
+              {(p.likes || 0) > 0 && (
+                <span className="pd-stat">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" stroke="none">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                  {p.likes}
+                </span>
+              )}
+              {(p.views || 0) > 0 && (
+                <span className="pd-stat">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  {p.views} {p.views === 1 ? 'vista' : 'vistas'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Actions */}

@@ -76,6 +76,23 @@ function computeLevel(ud, emailVerified) {
   return 'Nuevo';
 }
 
+/* ── Registrar token FCM para push notifications ───────────────── */
+async function registerFcmToken(uid) {
+  const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+  if (!vapidKey) return; // VAPID key no configurada → skip silencioso
+  try {
+    const { getMessaging, getToken } = await import('firebase/messaging');
+    const { app } = await import('@/lib/firebase');
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, { vapidKey });
+    if (token) {
+      await updateDoc(doc(db, 'users', uid), { fcmToken: token, fcmUpdatedAt: serverTimestamp() });
+    }
+  } catch {
+    // Si el SW de FCM no está listo o el usuario rechazó, ignorar silenciosamente
+  }
+}
+
 export function AppProvider({ children }) {
   const [currentUser, setCurrentUser]       = useState(null);
   const [userData, setUserData]             = useState(null);
@@ -182,6 +199,11 @@ export function AppProvider({ children }) {
         }
         setUserData(ud);
         syncLevel(user, ud); // recalcular nivel en segundo plano
+
+        // Onboarding para usuarios nuevos (solo una vez)
+        if (ud && !ud.onboardingDone) {
+          setTimeout(() => setModal('onboarding'), 800);
+        }
       } else {
         setUserData(null);
       }
@@ -195,9 +217,15 @@ export function AppProvider({ children }) {
     if (!currentUser) { setNotifications([]); return; }
     notifInitRef.current = false; // reset para este usuario
 
-    // Pedir permiso de notificaciones nativas (solo pregunta una vez)
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {});
+    // Pedir permiso + registrar token FCM para push notifications reales
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') registerFcmToken(currentUser.uid);
+        }).catch(() => {});
+      } else if (Notification.permission === 'granted') {
+        registerFcmToken(currentUser.uid);
+      }
     }
 
     const q = query(collection(db, 'notifications', currentUser.uid, 'items'));

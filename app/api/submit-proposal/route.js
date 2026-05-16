@@ -122,6 +122,26 @@ export async function POST(request) {
         createdAt:  FieldValue.serverTimestamp(),
       });
 
+    // ── Push notification FCM al dueño del producto ─────────────
+    try {
+      const ownerSnap = await adminDb.collection('users').doc(prod.ownerId).get();
+      const fcmToken  = ownerSnap.data()?.fcmToken;
+      if (fcmToken) {
+        const { default: adminLib } = await import('firebase-admin');
+        await adminLib.messaging().send({
+          token: fcmToken,
+          notification: {
+            title: '🤝 ¡Nueva propuesta de trueque!',
+            body:  `${proposerName} quiere hacer match con "${prod.title}"`,
+          },
+          data: { url: '/?modal=proposals', tag: `proposal_${propRef.id}` },
+          webpush: {
+            notification: { icon: '/icons/icon-192.png', badge: '/icons/icon-192.png' },
+          },
+        });
+      }
+    } catch { /* FCM falla silenciosamente si el token expiró */ }
+
     return NextResponse.json({ ok: true, proposalId: propRef.id });
 
   } catch (err) {
