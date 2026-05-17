@@ -26,6 +26,7 @@ export default async function sitemap() {
     const db   = getAdminDb();
     const snap = await db.collection('products')
       .where('status', '==', 'active')
+      .orderBy('createdAt', 'desc')
       .limit(5000)               // límite de seguridad; Google acepta hasta 50 000 por archivo
       .select('createdAt', 'updatedAt')  // trae solo lo necesario, sin fotos ni descripciones
       .get();

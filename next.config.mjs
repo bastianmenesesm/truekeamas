@@ -65,6 +65,19 @@ const nextConfig = {
     // Cloudinary ya optimiza las imágenes — evitamos doble optimización
     // Para imágenes locales Next.js optimiza normalmente
     formats: ['image/avif', 'image/webp'],
+    // Caché de imágenes optimizadas: 30 días
+    minimumCacheTTL: 2592000,
+  },
+
+  // Compresión gzip/brotli para todos los assets
+  compress: true,
+
+  // Eliminar headers innecesarios que revelan la tecnología
+  poweredByHeader: false,
+
+  // Mejora el tiempo de arranque en producción
+  experimental: {
+    optimizePackageImports: ['firebase/auth', 'firebase/firestore', 'firebase/storage'],
   },
 };
 

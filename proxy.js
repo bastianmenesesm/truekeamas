@@ -1,11 +1,11 @@
 /**
- * middleware.js — Next.js Edge Middleware
+ * proxy.js — Next.js Edge Proxy (antes middleware.js)
  *
  * Corre en el Edge Runtime de Vercel (antes de que llegue a las funciones).
  * Aplica dos capas de protección sin necesidad de Redis:
  *
- * 1. Security headers en todas las respuestas
- * 2. Bloqueo de bots/scrapers maliciosos en /p/[id] y /api/*
+ * 1. Bloqueo de bots/scrapers maliciosos en /p/[id] y /api/*
+ * 2. Validación de Origin en rutas de API
  */
 
 import { NextResponse } from 'next/server';
@@ -28,7 +28,7 @@ const BLOCKED_UA_PATTERNS = [
 
 // Los security headers principales (HSTS, CSP, X-Frame-Options, etc.)
 // los gestiona next.config.mjs para TODAS las rutas.
-// El middleware solo añade headers específicos para rutas dinámicas que
+// El proxy solo añade headers específicos para rutas dinámicas que
 // next.config.mjs no puede alcanzar (Edge responses).
 const EDGE_ONLY_HEADERS = {
   'X-Robots-Tag': 'noai, noimageai', // bloquea crawlers de IA en rutas de API
@@ -61,7 +61,6 @@ export function middleware(request) {
     !pathname.startsWith('/api/reset-')
   ) {
     const origin  = request.headers.get('origin');
-    const referer = request.headers.get('referer');
     const host    = request.headers.get('host');
 
     // Si hay origin, debe ser nuestro propio dominio
@@ -85,7 +84,7 @@ export function middleware(request) {
   return response;
 }
 
-// Solo aplicar middleware en estas rutas (evita correr en _next/static, fonts, etc.)
+// Solo aplicar en estas rutas (evita correr en _next/static, fonts, etc.)
 export const config = {
   matcher: [
     '/api/:path*',
