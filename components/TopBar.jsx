@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 export default function TopBar() {
   const {
     currentUser, userData, saved, searchQuery, setSearchQuery,
-    openModal, unreadNotifs, pendingProposals,
+    openModal, unreadNotifs, unreadMessages, pendingProposals,
     sidebarPinned, sidebarOpen, setSidebarOpen,
   } = useApp();
 
@@ -91,7 +91,7 @@ export default function TopBar() {
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
             Chats
-            {unreadNotifs > 0 && <span key={unreadNotifs} className="bd bd-new">{unreadNotifs > 9 ? '9+' : unreadNotifs}</span>}
+            {unreadMessages > 0 && <span key={unreadMessages} className="bd bd-new">{unreadMessages > 9 ? '9+' : unreadMessages}</span>}
           </button>
         )}
 

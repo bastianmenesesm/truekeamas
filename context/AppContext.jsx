@@ -137,7 +137,8 @@ export function AppProvider({ children }) {
   const PAGE_SIZE = 40;
 
   const isAdmin      = userData?.role === 'admin';
-  const unreadNotifs = notifications.filter(n => !n.read).length;
+  const unreadNotifs    = notifications.filter(n => !n.read).length;
+  const unreadMessages  = notifications.filter(n => !n.read && n.type === 'new_message').length;
   const pendingProposals = receivedProposals.filter(p => p.status === 'pending').length;
 
   /* ── Saved + Sidebar prefs (localStorage) ─── */
@@ -770,7 +771,7 @@ export function AppProvider({ children }) {
     priceFilter,   setPriceFilter,
     stats,
     // Notifications
-    notifications, unreadNotifs, markNotifRead, markAllNotifsRead, notifyMessage,
+    notifications, unreadNotifs, unreadMessages, markNotifRead, markAllNotifsRead, notifyMessage,
     // Proposals
     receivedProposals, sentProposals, pendingProposals,
     submitProposal, acceptProposal, declineProposal,

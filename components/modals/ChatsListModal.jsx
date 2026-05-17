@@ -56,11 +56,11 @@ export default function ChatsListModal() {
     return () => { unsub1(); unsub2(); };
   }, [currentUser?.uid]);
 
-  // Mensajes no leídos por match (cruzando notificaciones)
-  const unreadByMatch = {};
+  // Mensajes no leídos por chat — la notificación guarda el id en `chatId`
+  const unreadByChat = {};
   notifications.forEach(n => {
-    if (!n.read && n.matchId && n.type === 'new_message') {
-      unreadByMatch[n.matchId] = (unreadByMatch[n.matchId] || 0) + 1;
+    if (!n.read && n.type === 'new_message' && n.chatId) {
+      unreadByChat[n.chatId] = (unreadByChat[n.chatId] || 0) + 1;
     }
   });
 
@@ -93,7 +93,7 @@ export default function ChatsListModal() {
       {matches.map(m => {
         const isOwner   = m.ownerId === currentUser.uid;
         const otherName = isOwner ? m.requesterName : m.ownerName;
-        const unread    = unreadByMatch[m.id] || 0;
+        const unread    = unreadByChat[m.id] || 0;
 
         return (
           <div
@@ -125,10 +125,13 @@ export default function ChatsListModal() {
             <div className="cl-body">
               <div className="cl-header">
                 <span className="cl-name">{otherName}</span>
-                <span className="cl-time">{fmtTime(m.lastMessageAt)}</span>
+                <span className={`cl-time${unread ? ' cl-time--unread' : ''}`}>
+                  {fmtTime(m.lastMessageAt)}
+                </span>
               </div>
               <div className="cl-product">{m.productTitle}</div>
               <div className={`cl-preview${unread ? ' cl-preview--bold' : ''}`}>
+                {unread > 0 && <span className="cl-new-tag">{unread} nuevo{unread > 1 ? 's' : ''}</span>}
                 {m.lastMessage}
               </div>
             </div>

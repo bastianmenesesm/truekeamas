@@ -2,7 +2,7 @@
 import { useApp } from '@/context/AppContext';
 
 export default function BottomNav() {
-  const { currentUser, openModal, pendingProposals, unreadNotifs } = useApp();
+  const { currentUser, openModal, pendingProposals, unreadMessages } = useApp();
 
   return (
     <nav className="bn">
@@ -45,13 +45,13 @@ export default function BottomNav() {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
         Chats
-        {(unreadNotifs || 0) > 0 && (
+        {(unreadMessages || 0) > 0 && (
           <span style={{
             position: 'absolute', top: 6, right: '50%', transform: 'translateX(12px)',
             minWidth: 16, height: 16, borderRadius: 8, background: 'var(--dg)',
             color: '#fff', fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center', padding: '0 3px'
           }}>
-            {unreadNotifs > 9 ? '9+' : unreadNotifs}
+            {unreadMessages > 9 ? '9+' : unreadMessages}
           </span>
         )}
       </button>
