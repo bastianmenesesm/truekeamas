@@ -105,13 +105,16 @@ export function AppProvider({ children }) {
   const [toast, setToast]                   = useState({ msg: '', visible: false });
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery]       = useState('');
-  const [modeFilter, setModeFilter]         = useState('all');
-  const [levelFilter, setLevelFilter]       = useState('all');
-  const [regionFilter, setRegionFilter]     = useState('all');
-  const [stats, setStats]                   = useState({ products: '—', users: '—', matches: '—' });
-  const [sortBy, setSortBy]                 = useState('none');
-  const [communeFilter, setCommuneFilter]   = useState('all');
-  const [priceFilter,   setPriceFilter]     = useState(false);
+  const [modeFilter,      setModeFilter]      = useState('all');
+  const [levelFilter,     setLevelFilter]     = useState('all');
+  const [conditionFilter, setConditionFilter] = useState('all');
+  const [regionFilter,    setRegionFilter]    = useState('all');
+  const [stats,           setStats]           = useState({ products: '—', users: '—', matches: '—' });
+  const [sortBy,          setSortBy]          = useState('none');
+  const [communeFilter,   setCommuneFilter]   = useState('all');
+  const [priceFilter,     setPriceFilter]     = useState(false);
+  const [minPrice,        setMinPrice]        = useState('');
+  const [maxPrice,        setMaxPrice]        = useState('');
 
   // Sidebar
   const [sidebarPinned, setSidebarPinnedState] = useState(true);
@@ -818,11 +821,14 @@ export function AppProvider({ children }) {
     products, saved, modal, toast,
     activeCategory, setActiveCategory,
     searchQuery, setSearchQuery,
-    modeFilter, setModeFilter,
-    levelFilter, setLevelFilter,
-    regionFilter, setRegionFilter: setRegionFilterAndReset,
-    communeFilter, setCommuneFilter,
-    priceFilter,   setPriceFilter,
+    modeFilter,      setModeFilter,
+    levelFilter,     setLevelFilter,
+    conditionFilter, setConditionFilter,
+    regionFilter,    setRegionFilter: setRegionFilterAndReset,
+    communeFilter,   setCommuneFilter,
+    priceFilter,     setPriceFilter,
+    minPrice,        setMinPrice,
+    maxPrice,        setMaxPrice,
     stats,
     // Notifications
     notifications, unreadNotifs, unreadMessages, markNotifRead, markAllNotifsRead, notifyMessage,

@@ -2471,6 +2471,14 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .share-btn:hover { color: var(--v); }
 .share-btn svg { stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
+/* ─── PRICE RANGE FILTER ──────────────────── */
+.pg-price-btn { background: var(--sf); border: 1.5px solid var(--ln); border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--is); transition: all .15s; white-space: nowrap; }
+.pg-price-btn:hover, .pg-price-btn.active { border-color: var(--v); color: var(--v); background: rgba(22,119,255,.06); }
+.pg-price-range { display: flex; align-items: center; gap: 12px; padding: 10px 0 4px; flex-wrap: wrap; }
+.pg-price-label { font-size: 12px; font-weight: 700; color: var(--mu); white-space: nowrap; }
+.pg-price-inputs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pg-price-input { width: 130px; }
+
 /* ─── LOAD MORE (ProductGrid) ─────────────── */
 .pg-load-more-wrap {
   grid-column: 1 / -1;
