@@ -61,10 +61,11 @@ function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
 /* ── Detectar si debe usar redirect en vez de popup ───────────── */
 function shouldUseRedirect() {
   if (typeof window === 'undefined') return false;
-  const isMobile     = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                       window.navigator.standalone === true;
-  return isMobile || isStandalone;
+  // Solo para PWA instalada (standalone). En navegadores móviles normales
+  // el popup funciona y es más confiable que el redirect (que falla con
+  // cookies de terceros bloqueadas en Safari iOS / Chrome móvil).
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
 }
 
 /* ── Nivel automático de usuario ──────────────────────────────── */
@@ -155,7 +156,7 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  /* ── Manejar resultado de signInWithRedirect (móvil) ─────────── */
+  /* ── Manejar resultado de signInWithRedirect (PWA standalone) ── */
   useEffect(() => {
     getRedirectResult(auth).then(async result => {
       if (!result?.user) return;
@@ -174,8 +175,14 @@ export function AppProvider({ children }) {
       }
       const ud = await loadUserData(user.uid);
       setUserData(ud);
-    }).catch(() => {});
-  }, []);
+      showToast('¡Bienvenido/a! 👋');
+      closeModal();
+    }).catch((err) => {
+      if (err?.code && err.code !== 'auth/no-auth-event') {
+        console.warn('[Auth] getRedirectResult error:', err.code);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Auth listener ────────────────────────── */
   useEffect(() => {
@@ -519,18 +526,29 @@ export function AppProvider({ children }) {
 
   async function socialLogin(providerName) {
     if (providerName !== 'google') throw new Error('Proveedor no soportado');
-    await setPersistence(auth, browserSessionPersistence);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
     if (shouldUseRedirect()) {
-      // Móvil / PWA standalone: redirigir a Google (no popup)
+      // PWA standalone: redirect flow (sin setPersistence antes del redirect, rompe el flujo)
       await signInWithRedirect(auth, provider);
-      return; // la página se redirige, el resultado se maneja en el useEffect de arriba
+      return; // la página se redirige, resultado manejado en el useEffect de arriba
     }
 
-    // Escritorio: popup normal
-    const cred = await signInWithPopup(auth, provider);
+    // Navegadores (escritorio y móvil): popup normal
+    // Si el popup está bloqueado, caer en redirect como último recurso
+    let cred;
+    try {
+      await setPersistence(auth, browserSessionPersistence);
+      cred = await signInWithPopup(auth, provider);
+    } catch (popupErr) {
+      if (popupErr?.code === 'auth/popup-blocked' ||
+          popupErr?.code === 'auth/popup-cancelled-by-user') {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw popupErr;
+    }
     const user = cred.user;
 
     const userRef = doc(db, 'users', user.uid);
