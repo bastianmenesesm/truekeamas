@@ -75,10 +75,6 @@ const nextConfig = {
   // Eliminar headers innecesarios que revelan la tecnología
   poweredByHeader: false,
 
-  // Mejora el tiempo de arranque en producción
-  experimental: {
-    optimizePackageImports: ['firebase/auth', 'firebase/firestore', 'firebase/storage'],
-  },
 };
 
 export default nextConfig;
