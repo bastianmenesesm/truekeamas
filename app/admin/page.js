@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
 import {
   collection, query, orderBy, onSnapshot,
-  doc, updateDoc, limit, getDocs,
+  doc, updateDoc, limit, getDocs, where,
 } from 'firebase/firestore';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
@@ -141,6 +141,10 @@ export default function AdminPage() {
   const [userReports,    setUserReports]  = useState([]);
   const [urFilter,       setUrFilter]     = useState('pending');
 
+  // Phone change requests
+  const [phoneRequests,  setPhoneRequests]  = useState([]);
+  const [phoneReqFilter, setPhoneReqFilter] = useState('pending');
+
   // Conteos extras (propuestas y acuerdos)
   const [proposalsCount, setProposalsCount] = useState('—');
   const [matchesCount,   setMatchesCount]   = useState('—');
@@ -190,6 +194,15 @@ export default function AdminPage() {
     }, () => {});
   }, [isAdmin, tab]);
 
+  /* ── Phone change requests listener ─────────────────── */
+  useEffect(() => {
+    if (!isAdmin || tab !== 'users') return;
+    const q = query(collection(db, 'phoneChangeRequests'), orderBy('createdAt', 'desc'), limit(200));
+    return onSnapshot(q, snap => {
+      setPhoneRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+  }, [isAdmin, tab]);
+
   /* ── Propuestas + Acuerdos (conteo único) ───────────── */
   useEffect(() => {
     if (!isAdmin || tab !== 'dashboard') return;
@@ -210,6 +223,7 @@ export default function AdminPage() {
   const verifiedUsers   = users.filter(u => u.verified).length;
   const bannedUsers     = users.filter(u => u.role === 'banned').length;
   const pendingUreps    = userReports.filter(r => r.status === 'pending').length;
+  const pendingPhoneReqs = phoneRequests.filter(r => r.status === 'pending').length;
 
   /* ── Admin API call helper ──────────────────────────── */
   async function adminFetch(path, body) {
@@ -267,6 +281,18 @@ export default function AdminPage() {
       await adminFetch('/api/block-product', { productId: report.productId });
       await updateReport(report.id, { status: 'resolved' });
       showToast('Publicación bloqueada y denuncia resuelta.');
+    } catch (err) { showToast(err.message); }
+    finally { setLoading(false); }
+  }
+
+  /* ── Phone request actions ──────────────────────────── */
+  async function handlePhoneRequest(req, action) {
+    setLoading(true);
+    try {
+      await adminFetch('/api/approve-phone-change', { requestId: req.id, action });
+      showToast(action === 'approve'
+        ? `Teléfono de ${req.displayName} actualizado a ${req.newPhone}.`
+        : 'Solicitud rechazada.');
     } catch (err) { showToast(err.message); }
     finally { setLoading(false); }
   }
@@ -364,7 +390,7 @@ export default function AdminPage() {
             { id: 'dashboard', label: '📊 Dashboard' },
             { id: 'products',  label: `📦 Publicaciones${blockedProducts ? ` · ${blockedProducts} bloq.` : ''}` },
             { id: 'reports',   label: `🚩 Denuncias`,  badge: pendingReports },
-            { id: 'users',     label: `👥 Usuarios`,   badge: pendingUreps },
+            { id: 'users',     label: `👥 Usuarios`,   badge: pendingUreps + pendingPhoneReqs },
           ].map(t => (
             <button key={t.id} className={`atb${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
               {t.label}
@@ -688,11 +714,12 @@ export default function AdminPage() {
         ══════════════════════════════════════════════════ */}
         {tab === 'users' && (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
-              <Stat label="Total"       value={totalUsers}    />
-              <Stat label="Verificados" value={verifiedUsers} color="#22C55E" />
-              <Stat label="Baneados"    value={bannedUsers}   color="#E03358" />
-              <Stat label="Denuncias"   value={pendingUreps}  color={pendingUreps > 0 ? '#F59E0B' : undefined} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
+              <Stat label="Total"        value={totalUsers}       />
+              <Stat label="Verificados"  value={verifiedUsers}    color="#22C55E" />
+              <Stat label="Baneados"     value={bannedUsers}      color="#E03358" />
+              <Stat label="Denuncias"    value={pendingUreps}     color={pendingUreps > 0 ? '#F59E0B' : undefined} />
+              <Stat label="Cambios tel." value={pendingPhoneReqs} color={pendingPhoneReqs > 0 ? '#1677FF' : undefined} sub="pendientes" />
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -758,6 +785,72 @@ export default function AdminPage() {
             </div>
 
             {/* Denuncias de usuarios */}
+            {/* ── Solicitudes de cambio de teléfono ── */}
+            {(phoneRequests.length > 0 || pendingPhoneReqs > 0) && (
+              <div style={{ marginTop: 32 }}>
+                <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 15, fontWeight: 800, marginBottom: 12, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  📱 Solicitudes de cambio de teléfono
+                  {pendingPhoneReqs > 0 && <span className="bd">{pendingPhoneReqs}</span>}
+                </h3>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  {['pending', 'approved', 'rejected'].map(f => (
+                    <button key={f} className={`atb${phoneReqFilter === f ? ' active' : ''}`} onClick={() => setPhoneReqFilter(f)}>
+                      {f === 'pending' ? 'Pendientes' : f === 'approved' ? 'Aprobadas' : 'Rechazadas'}
+                      {f === 'pending' && pendingPhoneReqs > 0 && <span className="bd" style={{ marginLeft: 5 }}>{pendingPhoneReqs}</span>}
+                    </button>
+                  ))}
+                </div>
+                <div className="admin-list" style={{ maxHeight: 'none' }}>
+                  {phoneRequests.filter(r => r.status === phoneReqFilter).map(r => (
+                    <div key={r.id} className="admin-row">
+                      <div className="admin-row-img" style={{ background: '#EFF6FF', borderRadius: 8, display: 'grid', placeItems: 'center', width: 40, height: 40, fontSize: 20, flexShrink: 0 }}>
+                        📱
+                      </div>
+                      <div className="admin-row-info" style={{ flex: 1 }}>
+                        <div className="admin-row-title">{r.displayName || r.uid}</div>
+                        <div className="admin-row-meta">
+                          <span style={{ fontSize: 11, color: 'var(--mu)' }}>{r.email}</span>
+                          <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
+                        </div>
+                        <div style={{ fontSize: 12, marginTop: 5, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                          <span>Actual: <strong style={{ color: 'var(--ink)' }}>{r.currentPhone || '—'}</strong></span>
+                          <span>Nuevo: <strong style={{ color: 'var(--v)' }}>{r.newPhone}</strong></span>
+                        </div>
+                      </div>
+                      {r.status === 'pending' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                          <ConfirmButton
+                            label="✅ Aprobar"
+                            confirmLabel="¿Confirmar?"
+                            className="bv"
+                            disabled={loading}
+                            onConfirm={() => handlePhoneRequest(r, 'approve')}
+                          />
+                          <ConfirmButton
+                            label="✕ Rechazar"
+                            confirmLabel="¿Rechazar?"
+                            disabled={loading}
+                            style={{ background: '#FEE2E2', color: '#DC2626', border: '1.5px solid #FECACA' }}
+                            onConfirm={() => handlePhoneRequest(r, 'reject')}
+                          />
+                        </div>
+                      )}
+                      {r.status !== 'pending' && (
+                        <div style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6,
+                          background: r.status === 'approved' ? '#DCFCE7' : '#FEE2E2',
+                          color:      r.status === 'approved' ? '#16A34A' : '#DC2626' }}>
+                          {r.status === 'approved' ? '✓ Aprobada' : '✕ Rechazada'}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {phoneRequests.filter(r => r.status === phoneReqFilter).length === 0 && (
+                    <div className="es"><span className="ei">📱</span><p>Sin solicitudes en esta vista.</p></div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {userReports.length > 0 && (
               <div style={{ marginTop: 32 }}>
                 <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 15, fontWeight: 800, marginBottom: 12, color: 'var(--ink)' }}>

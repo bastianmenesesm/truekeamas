@@ -87,12 +87,18 @@ export default function AuthModal() {
     const email    = fd.get('email')?.toString().trim();
     const password = fd.get('password')?.toString();
     const name     = fd.get('name')?.toString().trim();
+    const phone    = fd.get('phone')?.toString().trim();
+    const region   = fd.get('region')?.toString();
+    const commune  = fd.get('commune')?.toString().trim();
     if (!email || !password || !name) return;
+    if (!phone)   { showToast('El teléfono es obligatorio.'); return; }
+    if (!region)  { showToast('La región es obligatoria.'); return; }
+    if (!commune) { showToast('La comuna es obligatoria.'); return; }
     if (strength.level < 3) { showToast('La contraseña debe tener mayúscula, número y carácter especial.'); return; }
     if (!termsOk) { showToast('Debes aceptar los Términos y Política de Privacidad.'); return; }
     setLoading(true);
     try {
-      await registerUser(email, password, name, fd.get('phone')?.toString(), fd.get('region')?.toString());
+      await registerUser(email, password, name, phone, region, commune);
       showToast('¡Cuenta creada! Bienvenido/a 🎉');
       closeModal();
       // Recordatorio también al registrarse
@@ -238,12 +244,18 @@ export default function AuthModal() {
               )}
               <div className="pwd-reqs">Debe incluir: mayúscula · número · carácter especial (!@#$%...)</div>
             </label>
-            <label className="fd">Teléfono<input type="tel" name="phone" placeholder="+56 9..." autoComplete="tel" /></label>
-            <label className="fd">Región
-              <select name="region" defaultValue="">
+            <label className="fd fl">Teléfono
+              <input type="tel" name="phone" placeholder="+56 9 1234 5678" autoComplete="tel" required />
+              <span style={{ fontSize: 11, color: 'var(--mu)', marginTop: 2 }}>Requerido · no podrás cambiarlo directamente después</span>
+            </label>
+            <label className="fd fl">Región
+              <select name="region" required defaultValue="">
                 <option value="" disabled>Selecciona tu región</option>
                 {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
+            </label>
+            <label className="fd fl">Comuna
+              <input type="text" name="commune" placeholder="Ej: Las Condes, Valparaíso…" required autoComplete="address-level2" />
             </label>
           </div>
 

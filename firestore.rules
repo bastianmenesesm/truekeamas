@@ -17,11 +17,27 @@ service cloud.firestore {
 
     // ── Users ─────────────────────────────────────────────────
     // Cualquier usuario autenticado puede ver perfiles (información pública)
-    // Solo el propio usuario o un admin puede escribir
+    // Solo el propio usuario o un admin puede escribir.
+    // El campo 'phone' NO puede ser modificado directamente por el usuario:
+    // debe pasar por el flujo de solicitud aprobada por un admin.
     match /users/{userId} {
       allow read:   if isAuth();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if isAdmin() ||
+        (isOwner(userId) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['phone']) ||
+          resource.data.get('phone', '') == ''
+        ));
+      allow delete: if isAdmin();
+    }
+
+    // ── Phone change requests ─────────────────────────────────
+    // Solo el propio usuario puede ver sus solicitudes; admins ven todas.
+    // La creación se hace desde el cliente (autenticado); la resolución vía Admin SDK.
+    match /phoneChangeRequests/{reqId} {
+      allow read:   if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid);
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 

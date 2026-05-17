@@ -513,7 +513,7 @@ export function AppProvider({ children }) {
     await signInWithEmailAndPassword(auth, email, password);
   }
 
-  async function registerUser(email, password, name, phone, region) {
+  async function registerUser(email, password, name, phone, region, commune) {
     rateLimit('reg_x', 3, 3600000);
     await setPersistence(auth, browserSessionPersistence);
     const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -521,8 +521,9 @@ export function AppProvider({ children }) {
     sendEmailVerification(cred.user).catch(() => {}); // enviar correo de verificación
     await setDoc(doc(db, 'users', cred.user.uid), {
       displayName: name, email,
-      phone: phone || '',
-      region: region || '',
+      phone:   phone   || '',
+      region:  region  || '',
+      commune: commune || '',
       level: 'Nuevo',
       role: 'user',
       termsAcceptedAt: serverTimestamp(),
@@ -580,14 +581,27 @@ export function AppProvider({ children }) {
     setUserData(null);
   }
 
-  async function updateUserProfile(name, phone, region, avatarUrl) {
+  async function updateUserProfile(name, region, commune, avatarUrl) {
     if (!currentUser) return;
     await updateProfile(currentUser, { displayName: name });
-    const update = { displayName: name, phone, region };
+    const update = { displayName: name, region: region || '', commune: commune || '' };
     if (avatarUrl !== undefined) update.avatarUrl = avatarUrl;
     await setDoc(doc(db, 'users', currentUser.uid), update, { merge: true });
     const ud = await loadUserData(currentUser.uid);
     setUserData(ud);
+  }
+
+  async function requestPhoneChange(newPhone) {
+    if (!currentUser) throw new Error('No autenticado');
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/request-phone-change', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body:    JSON.stringify({ newPhone }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al enviar solicitud');
+    return data;
   }
 
   /* ── Products ─────────────────────────────── */
@@ -838,7 +852,7 @@ export function AppProvider({ children }) {
     sortBy, setSortBy,
     showToast, openModal, closeModal,
     toggleLike,
-    loginUser, registerUser, socialLogin, logoutUser, updateUserProfile,
+    loginUser, registerUser, socialLogin, logoutUser, updateUserProfile, requestPhoneChange,
     publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
     blockProduct, unblockProduct, banUser, reportProduct,
     blockUser, unblockUser,

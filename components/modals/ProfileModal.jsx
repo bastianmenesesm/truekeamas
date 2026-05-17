@@ -6,6 +6,21 @@ import { uploadToCloudinary, optimizeCloudinaryUrl } from '@/lib/firebase';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
+// Formatea teléfono chileno: +56 9 1234 5678
+function formatPhone(raw) {
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  // +56 9 XXXX XXXX
+  if (digits.startsWith('569') && digits.length === 11) {
+    return `+56 9 ${digits.slice(3, 7)} ${digits.slice(7)}`;
+  }
+  // 9 XXXX XXXX (sin código país)
+  if (digits.startsWith('9') && digits.length === 9) {
+    return `+56 9 ${digits.slice(1, 5)} ${digits.slice(5)}`;
+  }
+  return raw; // devolver original si no coincide
+}
+
 function StarDisplay({ value, size = 13 }) {
   return (
     <div className="star-display">
@@ -21,16 +36,25 @@ function StarDisplay({ value, size = 13 }) {
 }
 
 export default function ProfileModal() {
-  const { currentUser, userData, updateUserProfile, logoutUser, closeModal, showToast } = useApp();
+  const { currentUser, userData, updateUserProfile, requestPhoneChange, logoutUser, closeModal, showToast } = useApp();
   const [loading,       setLoading]       = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [ratings,       setRatings]       = useState([]);
+
+  // Phone change request states
+  const [pendingRequest,  setPendingRequest]  = useState(null);
+  const [showPhoneForm,   setShowPhoneForm]   = useState(false);
+  const [newPhoneVal,     setNewPhoneVal]     = useState('');
+  const [reqLoading,      setReqLoading]      = useState(false);
+  const [requestsLoaded,  setRequestsLoaded]  = useState(false);
+
   const fileRef = useRef(null);
 
   const name    = userData?.displayName || currentUser?.displayName || 'Usuario';
   const avg     = userData?.ratingAvg   || 0;
   const count   = userData?.ratingCount || 0;
 
+  // Load ratings
   useEffect(() => {
     if (!currentUser) return;
     getDocs(query(
@@ -41,6 +65,23 @@ export default function ProfileModal() {
     )).then(snap => setRatings(snap.docs.map(d => ({ id: d.id, ...d.data() })))).catch(() => {});
   }, [currentUser]);
 
+  // Load pending phone change request
+  useEffect(() => {
+    if (!currentUser) return;
+    getDocs(query(
+      collection(db, 'phoneChangeRequests'),
+      where('uid',    '==', currentUser.uid),
+      where('status', '==', 'pending')
+    )).then(snap => {
+      if (!snap.empty) {
+        setPendingRequest({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      } else {
+        setPendingRequest(null);
+      }
+      setRequestsLoaded(true);
+    }).catch(() => setRequestsLoaded(true));
+  }, [currentUser]);
+
   if (!currentUser) return <div className="nb nbd">No has iniciado sesión.</div>;
 
   /* ── Completitud del perfil ─────────────────────────── */
@@ -48,6 +89,7 @@ export default function ProfileModal() {
     { label: 'Nombre',          done: !!(userData?.displayName) },
     { label: 'Teléfono',        done: !!(userData?.phone)       },
     { label: 'Región',          done: !!(userData?.region)      },
+    { label: 'Comuna',          done: !!(userData?.commune)     },
     { label: 'Foto de perfil',  done: !!(userData?.avatarUrl)   },
     { label: 'Email verificado',done: !!currentUser.emailVerified },
   ];
@@ -60,7 +102,11 @@ export default function ProfileModal() {
     const fd = new FormData(e.target);
     setLoading(true);
     try {
-      await updateUserProfile(fd.get('name'), fd.get('phone') || '', fd.get('region') || '');
+      await updateUserProfile(
+        fd.get('name'),
+        fd.get('region') || '',
+        fd.get('commune') || ''
+      );
       showToast('Perfil actualizado ✅');
     } catch (err) { showToast('Error: ' + err.message); }
     finally { setLoading(false); }
@@ -73,10 +119,30 @@ export default function ProfileModal() {
     setAvatarLoading(true);
     try {
       const url = await uploadToCloudinary(file);
-      await updateUserProfile(name, userData?.phone || '', userData?.region || '', url);
+      await updateUserProfile(name, userData?.region || '', userData?.commune || '', url);
       showToast('Foto de perfil actualizada ✅');
     } catch (err) { showToast('Error al subir imagen: ' + err.message); }
     finally { setAvatarLoading(false); }
+  }
+
+  async function handlePhoneRequest(e) {
+    e.preventDefault();
+    if (!newPhoneVal.trim()) { showToast('Ingresa el nuevo número.'); return; }
+    setReqLoading(true);
+    try {
+      await requestPhoneChange(newPhoneVal.trim());
+      showToast('Solicitud enviada. Un administrador la revisará pronto.');
+      setShowPhoneForm(false);
+      setNewPhoneVal('');
+      // Reload pending request
+      const snap = await getDocs(query(
+        collection(db, 'phoneChangeRequests'),
+        where('uid',    '==', currentUser.uid),
+        where('status', '==', 'pending')
+      ));
+      if (!snap.empty) setPendingRequest({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    } catch (err) { showToast(err.message || 'Error al enviar solicitud.'); }
+    finally { setReqLoading(false); }
   }
 
   async function handleLogout() { await logoutUser(); showToast('Sesión cerrada.'); closeModal(); }
@@ -162,16 +228,78 @@ export default function ProfileModal() {
         </div>
       )}
 
+      {/* ── Sección: Teléfono (solo lectura + solicitud de cambio) ── */}
+      <div style={{ marginBottom: 20, padding: '14px 16px', background: 'var(--sf)', border: '1.5px solid var(--ln)', borderRadius: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mu)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Teléfono</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', fontFamily: 'monospace', letterSpacing: '0.03em' }}>
+              {userData?.phone
+                ? formatPhone(userData.phone)
+                : <span style={{ color: 'var(--mu)', fontStyle: 'italic', fontFamily: 'inherit' }}>Sin número registrado</span>
+              }
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 3 }}>🔒 Solo puedes cambiarlo con aprobación de un administrador</div>
+          </div>
+          {requestsLoaded && (
+            pendingRequest ? (
+              <div style={{ background: '#FEF9C3', border: '1.5px solid #FDE047', borderRadius: 8, padding: '6px 12px', fontSize: 12 }}>
+                <span style={{ fontWeight: 700, color: '#A16207' }}>⏳ Solicitud pendiente</span>
+                <div style={{ color: '#A16207', marginTop: 2 }}>Nuevo: {pendingRequest.newPhone}</div>
+              </div>
+            ) : !showPhoneForm ? (
+              <button className="btn bo bsm" onClick={() => setShowPhoneForm(true)} style={{ fontSize: 12 }}>
+                📱 Solicitar cambio
+              </button>
+            ) : null
+          )}
+        </div>
+
+        {/* Formulario inline de solicitud */}
+        {showPhoneForm && (
+          <form onSubmit={handlePhoneRequest} style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.5 }}>
+              Tu solicitud será revisada por un administrador. Recibirás el cambio una vez aprobada.
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="tel"
+                placeholder="+56 9 1234 5678"
+                value={newPhoneVal}
+                onChange={e => setNewPhoneVal(e.target.value)}
+                required
+                style={{ flex: 1, fontSize: 13, padding: '7px 10px', border: '1.5px solid var(--ln)', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink)' }}
+              />
+              <button className="btn bv bsm" type="submit" disabled={reqLoading} style={{ fontSize: 12 }}>
+                {reqLoading ? 'Enviando...' : 'Enviar'}
+              </button>
+              <button type="button" className="btn bo bsm" style={{ fontSize: 12 }} onClick={() => { setShowPhoneForm(false); setNewPhoneVal(''); }}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {/* ── Formulario ──────────────────────── */}
       <form onSubmit={handleSave}>
         <div className="fg">
           <label className="fd fl">Nombre visible<input name="name" defaultValue={name} /></label>
-          <label className="fd">Teléfono<input name="phone" defaultValue={userData?.phone || ''} placeholder="+56 9..." /></label>
           <label className="fd">Región
             <select name="region" defaultValue={userData?.region || ''}>
               <option value="">Sin especificar</option>
               {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
+          </label>
+          <label className="fd">
+            Comuna
+            <input
+              type="text"
+              name="commune"
+              placeholder="Ej: Las Condes, Valparaíso…"
+              defaultValue={userData?.commune || ''}
+              autoComplete="address-level2"
+            />
           </label>
         </div>
         <div className="ma">
