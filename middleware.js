@@ -33,7 +33,7 @@ export function middleware(request) {
   const { pathname } = request.nextUrl;
   const ua           = request.headers.get('user-agent') || '';
 
-  const isSensitivePath = pathname.startsWith('/api/') || pathname.startsWith('/p/');
+  const isSensitivePath = pathname.startsWith('/api/') || pathname.startsWith('/p/') || pathname.startsWith('/admin');
 
   if (isSensitivePath) {
     const isBlocked = BLOCKED_UA_PATTERNS.some(re => re.test(ua));
@@ -64,5 +64,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/p/:id*', '/u/:id*'],
+  matcher: ['/api/:path*', '/p/:id*', '/u/:id*', '/admin/:path*', '/admin'],
 };

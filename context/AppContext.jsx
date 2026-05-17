@@ -686,17 +686,44 @@ export function AppProvider({ children }) {
   }
 
   async function blockProduct(id) {
-    if (!isAdmin) { showToast('Sin permisos de administrador.'); return; }
-    await updateDoc(doc(db, 'products', id), { status: 'blocked', blockedAt: serverTimestamp(), blockedBy: currentUser.uid });
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'blocked' } : p));
+    if (!currentUser || !isAdmin) { showToast('Sin permisos de administrador.'); return; }
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/block-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ productId: id }),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Error al bloquear'); }
+    // Quitar del feed público (bloqueado = no visible)
+    setProducts(prev => prev.filter(p => p.id !== id));
     showToast('Publicación bloqueada.');
   }
 
   async function unblockProduct(id) {
-    if (!isAdmin) { showToast('Sin permisos de administrador.'); return; }
-    await updateDoc(doc(db, 'products', id), { status: 'active', blockedAt: null, blockedBy: null });
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'active' } : p));
+    if (!currentUser || !isAdmin) { showToast('Sin permisos de administrador.'); return; }
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/unblock-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ productId: id }),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Error al desbloquear'); }
+    // No volvemos a insertar en el feed local — se refresca en la próxima carga
     showToast('Publicación desbloqueada.');
+  }
+
+  async function banUser(targetUid, action) {
+    if (!currentUser || !isAdmin) { showToast('Sin permisos de administrador.'); return; }
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/ban-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ targetUid, action }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Error al banear usuario');
+    showToast(action === 'ban' ? 'Usuario baneado.' : 'Usuario desbaneado.');
+    return data.role;
   }
 
   /* ── Sidebar ─────────────────────────────── */
@@ -807,7 +834,7 @@ export function AppProvider({ children }) {
     toggleLike,
     loginUser, registerUser, socialLogin, logoutUser, updateUserProfile,
     publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
-    blockProduct, unblockProduct, reportProduct,
+    blockProduct, unblockProduct, banUser, reportProduct,
     blockUser, unblockUser,
     sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin, openSidebarDrawer,
     openChats, openChatWindow, closeChatWindow, toggleMinimizeChat,

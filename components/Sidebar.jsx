@@ -1,5 +1,6 @@
 'use client';
-import { useApp } from '@/context/AppContext';
+import { useRouter } from 'next/navigation';
+import { useApp }    from '@/context/AppContext';
 
 const NAV = [
   { l: 'Inicio',             id: 'inicio',      ic: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>' },
@@ -19,12 +20,18 @@ const ADMIN_NAV = {
 };
 
 export default function Sidebar() {
+  const router = useRouter();
   const {
     currentUser, userData, isAdmin, openModal, pendingProposals,
     sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin,
   } = useApp();
 
   function handleNav(id) {
+    if (id === 'admin') {
+      router.push('/admin');
+      if (!sidebarPinned) setSidebarOpen(false);
+      return;
+    }
     if (['inicio', 'vitrina', 'categorias'].includes(id)) {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     } else {

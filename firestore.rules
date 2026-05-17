@@ -4,11 +4,15 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── Helpers ──────────────────────────────────────────────
-    function isAuth()          { return request.auth != null; }
-    function isOwner(uid)      { return request.auth.uid == uid; }
+    function isAuth()     { return request.auth != null; }
+    function isOwner(uid) { return request.auth.uid == uid; }
     function isAdmin() {
       return isAuth() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function isNotBanned() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'banned';
     }
 
     // ── Users ─────────────────────────────────────────────────
@@ -25,9 +29,13 @@ service cloud.firestore {
     // Lectura pública (la vitrina es visible sin login)
     match /products/{productId} {
       allow read:   if true;
-      allow create: if isAuth();
+      // Solo usuarios no baneados pueden publicar
+      allow create: if isNotBanned();
+      // El dueño puede editar su producto pero NO puede poner status='blocked'
+      // (eso es exclusivo de admins vía API). Los admins pueden hacer cualquier cambio.
       allow update: if isAuth() && (
-        resource.data.ownerId == request.auth.uid || isAdmin()
+        (resource.data.ownerId == request.auth.uid && request.resource.data.status != 'blocked') ||
+        isAdmin()
       );
       allow delete: if isAuth() && (
         resource.data.ownerId == request.auth.uid || isAdmin()

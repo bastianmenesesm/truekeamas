@@ -8,7 +8,6 @@ import MyPostsModal       from '@/components/modals/MyPostsModal';
 import ProfileModal       from '@/components/modals/ProfileModal';
 import HelpModal          from '@/components/modals/HelpModal';
 import ChatModal          from '@/components/modals/ChatModal';
-import AdminModal         from '@/components/modals/AdminModal';
 import TermsModal         from '@/components/modals/TermsModal';
 import MatchProposalModal from '@/components/modals/MatchProposalModal';
 import ProposalsModal     from '@/components/modals/ProposalsModal';
@@ -32,7 +31,6 @@ const TITLES = {
   profile:         '👤 Mi perfil',
   help:            '❓ Ayuda',
   chat:            '💬 Chat',
-  admin:           '🛡️ Panel de moderación',
   terms:           '📋 Términos y Privacidad',
   match_proposal:  '🤝 Enviar propuesta de trueque',
   notifications:   '🔔 Notificaciones',
@@ -67,7 +65,6 @@ export default function Modal() {
       case 'profile':         return <ProfileModal />;
       case 'help':            return <HelpModal />;
       case 'chat':            return <ChatModal mid={modal.mid} prod={modal.prod} />;
-      case 'admin':           return <AdminModal />;
       case 'terms':           return <TermsModal />;
       case 'match_proposal':  return <MatchProposalModal productId={modal.productId} />;
       case 'notifications':   return <NotificationsModal />;
@@ -92,7 +89,7 @@ export default function Modal() {
       onClick={e => { if (e.target === e.currentTarget && !isReminder) closeModal(); }}
     >
       <div
-        className={`mb${isChat ? ' cm' : ''}${type === 'admin' || isDetail || isProfile ? ' wide' : ''}`}
+        className={`mb${isChat ? ' cm' : ''}${isDetail || isProfile ? ' wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
