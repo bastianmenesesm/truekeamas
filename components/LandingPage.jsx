@@ -275,7 +275,7 @@ export default function LandingPage() {
                 <a href="#sobre-nosotros">Sobre nosotros</a>
                 <a href="https://www.instagram.com/truekeamas" target="_blank" rel="noopener noreferrer">Contacto</a>
                 <a href="/privacidad">Política de privacidad</a>
-                <a href="/privacidad">Términos de uso</a>
+                <a href="/terminos">Términos de uso</a>
               </div>
 
             </div>

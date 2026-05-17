@@ -26,14 +26,12 @@ const BLOCKED_UA_PATTERNS = [
   /nuclei/i,
 ];
 
-// ── Security headers añadidos a toda respuesta ──────────────────────────────
-const SECURITY_HEADERS = {
-  'X-Content-Type-Options':            'nosniff',
-  'X-Frame-Options':                   'DENY',
-  'X-XSS-Protection':                  '1; mode=block',
-  'Referrer-Policy':                   'strict-origin-when-cross-origin',
-  'Permissions-Policy':                'camera=(), microphone=(), geolocation=(self)',
-  'Strict-Transport-Security':         'max-age=63072000; includeSubDomains; preload',
+// Los security headers principales (HSTS, CSP, X-Frame-Options, etc.)
+// los gestiona next.config.mjs para TODAS las rutas.
+// El middleware solo añade headers específicos para rutas dinámicas que
+// next.config.mjs no puede alcanzar (Edge responses).
+const EDGE_ONLY_HEADERS = {
+  'X-Robots-Tag': 'noai, noimageai', // bloquea crawlers de IA en rutas de API
 };
 
 export function middleware(request) {
@@ -78,9 +76,9 @@ export function middleware(request) {
     }
   }
 
-  // ── 3. Añadir security headers a la respuesta ───────────────────────────
+  // ── 3. Añadir headers edge-only a la respuesta ─────────────────────────
   const response = NextResponse.next();
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+  for (const [key, value] of Object.entries(EDGE_ONLY_HEADERS)) {
     response.headers.set(key, value);
   }
 
@@ -92,5 +90,6 @@ export const config = {
   matcher: [
     '/api/:path*',
     '/p/:id*',
+    '/u/:id*',
   ],
 };

@@ -9,6 +9,7 @@ export default async function sitemap() {
   const staticPages = [
     { url: BASE,                  lastModified: now, changeFrequency: 'daily',   priority: 1.0 },
     { url: `${BASE}/privacidad`,  lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${BASE}/terminos`,    lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
   ];
 
   // ── Páginas dinámicas de productos activos ───────────────────────
@@ -32,7 +33,26 @@ export default async function sitemap() {
       };
     });
 
-    return [...staticPages, ...productPages];
+    // ── Perfiles públicos de usuarios ─────────────────────────────
+    const usersSnap = await db.collection('users')
+      .select('updatedAt', 'createdAt', 'role')
+      .limit(2000)
+      .get();
+
+    const userPages = usersSnap.docs
+      .filter(doc => doc.data().role !== 'banned')
+      .map(doc => {
+        const data    = doc.data();
+        const updated = data.updatedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
+        return {
+          url:             `${BASE}/u/${doc.id}`,
+          lastModified:    updated.toISOString(),
+          changeFrequency: 'weekly',
+          priority:        0.5,
+        };
+      });
+
+    return [...staticPages, ...productPages, ...userPages];
   } catch (err) {
     console.error('[sitemap] Error fetching products:', err.message);
     return staticPages;   // fallback: al menos las páginas estáticas
