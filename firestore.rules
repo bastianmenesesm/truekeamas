@@ -121,7 +121,17 @@ service cloud.firestore {
     // ── Support tickets ───────────────────────────────────────
     match /support/{ticketId} {
       allow create: if isAuth();
-      allow read, update, delete: if isAdmin();
+      allow read:   if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid);
+      allow update: if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid);
+      allow delete: if isAdmin();
+
+      match /messages/{msgId} {
+        allow read:   if isAdmin() ||
+          (isAuth() && get(/databases/$(database)/documents/support/$(ticketId)).data.uid == request.auth.uid);
+        allow create: if isAdmin() ||
+          (isAuth() && get(/databases/$(database)/documents/support/$(ticketId)).data.uid == request.auth.uid);
+        allow update, delete: if isAdmin();
+      }
     }
 
     // ── User reports ──────────────────────────────────────────

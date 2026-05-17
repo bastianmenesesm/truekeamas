@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
 import {
   collection, query, orderBy, onSnapshot,
-  doc, updateDoc, limit, getDocs, where,
+  doc, updateDoc, limit, getDocs, where, addDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
@@ -146,8 +146,12 @@ export default function AdminPage() {
   const [phoneReqFilter, setPhoneReqFilter] = useState('pending');
 
   // Support tickets (desde TruQuiBot)
-  const [supportTickets,  setSupportTickets]  = useState([]);
-  const [supportFilter,   setSupportFilter]   = useState('pending');
+  const [supportTickets,    setSupportTickets]    = useState([]);
+  const [supportFilter,     setSupportFilter]     = useState('pending');
+  const [openTicketId,      setOpenTicketId]      = useState(null);
+  const [ticketMessages,    setTicketMessages]    = useState([]);
+  const [adminReply,        setAdminReply]        = useState('');
+  const [sendingReply,      setSendingReply]      = useState(false);
 
   // Conteos extras (propuestas y acuerdos)
   const [proposalsCount, setProposalsCount] = useState('—');
@@ -215,6 +219,18 @@ export default function AdminPage() {
       setSupportTickets(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, () => {});
   }, [isAdmin, tab]);
+
+  /* ── Mensajes del ticket abierto ─────────────────────── */
+  useEffect(() => {
+    if (!openTicketId) { setTicketMessages([]); return; }
+    const q = query(
+      collection(db, 'support', openTicketId, 'messages'),
+      orderBy('createdAt', 'asc')
+    );
+    return onSnapshot(q, snap => {
+      setTicketMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+  }, [openTicketId]);
 
   /* ── Propuestas + Acuerdos (conteo único) ───────────── */
   useEffect(() => {
@@ -297,6 +313,29 @@ export default function AdminPage() {
       showToast('Publicación bloqueada y denuncia resuelta.');
     } catch (err) { showToast(err.message); }
     finally { setLoading(false); }
+  }
+
+  /* ── Support chat actions ───────────────────────────── */
+  async function handleAdminReply(ticketId) {
+    if (!adminReply.trim()) return;
+    setSendingReply(true);
+    try {
+      await addDoc(collection(db, 'support', ticketId, 'messages'), {
+        text:       adminReply.trim(),
+        from:       'admin',
+        senderName: userData?.displayName || 'Admin',
+        createdAt:  serverTimestamp(),
+      });
+      await updateDoc(doc(db, 'support', ticketId), { status: 'in_progress' });
+      setAdminReply('');
+    } catch (err) { showToast(err.message); }
+    finally { setSendingReply(false); }
+  }
+
+  async function resolveTicket(ticketId) {
+    await updateDoc(doc(db, 'support', ticketId), { status: 'resolved' });
+    if (openTicketId === ticketId) setOpenTicketId(null);
+    showToast('Ticket resuelto.');
   }
 
   /* ── Phone request actions ──────────────────────────── */
@@ -863,51 +902,111 @@ export default function AdminPage() {
                 </div>
             </div>
 
-            {/* ── Mensajes de soporte (TruQuiBot) ── */}
+            {/* ── Chat de soporte (TruQuiBot) ── */}
             <div style={{ marginTop: 32 }}>
               <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 15, fontWeight: 800, marginBottom: 12, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                🆘 Mensajes de soporte
+                💬 Chat de soporte
                 {pendingSupportReqs > 0 && <span className="bd">{pendingSupportReqs}</span>}
               </h3>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                {['pending', 'resolved'].map(f => (
-                  <button key={f} className={`atb${supportFilter === f ? ' active' : ''}`} onClick={() => setSupportFilter(f)}>
-                    {f === 'pending' ? 'Pendientes' : 'Resueltos'}
+                {[['pending','Pendientes'],['in_progress','En curso'],['resolved','Resueltos']].map(([f,label]) => (
+                  <button key={f} className={`atb${supportFilter === f ? ' active' : ''}`} onClick={() => { setSupportFilter(f); setOpenTicketId(null); }}>
+                    {label}
                     {f === 'pending' && pendingSupportReqs > 0 && <span className="bd" style={{ marginLeft: 5 }}>{pendingSupportReqs}</span>}
                   </button>
                 ))}
               </div>
-              <div className="admin-list" style={{ maxHeight: 'none' }}>
-                {supportTickets.filter(r => r.status === supportFilter).map(r => (
-                  <div key={r.id} className="admin-row">
-                    <div className="admin-row-img" style={{ background: '#F0FDF4', borderRadius: 8, display: 'grid', placeItems: 'center', width: 40, height: 40, fontSize: 20, flexShrink: 0 }}>
-                      🆘
-                    </div>
-                    <div className="admin-row-info" style={{ flex: 1 }}>
-                      <div className="admin-row-title">{r.name || 'Anónimo'}</div>
-                      <div className="admin-row-meta">
-                        {r.email && <span style={{ fontSize: 11, color: 'var(--mu)' }}>{r.email}</span>}
-                        <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {supportTickets.filter(r => r.status === supportFilter).map(r => {
+                  const isOpen = openTicketId === r.id;
+                  return (
+                    <div key={r.id} style={{ border: `1.5px solid ${isOpen ? 'var(--v)' : 'var(--ln)'}`, borderRadius: 12, overflow: 'hidden', background: 'var(--sf)' }}>
+                      {/* ── Cabecera del ticket ── */}
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer' }}
+                        onClick={() => setOpenTicketId(isOpen ? null : r.id)}
+                      >
+                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--v)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 16, flexShrink: 0 }}>
+                          {(r.name || 'A').charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{r.name || 'Anónimo'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--mu)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {r.email && <span style={{ marginRight: 8 }}>{r.email}</span>}
+                            {r.message}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
+                          {r.status === 'in_progress' && <span style={{ fontSize: 10, fontWeight: 700, background: '#EFF6FF', color: '#1677FF', borderRadius: 5, padding: '2px 7px' }}>En curso</span>}
+                          {r.status === 'resolved'    && <span style={{ fontSize: 10, fontWeight: 700, background: '#DCFCE7', color: '#16A34A', borderRadius: 5, padding: '2px 7px' }}>✓ Resuelto</span>}
+                          <span style={{ fontSize: 16, color: 'var(--mu)', transition: 'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>⌄</span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12.5, color: 'var(--ink)', marginTop: 5, lineHeight: 1.5 }}>
-                        {r.message}
-                      </div>
+
+                      {/* ── Panel de chat expandido ── */}
+                      {isOpen && (
+                        <div style={{ borderTop: '1.5px solid var(--ln)' }}>
+                          {/* Mensajes */}
+                          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', background: 'var(--bg)' }}>
+                            {/* Mensaje inicial del ticket */}
+                            <div style={{ alignSelf: 'flex-start', maxWidth: '75%' }}>
+                              <div style={{ fontSize: 10, color: 'var(--mu)', marginBottom: 3 }}>{r.name || 'Anónimo'}</div>
+                              <div style={{ background: 'var(--sf)', border: '1.5px solid var(--ln)', borderRadius: '4px 14px 14px 14px', padding: '8px 12px', fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>
+                                {r.message}
+                              </div>
+                            </div>
+                            {/* Mensajes del chat */}
+                            {ticketMessages.map(m => (
+                              <div key={m.id} style={{ alignSelf: m.from === 'admin' ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
+                                <div style={{ fontSize: 10, color: 'var(--mu)', marginBottom: 3, textAlign: m.from === 'admin' ? 'right' : 'left' }}>
+                                  {m.from === 'admin' ? `Admin · ${m.senderName}` : (r.name || 'Usuario')}
+                                </div>
+                                <div style={{
+                                  background: m.from === 'admin' ? 'var(--v)' : 'var(--sf)',
+                                  color:      m.from === 'admin' ? '#fff'     : 'var(--ink)',
+                                  border:     m.from === 'admin' ? 'none'     : '1.5px solid var(--ln)',
+                                  borderRadius: m.from === 'admin' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+                                  padding: '8px 12px', fontSize: 13, lineHeight: 1.5,
+                                }}>
+                                  {m.text}
+                                </div>
+                              </div>
+                            ))}
+                            {ticketMessages.length === 0 && (
+                              <p style={{ fontSize: 12, color: 'var(--mu)', textAlign: 'center', margin: '8px 0' }}>Sin respuestas aún. Responde abajo 👇</p>
+                            )}
+                          </div>
+                          {/* Input de respuesta */}
+                          {r.status !== 'resolved' && (
+                            <div style={{ padding: '10px 16px', borderTop: '1.5px solid var(--ln)', display: 'flex', gap: 8, background: 'var(--sf)' }}>
+                              <input
+                                type="text"
+                                placeholder="Escribe tu respuesta…"
+                                value={adminReply}
+                                onChange={e => setAdminReply(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleAdminReply(r.id); }}
+                                style={{ flex: 1, fontSize: 13, padding: '8px 12px', border: '1.5px solid var(--ln)', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink)' }}
+                              />
+                              <button className="btn bv bsm" disabled={sendingReply || !adminReply.trim()} onClick={() => handleAdminReply(r.id)}>
+                                {sendingReply ? '…' : '↗'}
+                              </button>
+                              <ConfirmButton
+                                label="✓ Resolver"
+                                confirmLabel="¿Cerrar ticket?"
+                                className="bo"
+                                style={{ fontSize: 11 }}
+                                onConfirm={() => resolveTicket(r.id)}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {r.status === 'pending' && (
-                      <button className="btn bo bsm" style={{ fontSize: 11, flexShrink: 0 }}
-                        onClick={() => updateDoc(doc(db, 'support', r.id), { status: 'resolved' })}>
-                        ✓ Resolver
-                      </button>
-                    )}
-                    {r.status === 'resolved' && (
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: '#DCFCE7', color: '#16A34A', flexShrink: 0 }}>
-                        ✓ Resuelto
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 {supportTickets.filter(r => r.status === supportFilter).length === 0 && (
-                  <div className="es"><span className="ei">🆘</span><p>Sin mensajes en esta vista.</p></div>
+                  <div className="es"><span className="ei">💬</span><p>Sin conversaciones en esta vista.</p></div>
                 )}
               </div>
             </div>
