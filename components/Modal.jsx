@@ -19,12 +19,14 @@ import UserProfileModal    from '@/components/modals/UserProfileModal';
 import RateUserModal       from '@/components/modals/RateUserModal';
 import ReportUserModal     from '@/components/modals/ReportUserModal';
 import OnboardingModal    from '@/components/modals/OnboardingModal';
+import ChatsListModal    from '@/components/modals/ChatsListModal';
 
 const TITLES = {
   auth:            'Acceder',
   publish:         '✍️ Publicar',
   cart:            '🤍 Guardados',
-  agreements:      '💬 Chats',
+  agreements:      '🤝 Mis acuerdos',
+  chats_list:      '💬 Chats',
   proposals:       '📬 Propuestas de trueque',
   myposts:         '📦 Mis publicaciones',
   profile:         '👤 Mi perfil',
@@ -76,6 +78,7 @@ export default function Modal() {
       case 'rate_user':       return <RateUserModal matchId={modal.matchId} toUid={modal.toUid} toName={modal.toName} />;
       case 'report_user':     return <ReportUserModal userId={modal.userId} />;
       case 'onboarding':      return <OnboardingModal />;
+      case 'chats_list':      return <ChatsListModal />;
       default:                return null;
     }
   }

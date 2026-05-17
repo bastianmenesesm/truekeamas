@@ -84,14 +84,25 @@ export default function TopBar() {
           </button>
         )}
 
-        {/* Chats */}
+        {/* Chats (mensajes) */}
         {currentUser && (
-          <button className="tb" onClick={() => openModal('agreements')} title="Mis chats">
+          <button className="tb" onClick={() => openModal('chats_list')} title="Chats">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
             Chats
             {unreadNotifs > 0 && <span key={unreadNotifs} className="bd bd-new">{unreadNotifs > 9 ? '9+' : unreadNotifs}</span>}
+          </button>
+        )}
+
+        {/* Acuerdos */}
+        {currentUser && (
+          <button className="tb" onClick={() => openModal('agreements')} title="Mis acuerdos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 11h1a2 2 0 0 1 0 4h-1"/><path d="M9 12H7a2 2 0 0 0 0 4h2"/>
+              <path d="M12 7v10"/><rect x="5" y="3" width="14" height="18" rx="2"/>
+            </svg>
+            Acuerdos
           </button>
         )}
 

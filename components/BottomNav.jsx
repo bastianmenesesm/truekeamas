@@ -35,23 +35,23 @@ export default function BottomNav() {
         <span className="bnb-publish-label">Publicar</span>
       </button>
 
-      {/* Chats / Propuestas */}
+      {/* Chats — solo mensajes reales */}
       <button
         className="bnb"
-        onClick={() => openModal(currentUser ? 'proposals' : 'auth')}
+        onClick={() => openModal(currentUser ? 'chats_list' : 'auth')}
         style={{ position: 'relative' }}
       >
         <svg viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
         Chats
-        {(pendingProposals + (unreadNotifs || 0)) > 0 && (
+        {(unreadNotifs || 0) > 0 && (
           <span style={{
             position: 'absolute', top: 6, right: '50%', transform: 'translateX(12px)',
             minWidth: 16, height: 16, borderRadius: 8, background: 'var(--dg)',
             color: '#fff', fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center', padding: '0 3px'
           }}>
-            {pendingProposals + (unreadNotifs || 0)}
+            {unreadNotifs > 9 ? '9+' : unreadNotifs}
           </span>
         )}
       </button>

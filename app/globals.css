@@ -1133,6 +1133,51 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .pd-whatsapp-btn { color: #25D366 !important; }
 .pd-whatsapp-btn:hover { background: rgba(37,211,102,.10) !important; }
 
+/* ─── CHATS LIST MODAL ────────────────────── */
+.cl-list { display: flex; flex-direction: column; gap: 2px; }
+.cl-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 10px; border-radius: 12px;
+  cursor: pointer; transition: background .15s;
+  position: relative;
+}
+.cl-item:hover { background: var(--sf); }
+.cl-item--unread { background: var(--sf2); }
+.cl-item--unread:hover { background: #dbeafe; }
+
+.cl-thumb {
+  width: 48px; height: 48px; border-radius: 10px;
+  overflow: hidden; flex-shrink: 0;
+  background: var(--sf); display: grid; place-items: center;
+  font-size: 22px; position: relative;
+}
+.cl-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cl-dot {
+  position: absolute; top: -3px; right: -3px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--v); border: 2px solid #fff;
+}
+
+.cl-body { flex: 1; min-width: 0; }
+.cl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.cl-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+.cl-time { font-size: 11px; color: var(--mu); flex-shrink: 0; }
+.cl-product { font-size: 11px; color: var(--v); font-weight: 600; margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cl-preview {
+  font-size: 13px; color: var(--mu);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cl-preview--bold { color: var(--ink); font-weight: 600; }
+
+.cl-badge {
+  flex-shrink: 0;
+  min-width: 20px; height: 20px; border-radius: 10px;
+  background: var(--v); color: #fff;
+  font-size: 11px; font-weight: 700;
+  display: grid; place-items: center; padding: 0 5px;
+}
+
 /* ─── REPORT BUTTON ───────────────────────── */
 .report-btn {
   display: inline-flex; align-items: center; gap: 5px;
