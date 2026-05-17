@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useApp, CATS } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
+import { COMUNAS_POR_REGION } from '@/lib/communes';
 import ProductCard, { ProductCardSkeleton } from './ProductCard';
 
 const CONDITIONS = ['Nuevo', 'Como nuevo', 'Buen estado', 'Usado', 'Para reparar'];
@@ -24,7 +25,10 @@ export default function ProductGrid() {
     hasMoreProducts, loadingMore, loadMoreProducts,
   } = useApp();
 
-  const [showPriceRange, setShowPriceRange] = useState(false);
+  // Comunas disponibles según la región del filtro (estáticas)
+  const communeOptions = regionFilter && regionFilter !== 'all'
+    ? (COMUNAS_POR_REGION[regionFilter] || [])
+    : [];
 
   const blockedUsers = userData?.blockedUsers || [];
 
@@ -78,17 +82,6 @@ export default function ProductGrid() {
     return 0;
   });
 
-  // Comunas disponibles según región seleccionada
-  const availableCommunes = [...new Set(
-    products
-      .filter(p => {
-        if (!p.commune || p.status === 'deleted') return false;
-        if (regionFilter && regionFilter !== 'all') return p.region === regionFilter;
-        return true;
-      })
-      .map(p => p.commune)
-  )].sort();
-
   function clearFilters() {
     setActiveCategory('all');
     setSearchQuery('');
@@ -100,7 +93,6 @@ export default function ProductGrid() {
     setPriceFilter(false);
     setMinPrice('');
     setMaxPrice('');
-    setShowPriceRange(false);
   }
 
   const activeCount = [
@@ -110,8 +102,6 @@ export default function ProductGrid() {
     conditionFilter !== 'all',
     regionFilter && regionFilter !== 'all',
     communeFilter && communeFilter !== 'all',
-    priceFilter,
-    minPrice !== '' || maxPrice !== '',
   ].filter(Boolean).length;
 
   return (
@@ -153,11 +143,11 @@ export default function ProductGrid() {
             {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
 
-          {/* 4. Comuna */}
-          {availableCommunes.length > 0 && (
+          {/* 4. Comuna — visible solo cuando hay una región seleccionada */}
+          {communeOptions.length > 0 && (
             <select className="fs" value={communeFilter} onChange={e => setCommuneFilter(e.target.value)}>
               <option value="all">Comuna</option>
-              {availableCommunes.map(c => <option key={c} value={c}>{c}</option>)}
+              {communeOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           )}
 
@@ -175,16 +165,7 @@ export default function ProductGrid() {
             <option value="Nuevo">🌱 Nuevo</option>
           </select>
 
-          {/* 7. Precio — toggle rango */}
-          <button
-            className={`fs pg-price-btn${showPriceRange ? ' active' : ''}`}
-            onClick={() => { setShowPriceRange(p => !p); if (showPriceRange) { setMinPrice(''); setMaxPrice(''); } }}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
-          >
-            💰 Precio {(minPrice !== '' || maxPrice !== '') && <span className="pg-count" style={{ marginLeft: 2 }}>•</span>}
-          </button>
-
-          {/* 8. Ordenar */}
+          {/* 7. Ordenar */}
           <select className="fs" value={sortBy} onChange={e => setSortBy(e.target.value)}>
             <option value="none">Ordenar</option>
             <option value="likes">❤️ Más populares</option>
@@ -195,36 +176,6 @@ export default function ProductGrid() {
           </select>
         </div>
 
-        {/* Rango de precio — se despliega al hacer click */}
-        {showPriceRange && (
-          <div className="pg-price-range">
-            <span className="pg-price-label">Rango de precio (CLP)</span>
-            <div className="pg-price-inputs">
-              <input
-                type="number"
-                className="fs pg-price-input"
-                placeholder="Mínimo"
-                min="0"
-                value={minPrice}
-                onChange={e => setMinPrice(e.target.value)}
-              />
-              <span style={{ color: 'var(--mu)', fontSize: 13 }}>—</span>
-              <input
-                type="number"
-                className="fs pg-price-input"
-                placeholder="Máximo"
-                min="0"
-                value={maxPrice}
-                onChange={e => setMaxPrice(e.target.value)}
-              />
-              {(minPrice !== '' || maxPrice !== '') && (
-                <button className="pg-clear-btn" onClick={() => { setMinPrice(''); setMaxPrice(''); }}>
-                  Limpiar
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="pg">

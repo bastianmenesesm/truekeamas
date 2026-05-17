@@ -2,9 +2,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
+import { COMUNAS_POR_REGION } from '@/lib/communes';
+import PhoneInput from '@/components/PhoneInput';
 import { uploadToCloudinary, optimizeCloudinaryUrl } from '@/lib/firebase';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+
+function validateChileanPhone(phone) {
+  const d = phone.replace(/[\s\-\(\)]/g, '');
+  return /^(\+?56)?9\d{8}$/.test(d);
+}
 
 // Formatea teléfono chileno: +56 9 1234 5678
 function formatPhone(raw) {
@@ -40,6 +47,7 @@ export default function ProfileModal() {
   const [loading,       setLoading]       = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [ratings,       setRatings]       = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState(null); // null = usar userData
 
   // Phone change request states
   const [pendingRequest,  setPendingRequest]  = useState(null);
@@ -127,7 +135,7 @@ export default function ProfileModal() {
 
   async function handlePhoneRequest(e) {
     e.preventDefault();
-    if (!newPhoneVal.trim()) { showToast('Ingresa el nuevo número.'); return; }
+    if (!newPhoneVal || newPhoneVal.length < 12) { showToast('Ingresa los 8 dígitos del teléfono.'); return; }
     setReqLoading(true);
     try {
       await requestPhoneChange(newPhoneVal.trim());
@@ -262,13 +270,10 @@ export default function ProfileModal() {
               Tu solicitud será revisada por un administrador. Recibirás el cambio una vez aprobada.
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="tel"
-                placeholder="+56 9 1234 5678"
+              <PhoneInput
                 value={newPhoneVal}
-                onChange={e => setNewPhoneVal(e.target.value)}
-                required
-                style={{ flex: 1, fontSize: 13, padding: '7px 10px', border: '1.5px solid var(--ln)', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink)' }}
+                onChange={setNewPhoneVal}
+                style={{ flex: 1 }}
               />
               <button className="btn bv bsm" type="submit" disabled={reqLoading} style={{ fontSize: 12 }}>
                 {reqLoading ? 'Enviando...' : 'Enviar'}
@@ -286,20 +291,30 @@ export default function ProfileModal() {
         <div className="fg">
           <label className="fd fl">Nombre visible<input name="name" defaultValue={name} /></label>
           <label className="fd">Región
-            <select name="region" defaultValue={userData?.region || ''}>
+            <select
+              name="region"
+              value={selectedRegion ?? (userData?.region || '')}
+              onChange={e => setSelectedRegion(e.target.value)}
+            >
               <option value="">Sin especificar</option>
               {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
           <label className="fd">
             Comuna
-            <input
-              type="text"
-              name="commune"
-              placeholder="Ej: Las Condes, Valparaíso…"
-              defaultValue={userData?.commune || ''}
-              autoComplete="address-level2"
-            />
+            {(() => {
+              const activeRegion = selectedRegion ?? (userData?.region || '');
+              const communes     = COMUNAS_POR_REGION[activeRegion] || [];
+              const currentVal   = selectedRegion !== null ? '' : (userData?.commune || '');
+              return (
+                <select name="commune" defaultValue={currentVal} key={activeRegion}>
+                  <option value="">{activeRegion ? 'Selecciona tu comuna' : 'Primero selecciona una región'}</option>
+                  {communes.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              );
+            })()}
           </label>
         </div>
         <div className="ma">

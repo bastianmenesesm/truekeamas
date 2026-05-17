@@ -145,6 +145,10 @@ export default function AdminPage() {
   const [phoneRequests,  setPhoneRequests]  = useState([]);
   const [phoneReqFilter, setPhoneReqFilter] = useState('pending');
 
+  // Support tickets (desde TruQuiBot)
+  const [supportTickets,  setSupportTickets]  = useState([]);
+  const [supportFilter,   setSupportFilter]   = useState('pending');
+
   // Conteos extras (propuestas y acuerdos)
   const [proposalsCount, setProposalsCount] = useState('—');
   const [matchesCount,   setMatchesCount]   = useState('—');
@@ -203,6 +207,15 @@ export default function AdminPage() {
     }, () => {});
   }, [isAdmin, tab]);
 
+  /* ── Support tickets listener ────────────────────────── */
+  useEffect(() => {
+    if (!isAdmin || tab !== 'users') return;
+    const q = query(collection(db, 'support'), orderBy('createdAt', 'desc'), limit(200));
+    return onSnapshot(q, snap => {
+      setSupportTickets(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+  }, [isAdmin, tab]);
+
   /* ── Propuestas + Acuerdos (conteo único) ───────────── */
   useEffect(() => {
     if (!isAdmin || tab !== 'dashboard') return;
@@ -223,7 +236,8 @@ export default function AdminPage() {
   const verifiedUsers   = users.filter(u => u.verified).length;
   const bannedUsers     = users.filter(u => u.role === 'banned').length;
   const pendingUreps    = userReports.filter(r => r.status === 'pending').length;
-  const pendingPhoneReqs = phoneRequests.filter(r => r.status === 'pending').length;
+  const pendingPhoneReqs   = phoneRequests.filter(r => r.status === 'pending').length;
+  const pendingSupportReqs = supportTickets.filter(r => r.status === 'pending').length;
 
   /* ── Admin API call helper ──────────────────────────── */
   async function adminFetch(path, body) {
@@ -390,7 +404,7 @@ export default function AdminPage() {
             { id: 'dashboard', label: '📊 Dashboard' },
             { id: 'products',  label: `📦 Publicaciones${blockedProducts ? ` · ${blockedProducts} bloq.` : ''}` },
             { id: 'reports',   label: `🚩 Denuncias`,  badge: pendingReports },
-            { id: 'users',     label: `👥 Usuarios`,   badge: pendingUreps + pendingPhoneReqs },
+            { id: 'users',     label: `👥 Usuarios`,   badge: pendingUreps + pendingPhoneReqs + pendingSupportReqs },
           ].map(t => (
             <button key={t.id} className={`atb${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
               {t.label}
@@ -786,8 +800,7 @@ export default function AdminPage() {
 
             {/* Denuncias de usuarios */}
             {/* ── Solicitudes de cambio de teléfono ── */}
-            {(phoneRequests.length > 0 || pendingPhoneReqs > 0) && (
-              <div style={{ marginTop: 32 }}>
+            <div style={{ marginTop: 32 }}>
                 <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 15, fontWeight: 800, marginBottom: 12, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   📱 Solicitudes de cambio de teléfono
                   {pendingPhoneReqs > 0 && <span className="bd">{pendingPhoneReqs}</span>}
@@ -848,8 +861,56 @@ export default function AdminPage() {
                     <div className="es"><span className="ei">📱</span><p>Sin solicitudes en esta vista.</p></div>
                   )}
                 </div>
+            </div>
+
+            {/* ── Mensajes de soporte (TruQuiBot) ── */}
+            <div style={{ marginTop: 32 }}>
+              <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 15, fontWeight: 800, marginBottom: 12, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                🆘 Mensajes de soporte
+                {pendingSupportReqs > 0 && <span className="bd">{pendingSupportReqs}</span>}
+              </h3>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                {['pending', 'resolved'].map(f => (
+                  <button key={f} className={`atb${supportFilter === f ? ' active' : ''}`} onClick={() => setSupportFilter(f)}>
+                    {f === 'pending' ? 'Pendientes' : 'Resueltos'}
+                    {f === 'pending' && pendingSupportReqs > 0 && <span className="bd" style={{ marginLeft: 5 }}>{pendingSupportReqs}</span>}
+                  </button>
+                ))}
               </div>
-            )}
+              <div className="admin-list" style={{ maxHeight: 'none' }}>
+                {supportTickets.filter(r => r.status === supportFilter).map(r => (
+                  <div key={r.id} className="admin-row">
+                    <div className="admin-row-img" style={{ background: '#F0FDF4', borderRadius: 8, display: 'grid', placeItems: 'center', width: 40, height: 40, fontSize: 20, flexShrink: 0 }}>
+                      🆘
+                    </div>
+                    <div className="admin-row-info" style={{ flex: 1 }}>
+                      <div className="admin-row-title">{r.name || 'Anónimo'}</div>
+                      <div className="admin-row-meta">
+                        {r.email && <span style={{ fontSize: 11, color: 'var(--mu)' }}>{r.email}</span>}
+                        <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink)', marginTop: 5, lineHeight: 1.5 }}>
+                        {r.message}
+                      </div>
+                    </div>
+                    {r.status === 'pending' && (
+                      <button className="btn bo bsm" style={{ fontSize: 11, flexShrink: 0 }}
+                        onClick={() => updateDoc(doc(db, 'support', r.id), { status: 'resolved' })}>
+                        ✓ Resolver
+                      </button>
+                    )}
+                    {r.status === 'resolved' && (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: '#DCFCE7', color: '#16A34A', flexShrink: 0 }}>
+                        ✓ Resuelto
+                      </span>
+                    )}
+                  </div>
+                ))}
+                {supportTickets.filter(r => r.status === supportFilter).length === 0 && (
+                  <div className="es"><span className="ei">🆘</span><p>Sin mensajes en esta vista.</p></div>
+                )}
+              </div>
+            </div>
 
             {userReports.length > 0 && (
               <div style={{ marginTop: 32 }}>

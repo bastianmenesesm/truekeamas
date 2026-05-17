@@ -2,9 +2,17 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
+import { COMUNAS_POR_REGION } from '@/lib/communes';
+import PhoneInput from '@/components/PhoneInput';
 
 const EYE_ON  = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
 const EYE_OFF = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+function validateChileanPhone(phone) {
+  const d = phone.replace(/[\s\-\(\)]/g, '');
+  // Acepta: +569XXXXXXXX, 569XXXXXXXX, 9XXXXXXXX (móvil chileno)
+  return /^(\+?56)?9\d{8}$/.test(d);
+}
 
 function getPasswordStrength(pwd) {
   if (!pwd) return { level: 0, label: '', bars: [false, false, false, false] };
@@ -40,6 +48,7 @@ export default function AuthModal() {
   const [termsOk, setTermsOk]   = useState(false);
   const [forgotSent, setForgotSent]   = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [regRegion,   setRegRegion]   = useState('');
 
   const strength = getPasswordStrength(regPwd);
 
@@ -91,7 +100,7 @@ export default function AuthModal() {
     const region   = fd.get('region')?.toString();
     const commune  = fd.get('commune')?.toString().trim();
     if (!email || !password || !name) return;
-    if (!phone)   { showToast('El teléfono es obligatorio.'); return; }
+    if (!phone || phone.length < 12) { showToast('Ingresa los 8 dígitos del teléfono. Ej: +56 9 1234 5678'); return; }
     if (!region)  { showToast('La región es obligatoria.'); return; }
     if (!commune) { showToast('La comuna es obligatoria.'); return; }
     if (strength.level < 3) { showToast('La contraseña debe tener mayúscula, número y carácter especial.'); return; }
@@ -245,17 +254,20 @@ export default function AuthModal() {
               <div className="pwd-reqs">Debe incluir: mayúscula · número · carácter especial (!@#$%...)</div>
             </label>
             <label className="fd fl">Teléfono
-              <input type="tel" name="phone" placeholder="+56 9 1234 5678" autoComplete="tel" required />
-              <span style={{ fontSize: 11, color: 'var(--mu)', marginTop: 2 }}>Requerido · no podrás cambiarlo directamente después</span>
+              <PhoneInput name="phone" required />
+              <span style={{ fontSize: 11, color: 'var(--mu)', marginTop: 2 }}>Formato: +56 9 XXXX XXXX · no podrás cambiarlo directamente después</span>
             </label>
             <label className="fd fl">Región
-              <select name="region" required defaultValue="">
+              <select name="region" required value={regRegion} onChange={e => { setRegRegion(e.target.value); }}>
                 <option value="" disabled>Selecciona tu región</option>
                 {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </label>
             <label className="fd fl">Comuna
-              <input type="text" name="commune" placeholder="Ej: Las Condes, Valparaíso…" required autoComplete="address-level2" />
+              <select name="commune" required disabled={!regRegion} defaultValue="">
+                <option value="" disabled>{regRegion ? 'Selecciona tu comuna' : 'Primero selecciona una región'}</option>
+                {(COMUNAS_POR_REGION[regRegion] || []).map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </label>
           </div>
 

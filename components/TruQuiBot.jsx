@@ -1,5 +1,8 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { useApp } from '@/context/AppContext';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const BOT_NAME = 'TruQuiBot';
 
@@ -14,9 +17,13 @@ const RESPONSES = [
   { keys: ['categoria', 'categoría', 'tipo'], reply: 'Categorías: 📱 Tecnología, 🛋️ Hogar, ⚽ Deportes, 👕 Moda, 📘 Libros y 🧸 Juguetes.' },
   { keys: ['gracias', 'ok', 'entendido', 'perfecto'], reply: '¡De nada! 😊 ¡Feliz trueque! 🎉' },
   { keys: ['adios', 'adiós', 'chao', 'bye'], reply: '¡Hasta pronto! 👋' },
+  {
+    keys: ['admin', 'administrador', 'soporte', 'ayuda humana', 'hablar con', 'humano', 'persona real', 'equipo', 'problema', 'denuncia', 'queja'],
+    reply: '__CONTACT_ADMIN__',
+  },
 ];
 
-const DEFAULT_REPLY = 'Hmm, no estoy seguro. 🤔 Pregúntame sobre cómo publicar, hacer match, niveles o seguridad.';
+const DEFAULT_REPLY = 'Hmm, no estoy seguro. 🤔 Pregúntame sobre cómo publicar, hacer match, niveles o seguridad. Si necesitas ayuda adicional, puedo conectarte con un administrador.';
 
 function getBotReply(text) {
   const lower = text.toLowerCase();
@@ -27,15 +34,29 @@ function getBotReply(text) {
 }
 
 export default function TruQuiBot() {
-  const [open, setOpen] = useState(false);
+  const { currentUser, userData } = useApp();
+  const [open,    setOpen]    = useState(false);
   const [messages, setMessages] = useState([{ from: 'bot', text: '¡Hola! Soy TruQuiBot 🤖 ¿En qué puedo ayudarte hoy?' }]);
-  const [input, setInput] = useState('');
-  const [typing, setTyping] = useState(false);
+  const [input,   setInput]   = useState('');
+  const [typing,  setTyping]  = useState(false);
+
+  // Contact-admin form state
+  const [showForm,     setShowForm]     = useState(false);
+  const [contactMsg,   setContactMsg]   = useState('');
+  const [contactName,  setContactName]  = useState('');
+  const [sending,      setSending]      = useState(false);
+  const [sent,         setSent]         = useState(false);
+
   const bottomRef = useRef(null);
 
   useEffect(() => {
     if (open && bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, open]);
+  }, [messages, open, showForm]);
+
+  // Pre-fill name from user data
+  useEffect(() => {
+    if (currentUser) setContactName(userData?.displayName || currentUser.displayName || '');
+  }, [currentUser, userData]);
 
   function sendMessage(text) {
     if (!text.trim()) return;
@@ -43,9 +64,48 @@ export default function TruQuiBot() {
     setInput('');
     setTyping(true);
     setTimeout(() => {
-      setMessages(prev => [...prev, { from: 'bot', text: getBotReply(text) }]);
+      const reply = getBotReply(text);
+      if (reply === '__CONTACT_ADMIN__') {
+        setMessages(prev => [...prev, {
+          from: 'bot',
+          text: 'Entendido. Puedo enviarte un mensaje directo a nuestro equipo de administración. ¿Quieres dejarles tu consulta? 📩',
+        }]);
+        setShowForm(true);
+        setSent(false);
+      } else {
+        setMessages(prev => [...prev, { from: 'bot', text: reply }]);
+      }
       setTyping(false);
     }, 700 + Math.random() * 400);
+  }
+
+  async function handleSendToAdmin(e) {
+    e.preventDefault();
+    if (!contactMsg.trim()) return;
+    setSending(true);
+    try {
+      await addDoc(collection(db, 'support'), {
+        name:      contactName.trim() || 'Anónimo',
+        email:     currentUser?.email || '',
+        uid:       currentUser?.uid   || null,
+        message:   contactMsg.trim(),
+        source:    'truquibot',
+        status:    'pending',
+        createdAt: serverTimestamp(),
+      });
+      setSent(true);
+      setShowForm(false);
+      setContactMsg('');
+      setMessages(prev => [...prev, {
+        from: 'bot',
+        text: '✅ ¡Mensaje enviado! Un administrador revisará tu consulta pronto. ¿Hay algo más en lo que pueda ayudarte?',
+      }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        from: 'bot',
+        text: '❌ Hubo un error al enviar. Por favor intenta nuevamente.',
+      }]);
+    } finally { setSending(false); }
   }
 
   return (
@@ -66,6 +126,57 @@ export default function TruQuiBot() {
             <div key={i} className={`tcm ${m.from === 'user' ? 'user' : 'bot'}`}>{m.text}</div>
           ))}
           {typing && <div className="tcm bot">●●●</div>}
+
+          {/* Formulario de contacto admin */}
+          {showForm && !sent && (
+            <div style={{
+              margin: '8px 4px',
+              background: 'var(--sf)',
+              border: '1.5px solid var(--v)',
+              borderRadius: 12,
+              padding: '14px',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--v)', marginBottom: 10 }}>
+                📩 Mensaje al equipo de administración
+              </div>
+              <form onSubmit={handleSendToAdmin} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {!currentUser && (
+                  <input
+                    type="text"
+                    placeholder="Tu nombre"
+                    value={contactName}
+                    onChange={e => setContactName(e.target.value)}
+                    style={{ fontSize: 12, padding: '6px 10px', border: '1.5px solid var(--ln)', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink)' }}
+                  />
+                )}
+                <textarea
+                  placeholder="Describe tu consulta o problema…"
+                  value={contactMsg}
+                  onChange={e => setContactMsg(e.target.value)}
+                  required
+                  rows={3}
+                  style={{ fontSize: 12, padding: '6px 10px', border: '1.5px solid var(--ln)', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink)', resize: 'none', fontFamily: 'inherit' }}
+                />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="submit"
+                    disabled={sending || !contactMsg.trim()}
+                    style={{ flex: 1, fontSize: 12, padding: '7px', background: 'var(--v)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    {sending ? 'Enviando…' : '📨 Enviar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    style={{ fontSize: 12, padding: '7px 12px', background: 'var(--sf)', border: '1.5px solid var(--ln)', borderRadius: 8, cursor: 'pointer', color: 'var(--mu)' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
         <div className="tir">
