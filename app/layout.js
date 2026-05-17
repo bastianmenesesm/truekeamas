@@ -97,18 +97,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <head>
-        {/* PWA */}
+        {/* PWA — solo los que Next.js metadata no genera automáticamente */}
         <meta name="theme-color" content="#1677FF" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Truekeamas" />
         <meta name="application-name" content="Truekeamas" />
         <meta name="msapplication-TileColor" content="#1677FF" />
         <meta name="msapplication-tap-highlight" content="no" />
 
-        {/* Apple touch icons */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Apple touch icons en tamaños extra (el base lo genera metadata.icons.apple) */}
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192.png" />

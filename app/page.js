@@ -22,7 +22,13 @@ export default function Home() {
   // Esto garantiza que Google/Bing ven contenido real (H1, descripción, productos)
   // en el HTML inicial, en lugar de un spinner vacío.
   if (authLoading || !currentUser) {
-    return <LandingPage />;
+    return (
+      <>
+        <LandingPage />
+        <Modal />
+        <Toast />
+      </>
+    );
   }
 
   return (

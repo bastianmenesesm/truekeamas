@@ -3,8 +3,6 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useApp, CATS } from '@/context/AppContext';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
-import Modal from '@/components/Modal';
-import Toast from '@/components/Toast';
 
 function fmtP(v) { return v ? '$' + Number(v).toLocaleString('es-CL') : null; }
 
@@ -274,7 +272,7 @@ export default function LandingPage() {
 
               <div className="l-footer-col">
                 <h5>Empresa</h5>
-                <a href="#sobre-nosotros">Sobre nosotros</a>
+                <a href="#como-funciona">¿Cómo funciona?</a>
                 <a href="https://www.instagram.com/truekeamas" target="_blank" rel="noopener noreferrer">Contacto</a>
                 <a href="/privacidad">Política de privacidad</a>
                 <a href="/terminos">Términos de uso</a>
@@ -289,9 +287,6 @@ export default function LandingPage() {
         </footer>
 
       </div>
-
-      <Modal />
-      <Toast />
     </>
   );
 }

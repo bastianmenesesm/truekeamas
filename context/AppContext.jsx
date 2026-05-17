@@ -132,6 +132,11 @@ export function AppProvider({ children }) {
 
   const toastTimer    = useRef(null);
   const lastLoadRef   = useRef(0);
+
+  /* ── Cleanup toastTimer al desmontar ─────── */
+  useEffect(() => {
+    return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
+  }, []);
   const lastDocRef    = useRef(null); // cursor para paginación
   const notifInitRef  = useRef(false); // detectar primera carga vs. notif nueva
 
@@ -323,7 +328,7 @@ export function AppProvider({ children }) {
       );
       const docs = snap.docs;
       lastDocRef.current = docs[docs.length - 1] || null;
-      const list = docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted');
+      const list = docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted' && p.status !== 'blocked');
       setProducts(list);
       setHasMoreProducts(docs.length === PAGE_SIZE);
       setStats(prev => ({ ...prev, products: list.length }));
@@ -340,7 +345,7 @@ export function AppProvider({ children }) {
       );
       const docs = snap.docs;
       lastDocRef.current = docs[docs.length - 1] || null;
-      const list = docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted');
+      const list = docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status !== 'deleted' && p.status !== 'blocked');
       setProducts(prev => [...prev, ...list]);
       setHasMoreProducts(docs.length === PAGE_SIZE);
     } catch { }
@@ -647,6 +652,10 @@ export function AppProvider({ children }) {
   }
 
   async function reactivateProduct(id) {
+    if (!currentUser) throw new Error('No autenticado');
+    const snap = await getDoc(doc(db, 'products', id));
+    if (!snap.exists()) throw new Error('Publicación no encontrada');
+    if (snap.data().ownerId !== currentUser.uid && !isAdmin) throw new Error('Sin permiso');
     await updateDoc(doc(db, 'products', id), { status: 'active', soldAt: null });
     setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'active' } : p));
   }
