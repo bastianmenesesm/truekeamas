@@ -11,7 +11,7 @@ export const metadata = {
     default: 'Truekeamas | Conecta · Intercambia · Crece',
     template: '%s | Truekeamas',
   },
-  description: 'Plataforma de trueque digital en Chile. Publica lo que tienes, encuentra lo que necesitas e intercambia con personas de todo el país.',
+  description: 'Truekeamas es una plataforma de trueque digital en Chile para intercambiar productos y servicios. Publica gratis, encuentra lo que necesitas e intercambia con personas de todo el país.',
   keywords: ['trueque', 'intercambio', 'Chile', 'compra venta', 'truekeamas', 'marketplace Chile'],
   authors: [{ name: 'Truekeamas' }],
   creator: 'Truekeamas',
@@ -26,12 +26,12 @@ export const metadata = {
     url: BASE_URL,
     siteName: 'Truekeamas',
     title: 'Truekeamas | Conecta · Intercambia · Crece',
-    description: 'Plataforma de trueque digital en Chile. Publica lo que tienes, encuentra lo que necesitas e intercambia con personas de todo el país.',
+    description: 'Truekeamas es una plataforma de trueque digital en Chile para intercambiar productos y servicios. Publica gratis, encuentra lo que necesitas e intercambia con personas de todo el país.',
   },
   twitter: {
     card: 'summary',
     title: 'Truekeamas | Conecta · Intercambia · Crece',
-    description: 'Plataforma de trueque digital en Chile. Publica lo que tienes, encuentra lo que necesitas e intercambia con personas de todo el país.',
+    description: 'Truekeamas es una plataforma de trueque digital en Chile para intercambiar productos y servicios. Publica gratis, encuentra lo que necesitas e intercambia con personas de todo el país.',
   },
   icons: {
     icon: [
@@ -65,7 +65,7 @@ const orgJsonLd = {
         width:          96,
         height:         96,
       },
-      description: 'Plataforma de trueque digital en Chile. Intercambia, vende o dona artículos con personas de todo el país.',
+      description: 'Truekeamas es una plataforma de trueque digital en Chile para intercambiar productos y servicios con personas de todo el país.',
       contactPoint: {
         '@type':             'ContactPoint',
         contactType:         'customer service',

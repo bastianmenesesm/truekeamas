@@ -18,15 +18,18 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
   const cat = slugToCategory(slug);
   if (!cat) return { title: 'Categoría no encontrada | Truekeamas' };
+  const desc = cat.desc ||
+    `Encuentra artículos de ${cat.n} en Truekeamas. Intercambia, compra o dona con personas de todo Chile.`;
   return {
-    title:       `${cat.e} ${cat.n} en Truekeamas`,
-    description: `Encuentra artículos de ${cat.n} en Truekeamas. Intercambia, compra o dona con personas de todo Chile.`,
+    title:       `${cat.e} ${cat.n} en Chile | Truekeamas`,
+    description: desc,
     alternates:  { canonical: `${BASE_URL}/categoria/${slug}` },
     openGraph: {
-      title:    `${cat.e} ${cat.n} | Truekeamas`,
-      url:      `${BASE_URL}/categoria/${slug}`,
-      type:     'website',
-      siteName: 'Truekeamas',
+      title:       `${cat.e} ${cat.n} | Truekeamas`,
+      description: desc,
+      url:         `${BASE_URL}/categoria/${slug}`,
+      type:        'website',
+      siteName:    'Truekeamas',
     },
   };
 }
@@ -111,13 +114,17 @@ export default async function CategoriaPage({ params }) {
       {/* Hero de categoría */}
       <header className="cat-hero">
         <div className="cat-hero-emoji">{cat.e}</div>
-        <h1 className="cat-hero-title">{cat.n}</h1>
+        <h1 className="cat-hero-title">{cat.n} en Chile</h1>
+        {cat.desc && <p className="cat-hero-desc">{cat.desc}</p>}
         <p className="cat-hero-sub">
           {products.length > 0
             ? `${products.length} publicación${products.length !== 1 ? 'es' : ''} activa${products.length !== 1 ? 's' : ''} en esta categoría`
             : 'Aún no hay publicaciones en esta categoría. ¡Sé el primero!'
           }
         </p>
+        <a href="/" className="cat-hero-cta">
+          Publicar en {cat.n} →
+        </a>
       </header>
 
       {/* Grid */}

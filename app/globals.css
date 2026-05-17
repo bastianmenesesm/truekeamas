@@ -1292,7 +1292,11 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .l-hero-title {
   font-family: 'Playfair Display', serif; font-weight: 700;
   font-size: clamp(32px, 5.5vw, 60px);
-  color: #fff; line-height: 1.22; letter-spacing: .1px; margin-bottom: 16px;
+  color: #fff; line-height: 1.22; letter-spacing: .1px; margin-bottom: 8px;
+}
+.l-hero-tagline {
+  font-size: 13px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+  color: rgba(255,255,255,.7); margin-bottom: 18px;
 }
 .l-hero-sub {
   font-size: 16px; color: rgba(255,255,255,.85);
@@ -2661,7 +2665,19 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   color: var(--ink);
   margin-bottom: 8px;
 }
-.cat-hero-sub { font-size: 14px; color: var(--mu); }
+.cat-hero-desc {
+  font-size: 15px; color: var(--mu); line-height: 1.65;
+  max-width: 620px; margin: 12px auto 8px; text-align: center;
+}
+.cat-hero-sub { font-size: 14px; color: var(--mu); margin-top: 4px; }
+.cat-hero-cta {
+  display: inline-block; margin-top: 18px;
+  background: var(--v); color: #fff;
+  font-size: 14px; font-weight: 600;
+  padding: 9px 22px; border-radius: 10px;
+  text-decoration: none; transition: opacity .15s;
+}
+.cat-hero-cta:hover { opacity: .85; }
 
 .cat-main {
   max-width: 1000px;

@@ -18,18 +18,10 @@ import AutoOpenProduct from '@/components/AutoOpenProduct';
 export default function Home() {
   const { currentUser, authLoading, sidebarPinned, sidebarOpen, setSidebarOpen } = useApp();
 
-  if (authLoading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--sf)' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div className="sp sp2" style={{ margin: '0 auto 16px' }} />
-          <p style={{ color: 'var(--mu)', fontWeight: 600 }}>Cargando Truekeamas...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentUser) {
+  // Mientras carga auth o no hay sesión → LandingPage
+  // Esto garantiza que Google/Bing ven contenido real (H1, descripción, productos)
+  // en el HTML inicial, en lugar de un spinner vacío.
+  if (authLoading || !currentUser) {
     return <LandingPage />;
   }
 
