@@ -46,7 +46,6 @@ export default async function CategoriaPage({ params }) {
     const snap    = await db.collection('products')
       .where('category', '==', cat.n)
       .where('status',   '==', 'active')
-      .orderBy('createdAt', 'desc')
       .limit(24)
       .get();
 
