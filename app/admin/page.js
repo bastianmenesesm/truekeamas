@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
 import {
   collection, query, orderBy, onSnapshot,
-  doc, updateDoc, limit,
+  doc, updateDoc, limit, getDocs,
 } from 'firebase/firestore';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
@@ -38,11 +38,58 @@ function fmtDate(ts) {
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function Stat({ label, value, color }) {
+function Stat({ label, value, color, sub }) {
   return (
     <div className="admin-stat" style={color ? { borderColor: `${color}40` } : {}}>
       <strong style={color ? { color } : {}}>{value}</strong>
       <span>{label}</span>
+      {sub && <span style={{ fontSize: 10, color: 'var(--mu)', marginTop: 2 }}>{sub}</span>}
+    </div>
+  );
+}
+
+function TrendCard({ label, thisWeek, lastWeek }) {
+  const diff   = thisWeek - lastWeek;
+  const pct    = lastWeek === 0 ? (thisWeek > 0 ? 100 : 0) : Math.round((diff / lastWeek) * 100);
+  const up     = diff >= 0;
+  const color  = up ? '#22C55E' : '#E03358';
+  const arrow  = up ? '↑' : '↓';
+  return (
+    <div className="admin-stat" style={{ textAlign: 'left', padding: '16px 20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <strong style={{ fontSize: 32, color: 'var(--v)' }}>{thisWeek}</strong>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mu)', marginTop: 2 }}>{label}</div>
+          <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 2 }}>vs {lastWeek} semana pasada</div>
+        </div>
+        <div style={{ background: `${color}18`, color, borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 800 }}>
+          {arrow} {Math.abs(pct)}%
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryBar({ name, count, max }) {
+  const pct = max === 0 ? 0 : Math.round((count / max) * 100);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <div style={{ width: 130, fontSize: 12, fontWeight: 600, color: 'var(--is)', textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+      <div style={{ flex: 1, background: 'var(--ln)', borderRadius: 4, height: 10, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, background: 'var(--v)', height: '100%', borderRadius: 4, transition: 'width .4s ease' }} />
+      </div>
+      <div style={{ width: 28, fontSize: 12, fontWeight: 700, color: 'var(--v)', textAlign: 'right', flexShrink: 0 }}>{count}</div>
+    </div>
+  );
+}
+
+function TypePill({ label, count, total, color }) {
+  const pct = total === 0 ? 0 : Math.round((count / total) * 100);
+  return (
+    <div style={{ flex: 1, background: 'var(--sf)', border: `1.5px solid ${color}40`, borderRadius: 12, padding: '14px 16px', textAlign: 'center' }}>
+      <div style={{ fontSize: 22, fontWeight: 900, color }}>{pct}%</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--is)', marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--mu)' }}>{count} pub.</div>
     </div>
   );
 }
@@ -72,27 +119,31 @@ export default function AdminPage() {
   const router = useRouter();
   const { currentUser, isAdmin, showToast, deleteProduct } = useApp();
 
-  const [tab,          setTab]          = useState('dashboard');
-  const [loading,      setLoading]      = useState(false);
+  const [tab,            setTab]          = useState('dashboard');
+  const [loading,        setLoading]      = useState(false);
 
   // Products (own subscription, includes blocked)
-  const [products,     setProducts]     = useState([]);
-  const [prodFilter,   setProdFilter]   = useState('all');
-  const [prodSearch,   setProdSearch]   = useState('');
+  const [products,       setProducts]     = useState([]);
+  const [prodFilter,     setProdFilter]   = useState('all');
+  const [prodSearch,     setProdSearch]   = useState('');
 
   // Reports
-  const [reports,      setReports]      = useState([]);
-  const [repFilter,    setRepFilter]    = useState('pending');
-  const [repSearch,    setRepSearch]    = useState('');
+  const [reports,        setReports]      = useState([]);
+  const [repFilter,      setRepFilter]    = useState('pending');
+  const [repSearch,      setRepSearch]    = useState('');
 
-  // Users
-  const [users,        setUsers]        = useState([]);
-  const [userSearch,   setUserSearch]   = useState('');
-  const [userFilter,   setUserFilter]   = useState('all'); // all | verified | banned
+  // Users (cargado en dashboard y users tab)
+  const [users,          setUsers]        = useState([]);
+  const [userSearch,     setUserSearch]   = useState('');
+  const [userFilter,     setUserFilter]   = useState('all');
 
   // User reports
-  const [userReports,  setUserReports]  = useState([]);
-  const [urFilter,     setUrFilter]     = useState('pending');
+  const [userReports,    setUserReports]  = useState([]);
+  const [urFilter,       setUrFilter]     = useState('pending');
+
+  // Conteos extras (propuestas y acuerdos)
+  const [proposalsCount, setProposalsCount] = useState('—');
+  const [matchesCount,   setMatchesCount]   = useState('—');
 
   /* ── Redirect if not admin ─────────────────────────── */
   useEffect(() => {
@@ -121,9 +172,9 @@ export default function AdminPage() {
     }, () => {});
   }, [isAdmin]);
 
-  /* ── Users listener ─────────────────────────────────── */
+  /* ── Users listener (dashboard + users tab) ────────── */
   useEffect(() => {
-    if (!isAdmin || tab !== 'users') return;
+    if (!isAdmin || (tab !== 'users' && tab !== 'dashboard')) return;
     const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(500));
     return onSnapshot(q, snap => {
       setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -137,6 +188,18 @@ export default function AdminPage() {
     return onSnapshot(q, snap => {
       setUserReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, () => {});
+  }, [isAdmin, tab]);
+
+  /* ── Propuestas + Acuerdos (conteo único) ───────────── */
+  useEffect(() => {
+    if (!isAdmin || tab !== 'dashboard') return;
+    Promise.all([
+      getDocs(query(collection(db, 'proposals'), limit(1000))),
+      getDocs(query(collection(db, 'matches'),   limit(1000))),
+    ]).then(([p, m]) => {
+      setProposalsCount(p.size);
+      setMatchesCount(m.size);
+    }).catch(() => {});
   }, [isAdmin, tab]);
 
   /* ── Derived counts ─────────────────────────────────── */
@@ -313,43 +376,168 @@ export default function AdminPage() {
         {/* ══════════════════════════════════════════════════
             TAB: DASHBOARD
         ══════════════════════════════════════════════════ */}
-        {tab === 'dashboard' && (
-          <div>
-            <h2 style={{ fontFamily: 'Syne,sans-serif', fontSize: 20, fontWeight: 900, marginBottom: 20, color: 'var(--ink)' }}>
-              Resumen general
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginBottom: 32 }}>
-              <Stat label="Publicaciones activas"  value={activeProducts}  />
-              <Stat label="Publicaciones bloqueadas" value={blockedProducts} color="#E03358" />
-              <Stat label="Denuncias pendientes"   value={pendingReports}   color={pendingReports > 0 ? '#F59E0B' : undefined} />
-              <Stat label="Total usuarios"         value={totalUsers}       />
-              <Stat label="Usuarios verificados"   value={verifiedUsers}    color="#22C55E" />
-              <Stat label="Usuarios baneados"      value={bannedUsers}      color="#E03358" />
-            </div>
+        {tab === 'dashboard' && (() => {
+          // ── Cálculos semanales ───────────────────────────
+          const now        = Date.now();
+          const weekMs     = 7 * 24 * 3600 * 1000;
+          const weekAgo    = now - weekMs;
+          const twoWeekAgo = now - 2 * weekMs;
 
-            <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 15, fontWeight: 800, marginBottom: 14, color: 'var(--ink)' }}>
-              Denuncias recientes
-            </h3>
-            <div className="admin-list" style={{ maxHeight: 340 }}>
-              {reports.filter(r => r.status === 'pending').slice(0, 10).map(r => (
-                <div key={r.id} className="admin-row">
-                  <div className="admin-row-img"><span>🚩</span></div>
-                  <div className="admin-row-info" style={{ flex: 1 }}>
-                    <div className="admin-row-title">{r.productTitle || '(publicación eliminada)'}</div>
-                    <div className="admin-row-meta">
-                      <span className="report-tag">{REASON_LABEL[r.reason] || r.reason}</span>
-                      <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
-                    </div>
+          function tsMs(ts) {
+            if (!ts) return 0;
+            if (ts.toDate) return ts.toDate().getTime();
+            if (ts.seconds) return ts.seconds * 1000;
+            return new Date(ts).getTime();
+          }
+
+          const newUsersThis  = users.filter(u => { const t = tsMs(u.createdAt); return t >= weekAgo; }).length;
+          const newUsersLast  = users.filter(u => { const t = tsMs(u.createdAt); return t >= twoWeekAgo && t < weekAgo; }).length;
+          const newProdsThis  = products.filter(p => { const t = tsMs(p.createdAt); return t >= weekAgo; }).length;
+          const newProdsLast  = products.filter(p => { const t = tsMs(p.createdAt); return t >= twoWeekAgo && t < weekAgo; }).length;
+
+          // ── Top categorías ───────────────────────────────
+          const catCount = {};
+          products.filter(p => p.status === 'active' && p.category).forEach(p => {
+            catCount[p.category] = (catCount[p.category] || 0) + 1;
+          });
+          const topCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+          const maxCat  = topCats[0]?.[1] || 1;
+
+          // ── Tipo de transacción ──────────────────────────
+          const active = products.filter(p => p.status === 'active');
+          const typeCounts = {
+            barter: active.filter(p => p.action === 'cambiar').length,
+            sell:   active.filter(p => p.action === 'vender').length,
+            donate: active.filter(p => p.action === 'donar').length,
+            mixed:  active.filter(p => p.action === 'mixto').length,
+          };
+          const typeTotal = active.length || 1;
+
+          return (
+            <div>
+              {/* ── KPIs principales ── */}
+              <h2 style={{ fontFamily: 'Syne,sans-serif', fontSize: 18, fontWeight: 900, marginBottom: 16, color: 'var(--ink)' }}>
+                Resumen general
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px,1fr))', gap: 12, marginBottom: 28 }}>
+                <Stat label="Activas"     value={activeProducts}  />
+                <Stat label="Bloqueadas"  value={blockedProducts} color="#E03358" />
+                <Stat label="Total pub."  value={products.length} />
+                <Stat label="Usuarios"    value={totalUsers} />
+                <Stat label="Verificados" value={verifiedUsers}   color="#22C55E" />
+                <Stat label="Baneados"    value={bannedUsers}     color="#E03358" />
+                <Stat label="Propuestas"  value={proposalsCount} />
+                <Stat label="Acuerdos"    value={matchesCount}    color="#22C55E" sub="completados" />
+                <Stat label="Denuncias"   value={pendingReports}  color={pendingReports > 0 ? '#F59E0B' : undefined} sub="pendientes" />
+              </div>
+
+              {/* ── Tendencia semanal ── */}
+              <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 14, fontWeight: 800, marginBottom: 12, color: 'var(--ink)' }}>
+                Últimos 7 días
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
+                <TrendCard label="Nuevos usuarios"       thisWeek={newUsersThis} lastWeek={newUsersLast} />
+                <TrendCard label="Nuevas publicaciones"  thisWeek={newProdsThis} lastWeek={newProdsLast} />
+              </div>
+
+              {/* ── Tipo de transacción + Top categorías ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 28, alignItems: 'start' }}>
+
+                <div>
+                  <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 14, fontWeight: 800, marginBottom: 12, color: 'var(--ink)' }}>
+                    Tipo de transacción
+                  </h3>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <TypePill label="Trueque"  count={typeCounts.barter} total={typeTotal} color="#1677FF" />
+                    <TypePill label="Venta"    count={typeCounts.sell}   total={typeTotal} color="#F59E0B" />
+                    <TypePill label="Donación" count={typeCounts.donate} total={typeTotal} color="#22C55E" />
+                    <TypePill label="Mixto"    count={typeCounts.mixed}  total={typeTotal} color="#8B5CF6" />
                   </div>
-                  <button className="btn bo bsm" onClick={() => setTab('reports')}>Ver →</button>
                 </div>
-              ))}
-              {reports.filter(r => r.status === 'pending').length === 0 && (
-                <div className="es"><span className="ei">✅</span><p>Sin denuncias pendientes</p></div>
+
+                <div>
+                  <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 14, fontWeight: 800, marginBottom: 12, color: 'var(--ink)' }}>
+                    Top categorías
+                  </h3>
+                  {topCats.length === 0
+                    ? <p style={{ fontSize: 13, color: 'var(--mu)' }}>Sin datos aún.</p>
+                    : topCats.map(([cat, count]) => (
+                        <CategoryBar key={cat} name={cat} count={count} max={maxCat} />
+                      ))
+                  }
+                </div>
+              </div>
+
+              {/* ── Actividad reciente ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div>
+                  <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 14, fontWeight: 800, marginBottom: 12, color: 'var(--ink)' }}>
+                    Últimos usuarios
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {users.slice(0, 5).map(u => (
+                      <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--sf)', border: '1.5px solid var(--ln)', borderRadius: 10, padding: '10px 14px' }}>
+                        <div className="admin-user-avatar" style={{ width: 32, height: 32, fontSize: 13 }}>
+                          {(u.displayName || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.displayName || '—'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(u.createdAt)}</div>
+                        </div>
+                        {u.verified && <span style={{ fontSize: 10, background: '#DCFCE7', color: '#16A34A', borderRadius: 5, padding: '2px 6px', fontWeight: 700 }}>✓</span>}
+                      </div>
+                    ))}
+                    {users.length === 0 && <p style={{ fontSize: 13, color: 'var(--mu)' }}>Cargando...</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 14, fontWeight: 800, marginBottom: 12, color: 'var(--ink)' }}>
+                    Últimas publicaciones
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {products.filter(p => p.status === 'active').slice(0, 5).map(p => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--sf)', border: '1.5px solid var(--ln)', borderRadius: 10, padding: '10px 14px' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--cd)', border: '1px solid var(--ln)', overflow: 'hidden', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 14 }}>
+                          {p.photos?.[0] ? <img src={p.photos[0]} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📦'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--mu)' }}>{p.ownerName || p.owner} · {fmtDate(p.createdAt)}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {products.length === 0 && <p style={{ fontSize: 13, color: 'var(--mu)' }}>Cargando...</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Denuncias pendientes ── */}
+              {pendingReports > 0 && (
+                <div style={{ marginTop: 28 }}>
+                  <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 14, fontWeight: 800, marginBottom: 12, color: 'var(--ink)' }}>
+                    🚩 Denuncias pendientes
+                  </h3>
+                  <div className="admin-list" style={{ maxHeight: 300 }}>
+                    {reports.filter(r => r.status === 'pending').slice(0, 8).map(r => (
+                      <div key={r.id} className="admin-row">
+                        <div className="admin-row-img"><span>🚩</span></div>
+                        <div className="admin-row-info" style={{ flex: 1 }}>
+                          <div className="admin-row-title">{r.productTitle || '(publicación eliminada)'}</div>
+                          <div className="admin-row-meta">
+                            <span className="report-tag">{REASON_LABEL[r.reason] || r.reason}</span>
+                            <span style={{ fontSize: 11, color: 'var(--mu)' }}>{fmtDate(r.createdAt)}</span>
+                          </div>
+                        </div>
+                        <button className="btn bo bsm" onClick={() => setTab('reports')}>Ver →</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ══════════════════════════════════════════════════
             TAB: PUBLICACIONES
