@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 
 export default function TopBar() {
@@ -7,6 +8,18 @@ export default function TopBar() {
     openModal, unreadNotifs, pendingProposals,
     sidebarPinned, sidebarOpen, setSidebarOpen,
   } = useApp();
+
+  // Debounce: input local → setSearchQuery con 300 ms de retraso
+  const [inputValue, setInputValue] = useState(searchQuery);
+
+  // Sincronizar si searchQuery se limpia externamente (ej: "Limpiar filtros")
+  useEffect(() => { setInputValue(searchQuery); }, [searchQuery]);
+
+  // Aplicar búsqueda después de 300 ms sin escribir
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(inputValue.trim()), 300);
+    return () => clearTimeout(t);
+  }, [inputValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const name      = userData?.displayName || currentUser?.displayName || 'Entrar';
   const initial   = (userData?.displayName || currentUser?.displayName || '?').charAt(0).toUpperCase();
@@ -39,11 +52,11 @@ export default function TopBar() {
           placeholder="Buscar productos, servicios..."
           autoComplete="off"
           maxLength={100}
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
         />
-        {searchQuery ? (
-          <button className="sb sb-clear" onClick={() => setSearchQuery('')} aria-label="Limpiar búsqueda">
+        {inputValue ? (
+          <button className="sb sb-clear" onClick={() => { setInputValue(''); setSearchQuery(''); }} aria-label="Limpiar búsqueda">
             <svg viewBox="0 0 24 24">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>

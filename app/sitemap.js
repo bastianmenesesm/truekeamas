@@ -1,4 +1,5 @@
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb }                       from '@/lib/firebase-admin';
+import { CATEGORIES, categoryToSlug }        from '@/lib/categories';
 
 const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://truekeamas.cl';
 
@@ -11,6 +12,14 @@ export default async function sitemap() {
     { url: `${BASE}/privacidad`,  lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${BASE}/terminos`,    lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
   ];
+
+  // ── Páginas de categoría (estáticas, alta prioridad SEO) ─────────
+  const categoryPages = CATEGORIES.map(c => ({
+    url:             `${BASE}/categoria/${categoryToSlug(c.n)}`,
+    lastModified:    now,
+    changeFrequency: 'daily',
+    priority:        0.9,
+  }));
 
   // ── Páginas dinámicas de productos activos ───────────────────────
   try {
@@ -52,9 +61,9 @@ export default async function sitemap() {
         };
       });
 
-    return [...staticPages, ...productPages, ...userPages];
+    return [...staticPages, ...categoryPages, ...productPages, ...userPages];
   } catch (err) {
     console.error('[sitemap] Error fetching products:', err.message);
-    return staticPages;   // fallback: al menos las páginas estáticas
+    return [...staticPages, ...categoryPages];   // fallback: estáticas + categorías
   }
 }

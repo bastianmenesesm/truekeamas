@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 import { firestoreRateLimit, rateLimitResponse, getClientIp } from '@/lib/rateLimit';
+import { escapeHtml } from '@/lib/validate';
 import crypto from 'crypto';
 
 export async function POST(request) {
@@ -64,15 +65,16 @@ export async function POST(request) {
       },
       to: [{ email, name: userRecord.displayName || email }],
       subject: 'Restablecer contraseña — Truekeamas',
+      // escapeHtml evita XSS si el displayName contiene caracteres HTML
       htmlContent: `
         <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f9f9f9;">
           <div style="background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
             <h1 style="font-size:24px;color:#4B1FA7;margin:0 0 8px;">🔐 Restablecer contraseña</h1>
-            <p style="color:#666;font-size:15px;margin:0 0 24px;">Hola${userRecord.displayName ? ' ' + userRecord.displayName : ''},<br>recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Truekeamas</strong>.</p>
-            <a href="${resetUrl}" style="display:inline-block;background:#4B1FA7;color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;">Restablecer contraseña</a>
+            <p style="color:#666;font-size:15px;margin:0 0 24px;">Hola${userRecord.displayName ? ' ' + escapeHtml(userRecord.displayName) : ''},<br>recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Truekeamas</strong>.</p>
+            <a href="${escapeHtml(resetUrl)}" style="display:inline-block;background:#4B1FA7;color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;">Restablecer contraseña</a>
             <p style="color:#999;font-size:13px;margin:24px 0 0;">Este enlace expira en <strong>30 minutos</strong>. Si no solicitaste este cambio, ignora este correo.</p>
             <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-            <p style="color:#bbb;font-size:11px;margin:0;">O copia este enlace en tu navegador:<br><span style="color:#4B1FA7;word-break:break-all;">${resetUrl}</span></p>
+            <p style="color:#bbb;font-size:11px;margin:0;">O copia este enlace en tu navegador:<br><span style="color:#4B1FA7;word-break:break-all;">${escapeHtml(resetUrl)}</span></p>
           </div>
         </div>
       `,

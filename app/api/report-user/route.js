@@ -1,13 +1,26 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 import { inMemoryRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import { isValidUid, isValidString, isOptionalString, sanitizeText } from '@/lib/validate';
 import admin from 'firebase-admin';
 
 export async function POST(request) {
   try {
-    const { reportedUid, reason, description } = await request.json();
-    if (!reportedUid || !reason) {
+    let body;
+    try { body = await request.json(); }
+    catch { return NextResponse.json({ error: 'Cuerpo de solicitud inválido' }, { status: 400 }); }
+
+    const { reportedUid, reason, description } = body;
+
+    // ── Validación de inputs ────────────────────────────────────────
+    if (!isValidUid(reportedUid)) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
+    }
+    if (!isValidString(reason, 100)) {
+      return NextResponse.json({ error: 'El motivo es obligatorio (máx. 100 caracteres)' }, { status: 400 });
+    }
+    if (!isOptionalString(description, 1000)) {
+      return NextResponse.json({ error: 'La descripción no puede superar 1000 caracteres' }, { status: 400 });
     }
 
     const authHeader = request.headers.get('authorization');
@@ -47,8 +60,8 @@ export async function POST(request) {
       reporterUid,
       reportedUid,
       reportedName: reportedUser.displayName || 'Usuario',
-      reason,
-      description:  description?.trim() || '',
+      reason:       sanitizeText(reason, 100),
+      description:  sanitizeText(description, 1000),
       status:       'pending',
       createdAt:    FieldValue.serverTimestamp(),
     });

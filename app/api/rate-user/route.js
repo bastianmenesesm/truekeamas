@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { isValidUid, isValidId, isInRange, isOptionalString, sanitizeText } from '@/lib/validate';
 import admin from 'firebase-admin';
 
 export async function POST(request) {
@@ -10,8 +11,18 @@ export async function POST(request) {
 
   const { matchId, toUid, stars, comment } = body;
 
-  if (!matchId || !toUid || !stars || stars < 1 || stars > 5) {
-    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
+  // ── Validación de inputs ─────────────────────────────────────────
+  if (!isValidId(matchId)) {
+    return NextResponse.json({ error: 'matchId inválido' }, { status: 400 });
+  }
+  if (!isValidUid(toUid)) {
+    return NextResponse.json({ error: 'toUid inválido' }, { status: 400 });
+  }
+  if (!isInRange(stars, 1, 5)) {
+    return NextResponse.json({ error: 'La calificación debe ser entre 1 y 5' }, { status: 400 });
+  }
+  if (!isOptionalString(comment, 500)) {
+    return NextResponse.json({ error: 'El comentario no puede superar 500 caracteres' }, { status: 400 });
   }
 
   // ── 2. Verify auth token ───────────────────────────────────────
@@ -70,7 +81,7 @@ export async function POST(request) {
       toUid,
       matchId,
       stars:         Number(stars),
-      comment:       comment?.trim() || '',
+      comment:       sanitizeText(comment, 500),
       fromName:      fromUser.displayName  || 'Usuario',
       fromAvatarUrl: fromUser.avatarUrl    || null,
       createdAt:     FieldValue.serverTimestamp(),

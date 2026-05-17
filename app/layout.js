@@ -50,6 +50,49 @@ export const metadata = {
   },
 };
 
+/* ── JSON-LD: Organization + WebSite (Google Knowledge Panel + Sitelinks Searchbox) ── */
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id':    `${BASE_URL}/#organization`,
+      name:     'Truekeamas',
+      url:       BASE_URL,
+      logo: {
+        '@type':       'ImageObject',
+        url:            `${BASE_URL}/favicon-96x96.png`,
+        width:          96,
+        height:         96,
+      },
+      description: 'Plataforma de trueque digital en Chile. Intercambia, vende o dona artículos con personas de todo el país.',
+      contactPoint: {
+        '@type':             'ContactPoint',
+        contactType:         'customer service',
+        email:               'contacto@truekeamas.cl',
+        availableLanguage:   'Spanish',
+      },
+      sameAs: ['https://www.instagram.com/truekeamas'],
+      areaServed: { '@type': 'Country', name: 'Chile' },
+    },
+    {
+      '@type': 'WebSite',
+      '@id':    `${BASE_URL}/#website`,
+      url:       BASE_URL,
+      name:     'Truekeamas',
+      publisher: { '@id': `${BASE_URL}/#organization` },
+      potentialAction: {
+        '@type':  'SearchAction',
+        target: {
+          '@type':      'EntryPoint',
+          urlTemplate:  `${BASE_URL}/?q={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+  ],
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
@@ -82,6 +125,11 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        {/* Organization + WebSite structured data — aparece en Google Knowledge Panel */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
         <AppProvider>
           {children}
           <PWAProvider />
