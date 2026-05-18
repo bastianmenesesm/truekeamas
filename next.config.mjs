@@ -44,10 +44,8 @@ const nextConfig = {
     ];
   },
 
-  // Proxy de Firebase Auth handler para que signInWithRedirect funcione
-  // cuando authDomain = 'truekeamas.cl'. El flujo queda:
-  //   truekeamas.cl → Google → truekeamas.cl/__/auth/handler → truekeamas.cl
-  // (nunca cruza a truekeamas.firebaseapp.com, así no se pierde la sesión móvil)
+  // Proxy Firebase Auth handler: el redirect queda en truekeamas.cl todo el tiempo
+  // Google → truekeamas.cl/__/auth/handler → (proxy) → truekeamas.firebaseapp.com/__/auth/handler
   async rewrites() {
     return [
       {

@@ -61,13 +61,12 @@ function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
 /* ── Detectar si debe usar redirect en vez de popup ───────────── */
 function shouldUseRedirect() {
   if (typeof window === 'undefined') return false;
-  // iOS Safari (standalone y navegador normal) bloquea window.open() →
-  // el popup lanza auth/operation-not-supported-in-this-environment.
-  // En Android standalone Chrome Custom Tab funciona, pero usamos redirect
-  // igual para consistencia. authDomain = truekeamas.cl garantiza que la
-  // cadena queda en el mismo dominio: Google → truekeamas.cl/__/auth/handler
-  // → truekeamas.cl (sin cruzar a .firebaseapp.com, sin perder sesión).
-  const isIOS       = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  // iOS Safari bloquea window.open() → usamos redirect.
+  // Android standalone (acceso directo) también usa redirect para evitar
+  // que el Custom Tab pierda la sesión al volver a la PWA.
+  // authDomain = truekeamas.cl + proxy /__/auth/* garantiza que todo
+  // el flujo queda en el mismo dominio, sin perder la sesión.
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                        window.navigator.standalone === true;
   return isIOS || isStandalone;
