@@ -60,16 +60,13 @@ function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
 
 /* ── Detectar si debe usar redirect en vez de popup ───────────── */
 function shouldUseRedirect() {
-  if (typeof window === 'undefined') return false;
-  // iOS Safari bloquea window.open() → usamos redirect.
-  // Android standalone (acceso directo) también usa redirect para evitar
-  // que el Custom Tab pierda la sesión al volver a la PWA.
-  // authDomain = truekeamas.cl + proxy /__/auth/* garantiza que todo
-  // el flujo queda en el mismo dominio, sin perder la sesión.
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                       window.navigator.standalone === true;
-  return isIOS || isStandalone;
+  // Siempre popup:
+  // - Android (standalone o navegador): abre Chrome Custom Tab → funciona perfecto
+  // - Desktop: popup normal
+  // - iOS: popup abre nueva pestaña Safari; si falla, el catch muestra mensaje de ayuda
+  // signInWithRedirect se descartó porque getRedirectResult() pierde la sesión
+  // en Chrome Android cuando el handler cruza a truekeamas.firebaseapp.com
+  return false;
 }
 
 /* ── Nivel automático de usuario ──────────────────────────────── */
@@ -556,12 +553,15 @@ export function AppProvider({ children }) {
       cred = await signInWithPopup(auth, provider);
     } catch (popupErr) {
       const code = popupErr?.code || '';
+      if (code === 'auth/popup-cancelled-by-user') {
+        // Usuario cerró el popup voluntariamente → no hacer nada
+        return;
+      }
       if (code === 'auth/popup-blocked' ||
-          code === 'auth/popup-cancelled-by-user' ||
           code === 'auth/operation-not-supported-in-this-environment') {
-        // Popup bloqueado (iOS Safari standalone) → fallback a redirect
-        // authDomain = truekeamas.cl garantiza que el redirect no cruce dominios
-        await signInWithRedirect(auth, provider);
+        // iOS Safari standalone bloquea window.open().
+        // Pedimos al usuario que abra desde Safari directamente.
+        showToast('Abre truekeamas.cl en Safari para iniciar sesión con Google.');
         return;
       }
       throw popupErr;

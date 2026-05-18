@@ -44,21 +44,6 @@ const nextConfig = {
     ];
   },
 
-  // Proxy Firebase Auth handler: el redirect queda en truekeamas.cl todo el tiempo
-  // Google → truekeamas.cl/__/auth/handler → (proxy) → truekeamas.firebaseapp.com/__/auth/handler
-  async rewrites() {
-    return [
-      {
-        source: '/__/auth/:path*',
-        destination: 'https://truekeamas.firebaseapp.com/__/auth/:path*',
-      },
-      {
-        source: '/__/firebase/init.json',
-        destination: 'https://truekeamas.firebaseapp.com/__/firebase/init.json',
-      },
-    ];
-  },
-
   images: {
     // Dominios externos permitidos para next/image
     remotePatterns: [
