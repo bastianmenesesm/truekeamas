@@ -60,13 +60,17 @@ function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
 
 /* ── Detectar si debe usar redirect en vez de popup ───────────── */
 function shouldUseRedirect() {
-  // Siempre usamos popup. signInWithRedirect falla en modo standalone/PWA
-  // porque Chrome móvil pierde la sesión de Firebase al volver desde
-  // accounts.google.com → truekeamas.firebaseapp.com → truekeamas.cl.
-  // El popup abre un Chrome Custom Tab (Android) o nueva pestaña (iOS) y
-  // retorna el resultado directamente, sin redirecciones entre dominios.
-  // Si el popup está bloqueado, el catch de socialLogin cae en redirect.
-  return false;
+  if (typeof window === 'undefined') return false;
+  // iOS Safari (standalone y navegador normal) bloquea window.open() →
+  // el popup lanza auth/operation-not-supported-in-this-environment.
+  // En Android standalone Chrome Custom Tab funciona, pero usamos redirect
+  // igual para consistencia. authDomain = truekeamas.cl garantiza que la
+  // cadena queda en el mismo dominio: Google → truekeamas.cl/__/auth/handler
+  // → truekeamas.cl (sin cruzar a .firebaseapp.com, sin perder sesión).
+  const isIOS       = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       window.navigator.standalone === true;
+  return isIOS || isStandalone;
 }
 
 /* ── Nivel automático de usuario ──────────────────────────────── */
@@ -552,8 +556,12 @@ export function AppProvider({ children }) {
       await setPersistence(auth, browserSessionPersistence);
       cred = await signInWithPopup(auth, provider);
     } catch (popupErr) {
-      if (popupErr?.code === 'auth/popup-blocked' ||
-          popupErr?.code === 'auth/popup-cancelled-by-user') {
+      const code = popupErr?.code || '';
+      if (code === 'auth/popup-blocked' ||
+          code === 'auth/popup-cancelled-by-user' ||
+          code === 'auth/operation-not-supported-in-this-environment') {
+        // Popup bloqueado (iOS Safari standalone) → fallback a redirect
+        // authDomain = truekeamas.cl garantiza que el redirect no cruce dominios
         await signInWithRedirect(auth, provider);
         return;
       }

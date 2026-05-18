@@ -57,8 +57,9 @@ function LandingCard({ p, onLoginGate, onDetail }) {
 }
 
 export default function LandingPage() {
-  const { products, stats, searchQuery, setSearchQuery, openModal, activeCategory, setActiveCategory } = useApp();
-  const totalLikes = products.reduce((sum, p) => sum + (p.likes || 0), 0);
+  const { products, searchQuery, setSearchQuery, openModal, activeCategory, setActiveCategory } = useApp();
+  const activeProducts = products.filter(p => p.status === 'active');
+  const totalLikes = activeProducts.reduce((sum, p) => sum + (p.likes || 0), 0);
   const [sortBy, setSortBy] = useState('likes');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -77,7 +78,7 @@ export default function LandingPage() {
     })
     .slice(0, 24);
 
-  const allCount  = products.filter(p => p.status === 'active').length;
+  const allCount  = activeProducts.length;
 
   function loginGate() { openModal('auth'); }
 
@@ -139,7 +140,7 @@ export default function LandingPage() {
               </button>
             </div>
             <div className="l-hero-stats">
-              <div className="l-stat"><strong>{stats.products}</strong><span>Publicaciones</span></div>
+              <div className="l-stat"><strong>{allCount}</strong><span>Publicaciones</span></div>
               <div className="l-stat"><strong>{totalLikes}</strong><span>Likes</span></div>
             </div>
           </div>

@@ -12,7 +12,8 @@ const CSP = [
   // Conexiones: Firebase Auth, Firestore, Realtime DB (wss), Cloudinary upload
   "connect-src 'self' https://*.googleapis.com https://*.google.com wss://*.firebaseio.com https://*.firebaseio.com https://res.cloudinary.com https://api.cloudinary.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://www.google-analytics.com https://analytics.google.com https://vitals.vercel-insights.com",
   // Frames: Google Sign-in popup, Firebase Auth redirect y reCAPTCHA
-  "frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com",
+  // 'self' necesario para el iframe de auth handler cuando authDomain = truekeamas.cl
+  "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com",
   "object-src 'none'",   // bloquea Flash y plugins
   "base-uri 'self'",     // evita inyección de <base>
   "form-action 'self'",  // formularios solo a mismo origen
@@ -39,6 +40,23 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: securityHeaders,
+      },
+    ];
+  },
+
+  // Proxy de Firebase Auth handler para que signInWithRedirect funcione
+  // cuando authDomain = 'truekeamas.cl'. El flujo queda:
+  //   truekeamas.cl → Google → truekeamas.cl/__/auth/handler → truekeamas.cl
+  // (nunca cruza a truekeamas.firebaseapp.com, así no se pierde la sesión móvil)
+  async rewrites() {
+    return [
+      {
+        source: '/__/auth/:path*',
+        destination: 'https://truekeamas.firebaseapp.com/__/auth/:path*',
+      },
+      {
+        source: '/__/firebase/init.json',
+        destination: 'https://truekeamas.firebaseapp.com/__/firebase/init.json',
       },
     ];
   },
