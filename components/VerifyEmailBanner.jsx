@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export default function VerifyEmailBanner() {
@@ -17,15 +16,17 @@ export default function VerifyEmailBanner() {
     if (sending || sent) return;
     setSending(true);
     try {
-      await sendEmailVerification(auth.currentUser);
+      const idToken = await auth.currentUser.getIdToken();
+      const res     = await fetch('/api/send-verification', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ idToken }),
+      });
+      if (!res.ok) throw new Error('error');
       setSent(true);
       showToast('Correo enviado. Revisa tu bandeja (y la carpeta spam).');
-    } catch (err) {
-      if (err?.code === 'auth/too-many-requests') {
-        showToast('Demasiados intentos. Espera unos minutos e intenta de nuevo.');
-      } else {
-        showToast('No se pudo enviar el correo. Intenta más tarde.');
-      }
+    } catch {
+      showToast('No se pudo enviar el correo. Intenta más tarde.');
     } finally {
       setSending(false);
     }

@@ -844,7 +844,7 @@ export function AppProvider({ children }) {
   }
 
   const value = {
-    currentUser, userData, authLoading, isAdmin,
+    currentUser, setCurrentUser, userData, authLoading, isAdmin,
     products, saved, modal, toast,
     activeCategory, setActiveCategory,
     searchQuery, setSearchQuery,
