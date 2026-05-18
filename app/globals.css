@@ -52,6 +52,9 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  /* Desactiva el bounce nativo de iOS para que el pull-to-refresh
+     del componente PullToRefresh funcione correctamente */
+  overscroll-behavior-y: none;
 }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; border: none; background: none; }
@@ -878,6 +881,7 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .sp { display: inline-block; width: 20px; height: 20px; border: 2.5px solid rgba(27,111,202,.2); border-top-color: var(--v); border-radius: 50%; animation: spin .65s linear infinite; }
 .sp2 { width: 40px; height: 40px; border-width: 3.5px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
 
 /* ─────────────────────────────────────────────
    LANDING PAGE

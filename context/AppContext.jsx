@@ -60,12 +60,13 @@ function showBrowserNotif({ title = 'Truekeamas', body = '' } = {}) {
 
 /* ── Detectar si debe usar redirect en vez de popup ───────────── */
 function shouldUseRedirect() {
-  if (typeof window === 'undefined') return false;
-  // Solo para PWA instalada (standalone). En navegadores móviles normales
-  // el popup funciona y es más confiable que el redirect (que falla con
-  // cookies de terceros bloqueadas en Safari iOS / Chrome móvil).
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         window.navigator.standalone === true;
+  // Siempre usamos popup. signInWithRedirect falla en modo standalone/PWA
+  // porque Chrome móvil pierde la sesión de Firebase al volver desde
+  // accounts.google.com → truekeamas.firebaseapp.com → truekeamas.cl.
+  // El popup abre un Chrome Custom Tab (Android) o nueva pestaña (iOS) y
+  // retorna el resultado directamente, sin redirecciones entre dominios.
+  // Si el popup está bloqueado, el catch de socialLogin cae en redirect.
+  return false;
 }
 
 /* ── Nivel automático de usuario ──────────────────────────────── */
