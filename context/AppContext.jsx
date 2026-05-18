@@ -755,6 +755,11 @@ export function AppProvider({ children }) {
 
   /* ── Floating chat dock ───────────────────── */
   function openChatWindow(mid, prod) {
+    // Marcar como leídas todas las notificaciones de mensajes de este chat
+    notifications
+      .filter(n => !n.read && n.type === 'new_message' && n.chatId === mid)
+      .forEach(n => markNotifRead(n.id));
+
     setOpenChats(prev => {
       const exists = prev.find(c => c.mid === mid);
       if (exists) return prev.map(c => c.mid === mid ? { ...c, minimized: false } : c);

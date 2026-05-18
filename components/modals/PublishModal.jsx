@@ -185,6 +185,8 @@ export default function PublishModal() {
     if (!title) { showToast('Agrega un título.'); return; }
     if (!selectedCat) { showToast('Elige una categoría.'); return; }
 
+    if (photos.length === 0) { showToast('Agrega al menos una foto de tu publicación.'); return; }
+
     const price = fd.get('price') ? Number(fd.get('price')) : null;
     if ((action === 'vender' || action === 'mixto') && (!price || price <= 0)) {
       showToast('Ingresa un precio para este tipo de publicación.'); return;
@@ -417,7 +419,8 @@ export default function PublishModal() {
           {/* Fotos */}
           <div className="pub-photos-section">
             <div className="pub-photos-label">
-              📷 Fotos <span style={{ color: 'var(--mu)', fontWeight: 400 }}>(hasta 5)</span>
+              📷 Fotos <span style={{ color: 'var(--dg)', fontWeight: 700 }}>*</span>
+              <span style={{ color: 'var(--mu)', fontWeight: 400, fontSize: 12 }}> (mínimo 1, hasta 5)</span>
             </div>
             <div className="pub-photos-row">
               {photos.map((ph, i) => (
