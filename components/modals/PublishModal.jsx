@@ -127,13 +127,14 @@ function getTitlePlaceholder(cat, sub, action) {
 }
 
 export default function PublishModal() {
-  const { currentUser, publishProduct, closeModal, showToast, openModal } = useApp();
+  const { currentUser, userData, publishProduct, closeModal, showToast, openModal } = useApp();
 
   const [step, setStep]           = useState(1);
   const [action, setAction]       = useState('');
   const [selectedCat, setSelectedCat] = useState('');
   const [selectedSub, setSelectedSub] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState(() => userData?.region || '');
+  const [selectedCommune, setSelectedCommune] = useState(() => userData?.commune || '');
   const [photos, setPhotos]       = useState([]);
   const [progress, setProgress]   = useState(0);
   const [loading, setLoading]     = useState(false);
@@ -186,6 +187,8 @@ export default function PublishModal() {
     if (!selectedCat) { showToast('Elige una categoría.'); return; }
 
     if (photos.length === 0) { showToast('Agrega al menos una foto de tu publicación.'); return; }
+    if (!selectedRegion)    { showToast('La región es obligatoria.'); return; }
+    if (!selectedCommune)   { showToast('La comuna es obligatoria.'); return; }
 
     const price = fd.get('price') ? Number(fd.get('price')) : null;
     if ((action === 'vender' || action === 'mixto') && (!price || price <= 0)) {
@@ -207,8 +210,8 @@ export default function PublishModal() {
         subcategory: selectedSub || '',
         condition:   fd.get('condition') || '',
         price:       price || null,
-        region:      selectedRegion || '',
-        commune:     fd.get('commune') || '',
+        region:      selectedRegion,
+        commune:     selectedCommune,
         wants:       fd.get('wants') || '',
         description: fd.get('description') || '',
         emoji:       catObj?.e || '📦',
@@ -388,26 +391,29 @@ export default function PublishModal() {
           {/* Región + Comuna en la misma fila */}
           <div className="pub-location-row">
             <label className="fd" style={{ flex: 1 }}>
-              Región
+              Región <span style={{ color: 'var(--dg)' }}>*</span>
               <select
                 name="region"
                 value={selectedRegion}
-                onChange={e => { setSelectedRegion(e.target.value); }}
+                onChange={e => { setSelectedRegion(e.target.value); setSelectedCommune(''); }}
               >
-                <option value="">— Región —</option>
+                <option value="">— Selecciona región —</option>
                 {REGIONES_CHILE.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </label>
 
-            {communes.length > 0 && (
-              <label className="fd" style={{ flex: 1 }}>
-                Comuna
-                <select name="commune" defaultValue="">
-                  <option value="">— Comuna —</option>
-                  {communes.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </label>
-            )}
+            <label className="fd" style={{ flex: 1 }}>
+              Comuna <span style={{ color: 'var(--dg)' }}>*</span>
+              <select
+                name="commune"
+                value={selectedCommune}
+                onChange={e => setSelectedCommune(e.target.value)}
+                disabled={!selectedRegion}
+              >
+                <option value="">{selectedRegion ? '— Selecciona comuna —' : '— Primero elige región —'}</option>
+                {communes.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
           </div>
 
           {/* Descripción libre */}
