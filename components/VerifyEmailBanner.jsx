@@ -5,7 +5,7 @@ import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export default function VerifyEmailBanner() {
-  const { currentUser } = useApp();
+  const { currentUser, showToast } = useApp();
   const [dismissed, setDismissed] = useState(false);
   const [sent,      setSent]      = useState(false);
   const [sending,   setSending]   = useState(false);
@@ -19,8 +19,13 @@ export default function VerifyEmailBanner() {
     try {
       await sendEmailVerification(auth.currentUser);
       setSent(true);
-    } catch {
-      // Firebase limita el envío — ignorar silenciosamente
+      showToast('Correo enviado. Revisa tu bandeja (y la carpeta spam).');
+    } catch (err) {
+      if (err?.code === 'auth/too-many-requests') {
+        showToast('Demasiados intentos. Espera unos minutos e intenta de nuevo.');
+      } else {
+        showToast('No se pudo enviar el correo. Intenta más tarde.');
+      }
     } finally {
       setSending(false);
     }
