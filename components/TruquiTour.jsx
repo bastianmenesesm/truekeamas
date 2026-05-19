@@ -51,6 +51,17 @@ const STEPS = [
 const PAD    = 14;   // padding alrededor del elemento destacado
 const CARD_W = 320;  // ancho de la tarjeta
 
+/* Devuelve el primer elemento con ese selector que sea visible en pantalla */
+function findVisible(selector) {
+  if (!selector) return null;
+  const els = document.querySelectorAll(selector);
+  for (const el of els) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return el;
+  }
+  return null;
+}
+
 /* ─── Componente ──────────────────────────────────────────────────────────── */
 export default function TruquiTour() {
   const [active, setActive] = useState(false);
@@ -58,6 +69,7 @@ export default function TruquiTour() {
   const [spot,   setSpot]   = useState(null);  // rect del spotlight
   const [pos,    setPos]    = useState(null);  // posición de la tarjeta
   const [vis,    setVis]    = useState(false); // listo para fade-in
+  const [tick,   setTick]   = useState(0);     // fuerza recalcular al resize
   const timerRef = useRef(null);
 
   /* ── Escuchar evento externo (desde TruquiBot) ─────────────────────── */
@@ -82,14 +94,14 @@ export default function TruquiTour() {
     return () => { document.body.style.overflow = ''; };
   }, [active]);
 
-  /* ── Calcular posiciones al cambiar de paso ────────────────────────── */
+  /* ── Calcular posiciones al cambiar de paso o resize ──────────────── */
   useEffect(() => {
     if (!active) return;
     setVis(false);
     clearTimeout(timerRef.current);
 
     const { selector } = STEPS[step];
-    const el = selector ? document.querySelector(selector) : null;
+    const el = findVisible(selector);
 
     if (!el) {
       // Elemento no encontrado → tarjeta centrada, sin spotlight
@@ -148,12 +160,12 @@ export default function TruquiTour() {
     }, 360);
 
     return () => clearTimeout(timerRef.current);
-  }, [step, active]);
+  }, [step, active, tick]);
 
   /* ── Recalcular al redimensionar ventana ────────────────────────────── */
   useEffect(() => {
     if (!active) return;
-    const onResize = () => { setVis(false); setStep(s => s); }; // re-trigger
+    const onResize = () => setTick(t => t + 1);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [active]);

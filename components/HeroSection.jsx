@@ -25,7 +25,7 @@ export default function HeroSection() {
             <button style={{ color: 'var(--mu)', padding: '2px 6px', borderRadius: 6 }} onClick={() => setSearchQuery('')}>✕</button>
           )}
         </div>
-        <button className="btn bv" style={{ padding: '10px 20px', flexShrink: 0 }} onClick={() => openModal('publish')}>
+        <button className="btn bv" data-tour="publish" style={{ padding: '10px 20px', flexShrink: 0 }} onClick={() => openModal('publish')}>
           + Publicar
         </button>
       </div>
