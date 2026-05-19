@@ -25,8 +25,13 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isAdmin() ||
         (isOwner(userId) && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['phone']) ||
-          resource.data.get('phone', '') == ''
+          // El dueño NUNCA puede modificar su propio rol (previene escalada de privilegios)
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) &&
+          // El campo 'phone' solo se puede modificar si estaba vacío; si no, va por solicitud aprobada por admin
+          (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['phone']) ||
+            resource.data.get('phone', '') == ''
+          )
         ));
       allow delete: if isAdmin();
     }

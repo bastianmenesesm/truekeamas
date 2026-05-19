@@ -713,17 +713,12 @@ export function AppProvider({ children }) {
 
   async function markProductSold(id) {
     if (!currentUser) throw new Error('No autenticado');
-    const idToken = await currentUser.getIdToken();
-    const res = await fetch('/api/delete-product', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-      body: JSON.stringify({ productId: id }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || 'Error al completar la publicación');
-    }
-    setProducts(prev => prev.filter(p => p.id !== id));
+    const snap = await getDoc(doc(db, 'products', id));
+    if (!snap.exists()) throw new Error('Publicación no encontrada');
+    if (snap.data().ownerId !== currentUser.uid && !isAdmin) throw new Error('Sin permiso');
+    // Solo cambia el status — NO borra el documento, fotos ni historial de propuestas/chats
+    await updateDoc(doc(db, 'products', id), { status: 'sold', soldAt: serverTimestamp() });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'sold' } : p));
   }
 
   async function reactivateProduct(id) {
