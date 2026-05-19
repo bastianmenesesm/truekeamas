@@ -1,15 +1,16 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
 import {
   collection, addDoc, query, orderBy, onSnapshot, serverTimestamp,
 } from 'firebase/firestore';
 
-const BOT_NAME = 'TruQuiBot';
+const BOT_NAME = 'Truqui';
 
 const RESPONSES = [
-  { keys: ['hola', 'hey', 'buenas', 'saludos'], reply: '¡Hola! 👋 Soy TruQuiBot, tu asistente de trueque. ¿En qué puedo ayudarte?' },
+  { keys: ['hola', 'hey', 'buenas', 'saludos'], reply: '¡Hola! 👋 Soy Truqui, tu asistente de trueque. ¿En qué puedo ayudarte?' },
   { keys: ['trueque', 'intercambio', 'cómo funciona', 'como funciona'], reply: 'El trueque es simple: publicas lo que tienes, encuentras lo que necesitas y coordinan el intercambio directamente. ¡Sin dinero de por medio! 🔄' },
   { keys: ['publicar', 'publico', 'subir producto'], reply: 'Para publicar: inicia sesión → clic en "Publicar ahora" → sube hasta 2 fotos y completa el formulario. ¡Listo en segundos! ✍️' },
   { keys: ['match', 'acordar', 'contactar'], reply: 'Haz clic en 🤝 Match en cualquier publicación para abrir un chat privado y coordinar el trueque.' },
@@ -39,7 +40,7 @@ export default function TruQuiBot() {
   const { currentUser, userData } = useApp();
   const [open,    setOpen]    = useState(false);
   const [mode,    setMode]    = useState('bot');      // 'bot' | 'support'
-  const [messages, setMessages] = useState([{ from: 'bot', text: '¡Hola! Soy TruQuiBot 🤖 ¿En qué puedo ayudarte hoy?' }]);
+  const [messages, setMessages] = useState([{ from: 'bot', text: '¡Hola! Soy Truqui 👋 ¿En qué puedo ayudarte hoy?' }]);
   const [input,   setInput]   = useState('');
   const [typing,  setTyping]  = useState(false);
 
@@ -177,7 +178,10 @@ export default function TruQuiBot() {
   return (
     <>
       <button className="tfab" onClick={() => setOpen(o => !o)} title={BOT_NAME} style={{ position: 'relative' }}>
-        {open ? '×' : '🤖'}
+        {open
+          ? <span style={{ fontSize: 24, lineHeight: 1 }}>×</span>
+          : <Image src="/truqui.png" alt="Truqui" width={44} height={44} style={{ objectFit: 'contain', display: 'block' }} priority />
+        }
         {!open && unreadAdmin > 0 && (
           <span style={{ position: 'absolute', top: 2, right: 2, background: '#E03358', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 800, display: 'grid', placeItems: 'center' }}>
             {unreadAdmin}
@@ -191,9 +195,12 @@ export default function TruQuiBot() {
         {mode === 'bot' && (
           <>
             <div className="tph">
-              <div>
-                <h4>🤖 {BOT_NAME}</h4>
-                <p>Asistente de trueque</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Image src="/truqui.png" alt="Truqui" width={36} height={36} style={{ objectFit: 'contain' }} />
+                <div>
+                  <h4 style={{ margin: 0 }}>{BOT_NAME}</h4>
+                  <p style={{ margin: 0 }}>Asistente de trueque</p>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {ticketId && (
