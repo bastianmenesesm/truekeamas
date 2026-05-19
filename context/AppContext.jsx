@@ -259,6 +259,23 @@ export function AppProvider({ children }) {
           }
         });
       }
+      if (!notifInitRef.current) {
+        // Primera carga: limpiar notificaciones huérfanas en segundo plano
+        const staleMsg = list.filter(n => !n.read && n.type === 'new_message' && n.chatId);
+        if (staleMsg.length) {
+          Promise.all(
+            staleMsg.map(n =>
+              getDoc(doc(db, 'matches', n.chatId))
+                .then(snap => ({ n, valid: snap.exists() && !snap.data()?.archived }))
+                .catch(() => ({ n, valid: false }))
+            )
+          ).then(results => {
+            results.filter(r => !r.valid).forEach(r =>
+              updateDoc(doc(db, 'notifications', currentUser.uid, 'items', r.n.id), { read: true }).catch(() => {})
+            );
+          });
+        }
+      }
       notifInitRef.current = true;
       setNotifications(list);
     }, () => {});
@@ -336,6 +353,16 @@ export function AppProvider({ children }) {
       setProducts(list);
       setHasMoreProducts(docs.length === PAGE_SIZE);
       setStats(prev => ({ ...prev, products: list.length }));
+      // Limpiar saved: eliminar IDs de productos que ya no existen
+      const ids = new Set(list.map(p => p.id));
+      setSaved(prev => {
+        const clean = prev.filter(id => ids.has(id));
+        if (clean.length !== prev.length) {
+          localStorage.setItem('tk_s', JSON.stringify(clean));
+          return clean;
+        }
+        return prev;
+      });
     } catch { }
     finally { setProductsLoading(false); }
   }
@@ -414,6 +441,29 @@ export function AppProvider({ children }) {
     await Promise.all(unread.map(n =>
       updateDoc(doc(db, 'notifications', currentUser.uid, 'items', n.id), { read: true }).catch(() => {})
     ));
+  }
+
+  /* ── Limpiar notificaciones huérfanas (chats/propuestas eliminadas) ── */
+  async function cleanStaleNotifs() {
+    if (!currentUser) return;
+    const unread = notifications.filter(n => !n.read);
+    if (!unread.length) return;
+
+    // Verificar notificaciones de mensajes: el match debe existir y no estar archivado
+    const messageNotifs = unread.filter(n => n.type === 'new_message' && n.chatId);
+    if (messageNotifs.length) {
+      const checks = await Promise.all(
+        messageNotifs.map(n =>
+          getDoc(doc(db, 'matches', n.chatId))
+            .then(snap => ({ n, exists: snap.exists() && !snap.data()?.archived }))
+            .catch(() => ({ n, exists: false }))
+        )
+      );
+      const stale = checks.filter(c => !c.exists).map(c => c.n);
+      await Promise.all(stale.map(n =>
+        updateDoc(doc(db, 'notifications', currentUser.uid, 'items', n.id), { read: true }).catch(() => {})
+      ));
+    }
   }
 
   /* ── Message notification ─────────────────── */
@@ -805,6 +855,10 @@ export function AppProvider({ children }) {
     });
     // Cerrar la ventana flotante si estaba abierta
     closeChatWindow(matchId);
+    // Marcar como leídas las notificaciones de ese chat para limpiar el contador
+    notifications
+      .filter(n => !n.read && n.chatId === matchId)
+      .forEach(n => markNotifRead(n.id));
   }
 
   /* ── Completar acuerdo ────────────────────────────────────────── */

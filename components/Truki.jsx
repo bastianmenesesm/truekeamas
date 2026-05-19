@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 /* ═══════════════════════════════════════════════════════════
    NORMALIZACIÓN Y MATCHING
@@ -265,12 +265,37 @@ export default function Truki() {
   const [messages,  setMessages]  = useState([]);
   const [input,     setInput]     = useState('');
   const [typing,    setTyping]    = useState(false);
-  const [flow,      setFlow]      = useState(null);   // null | 'admin_1' | 'admin_email'
+  const [flow,      setFlow]      = useState(null);   // null | 'admin_1' | 'admin_email' | 'support_live'
   const [adminMsg,  setAdminMsg]  = useState('');
   const [inited,    setInited]    = useState(false);
+  const [ticketId,  setTicketId]  = useState(null);  // active support ticket
 
-  const bottomRef = useRef(null);
-  const inputRef  = useRef(null);
+  const bottomRef       = useRef(null);
+  const inputRef        = useRef(null);
+  const shownAdminMsgs  = useRef(new Set());          // prevent duplicate admin replies
+
+  /* ── Escuchar respuestas del admin en el ticket activo ── */
+  useEffect(() => {
+    if (!ticketId) return;
+    const q = query(
+      collection(db, 'support', ticketId, 'messages'),
+      orderBy('createdAt', 'asc')
+    );
+    const unsub = onSnapshot(q, snap => {
+      snap.docs.forEach(d => {
+        if (d.data().from === 'admin' && !shownAdminMsgs.current.has(d.id)) {
+          shownAdminMsgs.current.add(d.id);
+          addBotMsg(
+            `🛡️ **Soporte Truekeamas:**\n${d.data().text}`,
+            ['💬 Responder al equipo', '✅ Gracias, listo'],
+          );
+          // Abrir el panel si estaba cerrado
+          setOpen(true);
+        }
+      });
+    }, () => {});
+    return unsub;
+  }, [ticketId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Scroll al último mensaje */
   useEffect(() => {
@@ -298,28 +323,40 @@ export default function Truki() {
     setMessages(prev => [...prev, { id: Date.now() + Math.random(), from:'user', text }]);
   }
 
-  /* ── Crear ticket de soporte ── */
+  /* ── Crear ticket de soporte — devuelve el ticketId ── */
   async function createTicket(message, email) {
     try {
-      await addDoc(collection(db, 'support'), {
+      const senderName = userData?.displayName || currentUser?.displayName || 'Anónimo';
+      const ref = await addDoc(collection(db, 'support'), {
         uid:       currentUser?.uid || null,
-        userName:  userData?.displayName || currentUser?.displayName || 'Anónimo',
-        userEmail: email,
+        name:      senderName,
+        email,
         message,
         status:    'pending',
         createdAt: serverTimestamp(),
+      });
+      // Añadir el primer mensaje a la subcollección para el chat bidireccional
+      await addDoc(collection(db, 'support', ref.id, 'messages'), {
+        text:       message,
+        from:       'user',
+        senderName,
+        createdAt:  serverTimestamp(),
       });
       // Notificar a todos los admins
       const adminsSnap = await getDocs(query(collection(db,'users'), where('role','==','admin')));
       await Promise.all(adminsSnap.docs.map(d =>
         addDoc(collection(db,'notifications', d.id,'items'), {
           type:  'support_ticket',
-          title: '📨 Nueva consulta de soporte — Truki',
+          title: '📨 Nueva consulta de soporte — Truqui',
           body:  message.length > 65 ? message.slice(0,62)+'...' : message,
           read:  false, createdAt: serverTimestamp(),
         }).catch(() => {})
       ));
-    } catch (e) { console.error('Truki ticket error:', e); }
+      return ref.id;
+    } catch (e) {
+      console.error('Truki ticket error:', e);
+      return null;
+    }
   }
 
   /* ── Flujos especiales ── */
@@ -328,12 +365,18 @@ export default function Truki() {
       setAdminMsg(userText);
       if (currentUser?.email || userData?.email) {
         const email = currentUser?.email || userData?.email;
-        await createTicket(userText, email);
-        addBotMsg(
-          `¡Listo po! 🎉 Ya le avisé al equipo de Truekeamas.\n\nRevisarán tu consulta y te responderán a **${email}**.\n\nTambién puedes escribirnos directo a **contacto@truekeamas.cl** 📧`,
-          ['🔄 ¿En qué más te ayudo?'],
-        );
-        setFlow(null);
+        const newId = await createTicket(userText, email);
+        if (newId) {
+          setTicketId(newId);
+          addBotMsg(
+            `¡Mensaje enviado po! 💬 El equipo de Truekeamas ya lo recibió.\n\n**Responderemos aquí mismo** en cuanto podamos. También puedes escribirnos a **contacto@truekeamas.cl** 📧\n\n¿Quieres agregar algo más?`,
+            [],
+          );
+          setFlow('support_live');
+        } else {
+          addBotMsg('Hubo un error al enviar tu consulta 😕 Escríbenos a **contacto@truekeamas.cl** 📧', ['🔄 Intentar de nuevo']);
+          setFlow(null);
+        }
       } else {
         addBotMsg('¿Me das tu **correo electrónico** pa\' que el equipo pueda responderte? 📧', []);
         setFlow('admin_email');
@@ -347,12 +390,36 @@ export default function Truki() {
         addBotMsg('Hmm, ese correo no parece válido po 🤔 ¿Me lo escribes de nuevo?', []);
         return true;
       }
-      await createTicket(adminMsg, userText.trim());
-      addBotMsg(
-        `¡Bacán! 🎉 Ya le avisé al equipo. Te responderán a **${userText.trim()}**.\n\nTambién puedes escribirnos a **contacto@truekeamas.cl** 📧`,
-        ['🔄 ¿En qué más te ayudo?'],
-      );
-      setFlow(null);
+      const newId = await createTicket(adminMsg, userText.trim());
+      if (newId) {
+        setTicketId(newId);
+        addBotMsg(
+          `¡Bacán! 💬 El equipo ya lo recibió. Te responderemos aquí mismo.\n\nTambién puedes escribirnos a **contacto@truekeamas.cl** 📧`,
+          [],
+        );
+        setFlow('support_live');
+      } else {
+        addBotMsg('Hubo un error al enviar 😕 Escríbenos a **contacto@truekeamas.cl** 📧', []);
+        setFlow(null);
+      }
+      return true;
+    }
+
+    if (flow === 'support_live') {
+      // El usuario responde en la conversación de soporte activa
+      if (!ticketId) { setFlow(null); return false; }
+      try {
+        const senderName = userData?.displayName || currentUser?.displayName || 'Anónimo';
+        await addDoc(collection(db, 'support', ticketId, 'messages'), {
+          text:       userText,
+          from:       'user',
+          senderName,
+          createdAt:  serverTimestamp(),
+        });
+        addBotMsg('✓ Mensaje enviado al equipo 📨', []);
+      } catch {
+        addBotMsg('No pude enviar tu mensaje. Intenta de nuevo po 🙁', []);
+      }
       return true;
     }
 
@@ -409,6 +476,29 @@ export default function Truki() {
 
   /* ── Chip clicked ── */
   function chipClick(chip) {
+    // Chips del chat de soporte activo
+    const nc = norm(chip);
+    if (nc.includes('responder al equipo')) {
+      addUserMsg(chip);
+      setTyping(true);
+      setTimeout(() => {
+        addBotMsg('¡Claro po! Escribe tu respuesta y la envío al tiro 👇', []);
+        setTyping(false);
+        setFlow('support_live');
+      }, 400);
+      return;
+    }
+    if (nc.includes('gracias') && nc.includes('listo')) {
+      addUserMsg(chip);
+      setTyping(true);
+      setTimeout(() => {
+        addBotMsg('¡Genial po! 🎉 Me alegra que se haya resuelto. Si necesitas algo más, aquí estoy.', ['🔄 ¿Cómo funciona?','📤 ¿Cómo publico?']);
+        setTyping(false);
+        setFlow(null);
+        setTicketId(null);
+      }, 400);
+      return;
+    }
     // Tour
     if (norm(chip).includes('tour') || norm(chip).includes('recorrido')) {
       addUserMsg(chip);
@@ -514,7 +604,9 @@ export default function Truki() {
           {/* Typing indicator */}
           {typing && (
             <div className="truki-row truki-row--bot">
-              <div className="truki-bot-avatar">🤖</div>
+              <div className="truki-bot-avatar">
+                <Image src="/truqui.png" alt="Truqui" width={18} height={18} style={{ objectFit: 'contain' }} />
+              </div>
               <div className="truki-bubble truki-bubble--bot truki-typing">
                 <span /><span /><span />
               </div>
@@ -524,6 +616,13 @@ export default function Truki() {
           <div ref={bottomRef} />
         </div>
 
+        {/* Live-support banner */}
+        {flow === 'support_live' && (
+          <div style={{ background: 'var(--v)', color: '#fff', fontSize: 11, fontWeight: 700, textAlign: 'center', padding: '5px 12px', letterSpacing: '.3px' }}>
+            🛡️ Chat en vivo con Soporte Truekeamas
+          </div>
+        )}
+
         {/* Input */}
         <div className="truki-footer">
           <input
@@ -531,7 +630,7 @@ export default function Truki() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
-            placeholder="Escribe tu pregunta po…"
+            placeholder={flow === 'support_live' ? 'Escribe tu mensaje al equipo…' : 'Escribe tu pregunta po…'}
             autoComplete="off"
             maxLength={300}
           />

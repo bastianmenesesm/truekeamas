@@ -117,7 +117,7 @@ function ConfirmButton({ label, confirmLabel, className, disabled, onConfirm, st
 /* ────────────────────────────────────────────────────── */
 export default function AdminPage() {
   const router = useRouter();
-  const { currentUser, isAdmin, showToast, deleteProduct } = useApp();
+  const { currentUser, userData, isAdmin, showToast, deleteProduct } = useApp();
 
   const [tab,            setTab]          = useState('dashboard');
   const [loading,        setLoading]      = useState(false);
