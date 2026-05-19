@@ -177,10 +177,15 @@ export default function TruQuiBot() {
   // ── Render ──────────────────────────────────────────────
   return (
     <>
-      <button className="tfab" onClick={() => setOpen(o => !o)} title={BOT_NAME} style={{ position: 'relative' }}>
+      {/* FAB flotante */}
+      <button
+        className={`truki-fab${open ? ' truki-fab--open' : ''}`}
+        onClick={() => setOpen(o => !o)}
+        title={BOT_NAME}
+      >
         {open
-          ? <span style={{ fontSize: 24, lineHeight: 1 }}>×</span>
-          : <Image src="/truqui.png" alt="Truqui" width={44} height={44} style={{ objectFit: 'contain', display: 'block' }} priority />
+          ? <span style={{ fontSize: 26, lineHeight: 1, color: '#fff', fontWeight: 700 }}>×</span>
+          : <Image src="/truqui.png" alt="Truqui" width={46} height={46} style={{ objectFit: 'contain', display: 'block' }} priority />
         }
         {!open && unreadAdmin > 0 && (
           <span style={{ position: 'absolute', top: 2, right: 2, background: '#E03358', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 800, display: 'grid', placeItems: 'center' }}>
@@ -189,24 +194,28 @@ export default function TruQuiBot() {
         )}
       </button>
 
-      <div className={`tp${open ? ' open' : ''}`}>
+      {/* Panel del chat */}
+      <div className={`truki-panel${open ? ' open' : ''}`}>
 
         {/* ── MODO BOT ─────────────────────────────────── */}
         {mode === 'bot' && (
           <>
-            <div className="tph">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Image src="/truqui.png" alt="Truqui" width={36} height={36} style={{ objectFit: 'contain' }} />
-                <div>
-                  <h4 style={{ margin: 0 }}>{BOT_NAME}</h4>
-                  <p style={{ margin: 0 }}>Asistente de trueque</p>
+            <div className="truki-header">
+              <div className="truki-header-avatar">
+                <Image src="/truqui.png" alt="Truqui" width={34} height={34} style={{ objectFit: 'contain' }} />
+              </div>
+              <div className="truki-header-info">
+                <div className="truki-header-name">{BOT_NAME}</div>
+                <div className="truki-header-status">
+                  <span className="truki-dot" />
+                  Asistente de trueque
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {ticketId && (
                   <button
                     onClick={handleOpenSupport}
-                    style={{ position: 'relative', fontSize: 11, fontWeight: 700, padding: '4px 10px', background: 'var(--v)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                    style={{ position: 'relative', fontSize: 11, fontWeight: 700, padding: '4px 10px', background: 'rgba(255,255,255,.2)', color: '#fff', border: '1px solid rgba(255,255,255,.3)', borderRadius: 8, cursor: 'pointer' }}
                   >
                     💬 Soporte
                     {unreadAdmin > 0 && (
@@ -216,15 +225,33 @@ export default function TruQuiBot() {
                     )}
                   </button>
                 )}
-                <button className="tx" onClick={() => setOpen(false)}>×</button>
+                <button className="truki-close" onClick={() => setOpen(false)}>×</button>
               </div>
             </div>
 
-            <div className="tpb">
+            <div className="truki-body">
               {messages.map((m, i) => (
-                <div key={i} className={`tcm ${m.from === 'user' ? 'user' : 'bot'}`}>{m.text}</div>
+                <div key={i} className={`truki-row truki-row--${m.from === 'user' ? 'user' : 'bot'}`}>
+                  {m.from !== 'user' && (
+                    <div className="truki-bot-avatar">
+                      <Image src="/truqui.png" alt="Truqui" width={18} height={18} style={{ objectFit: 'contain' }} />
+                    </div>
+                  )}
+                  <div className="truki-bubble-wrap">
+                    <div className={`truki-bubble truki-bubble--${m.from === 'user' ? 'user' : 'bot'}`}>{m.text}</div>
+                  </div>
+                </div>
               ))}
-              {typing && <div className="tcm bot">●●●</div>}
+              {typing && (
+                <div className="truki-row truki-row--bot">
+                  <div className="truki-bot-avatar">
+                    <Image src="/truqui.png" alt="Truqui" width={18} height={18} style={{ objectFit: 'contain' }} />
+                  </div>
+                  <div className="truki-typing">
+                    <span /><span /><span />
+                  </div>
+                </div>
+              )}
 
               {showForm && (
                 <div style={{ margin: '8px 4px', background: 'var(--sf)', border: '1.5px solid var(--v)', borderRadius: 12, padding: 14 }}>
@@ -255,11 +282,11 @@ export default function TruQuiBot() {
               <div ref={bottomRef} />
             </div>
 
-            <div className="tir">
+            <div className="truki-footer">
               <input value={input} onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') sendBotMessage(input); }}
                 placeholder="Escribe tu pregunta..." autoComplete="off" />
-              <button className="ts" onClick={() => sendBotMessage(input)}>
+              <button className="truki-send" onClick={() => sendBotMessage(input)}>
                 <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z" /><path d="M22 2 11 13" /></svg>
               </button>
             </div>
@@ -269,44 +296,55 @@ export default function TruQuiBot() {
         {/* ── MODO SOPORTE EN VIVO ──────────────────────── */}
         {mode === 'support' && (
           <>
-            <div className="tph">
+            <div className="truki-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button onClick={() => setMode('bot')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mu)', fontSize: 18, lineHeight: 1, padding: 0 }}>
+                  style={{ background: 'rgba(255,255,255,.2)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 18, lineHeight: 1, padding: '4px 8px', borderRadius: 8 }}>
                   ←
                 </button>
-                <div>
-                  <h4>💬 Chat con soporte</h4>
-                  <p style={{ color: '#22C55E', fontWeight: 600 }}>● En línea</p>
+                <div className="truki-header-info">
+                  <div className="truki-header-name">💬 Chat con soporte</div>
+                  <div className="truki-header-status">
+                    <span className="truki-dot" />
+                    En línea
+                  </div>
                 </div>
               </div>
-              <button className="tx" onClick={() => setOpen(false)}>×</button>
+              <button className="truki-close" onClick={() => setOpen(false)}>×</button>
             </div>
 
-            <div className="tpb">
+            <div className="truki-body">
               {liveMessages.length === 0 && (
-                <div className="tcm bot" style={{ fontStyle: 'italic', color: 'var(--mu)' }}>
-                  Tu mensaje fue recibido. Un administrador responderá en breve ⏳
+                <div className="truki-row truki-row--bot">
+                  <div className="truki-bubble-wrap">
+                    <div className="truki-bubble truki-bubble--bot" style={{ fontStyle: 'italic' }}>
+                      Tu mensaje fue recibido. Un administrador responderá en breve ⏳
+                    </div>
+                  </div>
                 </div>
               )}
               {liveMessages.map(m => (
-                <div key={m.id} className={`tcm ${m.from === 'user' ? 'user' : 'bot'}`}>
-                  {m.from === 'admin' && (
-                    <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.75, display: 'block', marginBottom: 2 }}>
-                      🛡️ Admin
-                    </span>
-                  )}
-                  {m.text}
+                <div key={m.id} className={`truki-row truki-row--${m.from === 'user' ? 'user' : 'bot'}`}>
+                  <div className="truki-bubble-wrap">
+                    {m.from === 'admin' && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--mu)', display: 'block', marginBottom: 2 }}>
+                        🛡️ Admin
+                      </span>
+                    )}
+                    <div className={`truki-bubble truki-bubble--${m.from === 'user' ? 'user' : 'bot'}`}>
+                      {m.text}
+                    </div>
+                  </div>
                 </div>
               ))}
               <div ref={liveBottomRef} />
             </div>
 
-            <div className="tir">
+            <div className="truki-footer">
               <input value={liveInput} onChange={e => setLiveInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleLiveSend(); }}
                 placeholder="Escribe tu mensaje…" autoComplete="off" />
-              <button className="ts" onClick={handleLiveSend} disabled={liveSending || !liveInput.trim()}>
+              <button className="truki-send" onClick={handleLiveSend} disabled={liveSending || !liveInput.trim()}>
                 <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z" /><path d="M22 2 11 13" /></svg>
               </button>
             </div>
