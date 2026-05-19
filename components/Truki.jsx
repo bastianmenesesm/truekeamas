@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, getDocs, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 /* ═══════════════════════════════════════════════════════════
    NORMALIZACIÓN Y MATCHING
@@ -297,6 +297,29 @@ export default function Truki() {
     return unsub;
   }, [ticketId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ── Detectar cuando el admin cierra el ticket ── */
+  useEffect(() => {
+    if (!ticketId) return;
+    const unsub = onSnapshot(doc(db, 'support', ticketId), snap => {
+      if (snap.exists() && snap.data().status === 'resolved') {
+        // Solo actuar si el ticket estaba activo en este flujo
+        setFlow(prev => {
+          if (prev === 'support_live' || prev === 'admin_1' || prev === 'admin_email') {
+            addBotMsg(
+              `✅ **Tu consulta fue marcada como resuelta** por el equipo de Truekeamas.\n\n¡Esperamos haberte ayudado! Si tienes más dudas, aquí estoy po 😊`,
+              ['🔄 ¿Cómo funciona?', '📤 ¿Cómo publico?', '👮 Nueva consulta'],
+            );
+            setOpen(true);
+            setTicketId(null);
+            return null;
+          }
+          return prev;
+        });
+      }
+    }, () => {});
+    return unsub;
+  }, [ticketId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* Scroll al último mensaje */
   useEffect(() => {
     if (open) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior:'smooth' }), 80);
@@ -497,6 +520,10 @@ export default function Truki() {
         setFlow(null);
         setTicketId(null);
       }, 400);
+      return;
+    }
+    if (nc.includes('nueva consulta')) {
+      send('👮 Hablar con admin');
       return;
     }
     // Tour
