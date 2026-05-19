@@ -875,6 +875,148 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(16px); opacity: 0; pointer-events: none; z-index: 200; background: var(--ink); color: #fff; border-radius: 12px; padding: 13px 22px; font-weight: 600; font-size: 14px; box-shadow: var(--sx); transition: all .22s; max-width: min(90vw,480px); text-align: center; letter-spacing: .1px; }
 .toast.v { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ─── TRUQUI TOUR ──────────────────────────── */
+
+/* Capa principal — captura eventos para no interactuar con el fondo */
+.tt-wrap {
+  position: fixed; inset: 0; z-index: 9990;
+  pointer-events: none;
+}
+
+/* Fondo oscuro (cuando no hay spotlight) */
+.tt-dim {
+  position: fixed; inset: 0; z-index: 9991;
+  background: rgba(15,23,42,.78);
+  pointer-events: none;
+  animation: tt-fade .3s ease both;
+}
+@keyframes tt-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Spotlight */
+.tt-spot {
+  position: fixed; z-index: 9991;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(15,23,42,.78);
+  pointer-events: none;
+  outline: 3px solid rgba(255,255,255,0);
+  outline-offset: 3px;
+  transition:
+    top    .42s cubic-bezier(.4,0,.2,1),
+    left   .42s cubic-bezier(.4,0,.2,1),
+    width  .42s cubic-bezier(.4,0,.2,1),
+    height .42s cubic-bezier(.4,0,.2,1);
+}
+.tt-spot--on {
+  outline-color: rgba(255,255,255,.6);
+  animation: tt-pulse 2.4s ease-in-out infinite;
+}
+@keyframes tt-pulse {
+  0%,100% { outline-color: rgba(255,255,255,.45); }
+  50%      { outline-color: rgba(255,255,255,.9);  }
+}
+
+/* Tarjeta */
+.tt-card {
+  position: fixed; z-index: 9999;
+  border-radius: 20px;
+  background: var(--cd);
+  box-shadow: 0 28px 70px rgba(0,0,0,.36), 0 4px 18px rgba(0,0,0,.14);
+  overflow: visible;
+  opacity: 0;
+  transform: translateY(12px) scale(.96);
+  transition: opacity .28s ease, transform .28s ease;
+  pointer-events: all;
+}
+.tt-card--on { opacity: 1; transform: translateY(0) scale(1); }
+
+/* Encabezado con gradiente */
+.tt-head {
+  background: linear-gradient(135deg, var(--v) 0%, #2dcc40 100%);
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+.tt-head-img {
+  width: 58px; height: 58px; flex-shrink: 0;
+  background: rgba(255,255,255,.18);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.tt-head-info    { flex: 1; min-width: 0; }
+.tt-head-name    { display: block; color: #fff; font-weight: 700; font-size: 14.5px; line-height: 1.2; }
+.tt-head-sub     { display: block; color: rgba(255,255,255,.72); font-size: 11px; margin-top: 2px; }
+.tt-head-badge   {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(255,255,255,.2); border-radius: 10px; padding: 6px 10px; flex-shrink: 0;
+}
+.tt-badge-n { color: #fff; font-size: 22px; font-weight: 800; line-height: 1; }
+.tt-badge-t { color: rgba(255,255,255,.65); font-size: 10px; font-weight: 600; }
+
+/* Cuerpo */
+.tt-body  { padding: 16px 18px 12px; }
+.tt-title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 7px; line-height: 1.4; }
+.tt-msg   { font-size: 13px; color: var(--mu); line-height: 1.65; margin: 0 0 14px; }
+
+/* Dots de progreso */
+.tt-dots { display: flex; gap: 5px; }
+.tt-dot  {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ln); border: none; padding: 0; cursor: pointer;
+  transition: all .25s ease;
+}
+.tt-dot--on { background: var(--v); width: 20px; border-radius: 3.5px; }
+
+/* Pie */
+.tt-foot {
+  padding: 10px 18px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--ln);
+}
+.tt-skip {
+  font-size: 12px; color: var(--mu); background: none; border: none;
+  cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: color .15s;
+}
+.tt-skip:hover  { color: var(--ink); }
+.tt-prev {
+  font-size: 13px; font-weight: 600; color: var(--v);
+  background: var(--sf); border: 1.5px solid var(--ln);
+  padding: 8px 14px; border-radius: 10px; cursor: pointer; transition: all .15s;
+}
+.tt-prev:hover  { background: var(--sf2, var(--sf)); }
+.tt-next {
+  font-size: 13px; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, var(--v), #2dcc40);
+  border: none; padding: 8px 20px; border-radius: 10px; cursor: pointer;
+  box-shadow: 0 3px 12px rgba(22,119,255,.35);
+  transition: all .15s;
+}
+.tt-next:hover  { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22,119,255,.45); }
+
+/* Flechas */
+.tt-arrow {
+  position: absolute; width: 0; height: 0;
+  transform: translateX(-50%); pointer-events: none;
+}
+.tt-arrow--top {
+  top: -11px;
+  border-left:  11px solid transparent;
+  border-right: 11px solid transparent;
+  border-bottom: 11px solid var(--v);
+}
+.tt-arrow--bot {
+  bottom: -11px;
+  border-left:  11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 11px solid var(--cd);
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .tt-card { width: calc(100vw - 32px) !important; left: 16px !important; }
+}
+
 /* ─── MISC ────────────────────────────────── */
 .es { grid-column: 1/-1; text-align: center; padding: 64px 20px; border: 2px dashed var(--ln); border-radius: var(--r-lg); color: var(--mu); font-weight: 500; }
 .ei { font-size: 48px; margin-bottom: 14px; display: block; }

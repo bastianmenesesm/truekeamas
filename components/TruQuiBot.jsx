@@ -20,6 +20,7 @@ const RESPONSES = [
   { keys: ['categoria', 'categoría', 'tipo'], reply: 'Categorías: 📱 Tecnología, 🛋️ Hogar, ⚽ Deportes, 👕 Moda, 📘 Libros y 🧸 Juguetes.' },
   { keys: ['gracias', 'ok', 'entendido', 'perfecto'], reply: '¡De nada! 😊 ¡Feliz trueque! 🎉' },
   { keys: ['adios', 'adiós', 'chao', 'bye'], reply: '¡Hasta pronto! 👋' },
+  { keys: ['tour', 'tutorial', 'guía', 'guia', 'cómo usar', 'como usar', 'empezar', 'recorrido', 'mostrar'], reply: '__START_TOUR__' },
   {
     keys: ['admin', 'administrador', 'soporte', 'ayuda humana', 'hablar con', 'humano', 'persona real', 'equipo', 'problema', 'denuncia', 'queja'],
     reply: '__CONTACT_ADMIN__',
@@ -111,6 +112,15 @@ export default function TruQuiBot() {
     setTyping(true);
     setTimeout(() => {
       const reply = getBotReply(text);
+      if (reply === '__START_TOUR__') {
+        setMessages(prev => [...prev, { from: 'bot', text: '¡Claro! Te mostraré todo paso a paso 🗺️ Iniciando el tour...' }]);
+        setTyping(false);
+        setTimeout(() => {
+          setOpen(false);
+          window.dispatchEvent(new CustomEvent('start-truqui-tour'));
+        }, 900);
+        return;
+      }
       if (reply === '__CONTACT_ADMIN__') {
         setMessages(prev => [...prev, {
           from: 'bot',
@@ -180,6 +190,7 @@ export default function TruQuiBot() {
       {/* FAB flotante */}
       <button
         className={`truki-fab${open ? ' truki-fab--open' : ''}`}
+        data-tour="truqui"
         onClick={() => setOpen(o => !o)}
         title={BOT_NAME}
       >
@@ -250,6 +261,27 @@ export default function TruQuiBot() {
                   <div className="truki-typing">
                     <span /><span /><span />
                   </div>
+                </div>
+              )}
+
+              {/* Quick chips — solo al inicio */}
+              {messages.length === 1 && !showForm && (
+                <div className="truki-chips">
+                  <button className="truki-chip" onClick={() => {
+                    setOpen(false);
+                    setTimeout(() => window.dispatchEvent(new CustomEvent('start-truqui-tour')), 300);
+                  }}>
+                    🗺️ Tour de la plataforma
+                  </button>
+                  <button className="truki-chip" onClick={() => sendBotMessage('cómo funciona')}>
+                    🔄 ¿Cómo funciona?
+                  </button>
+                  <button className="truki-chip" onClick={() => sendBotMessage('publicar')}>
+                    📦 Cómo publicar
+                  </button>
+                  <button className="truki-chip" onClick={() => sendBotMessage('seguridad')}>
+                    🔒 Consejos de seguridad
+                  </button>
                 </div>
               )}
 

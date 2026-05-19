@@ -197,7 +197,7 @@ export default function ProductCard({ product: p }) {
           {own ? (
             <span className="pk-own-tag">✏️ Tuya</span>
           ) : (
-            <button className="pk-match-btn" onClick={handleProposal}>
+            <button className="pk-match-btn" data-tour="match" onClick={handleProposal}>
               🤝 Match
             </button>
           )}

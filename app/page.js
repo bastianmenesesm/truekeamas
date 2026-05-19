@@ -14,7 +14,8 @@ import LandingPage from '@/components/LandingPage';
 import ChatDock from '@/components/ChatDock';
 import VerifyEmailBanner from '@/components/VerifyEmailBanner';
 import AutoOpenProduct from '@/components/AutoOpenProduct';
-import PullToRefresh from '@/components/PullToRefresh';
+import PullToRefresh from '@/components/PullToRefresh'
+import TruquiTour   from '@/components/TruquiTour';
 
 export default function Home() {
   const { currentUser, authLoading, sidebarPinned, sidebarOpen, setSidebarOpen } = useApp();
@@ -51,6 +52,7 @@ export default function Home() {
       </div>
 
       <PullToRefresh />
+      <TruquiTour />
       <BottomNav />
       <Truki />
       <ChatDock />

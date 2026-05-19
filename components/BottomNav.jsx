@@ -25,7 +25,7 @@ export default function BottomNav() {
       </button>
 
       {/* Publicar — center, prominent */}
-      <button className="bnb-publish" onClick={() => openModal(currentUser ? 'publish' : 'auth')}>
+      <button className="bnb-publish" data-tour="publish" onClick={() => openModal(currentUser ? 'publish' : 'auth')}>
         <div className="bnb-publish-icon">
           <svg viewBox="0 0 24 24">
             <line x1="12" y1="5" x2="12" y2="19"/>
@@ -38,6 +38,7 @@ export default function BottomNav() {
       {/* Chats — solo mensajes reales */}
       <button
         className="bnb"
+        data-tour="chats"
         onClick={() => openModal(currentUser ? 'chats_list' : 'auth')}
         style={{ position: 'relative' }}
       >
