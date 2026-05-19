@@ -64,8 +64,10 @@ service cloud.firestore {
     }
 
     // ── Proposals ─────────────────────────────────────────────
-    // Las propuestas se crean SOLO vía API (Admin SDK). El cliente no puede crearlas
-    // directamente, lo que evita propuestas malformadas o manipuladas.
+    // Toda escritura (create / update / delete) va exclusivamente vía Admin SDK:
+    //   create  → /api/submit-proposal
+    //   update  → /api/accept-proposal  o  /api/decline-proposal
+    // El cliente nunca escribe propuestas directamente.
     match /proposals/{proposalId} {
       allow read:   if isAuth() && (
         resource.data.proposerUid      == request.auth.uid ||
@@ -73,9 +75,7 @@ service cloud.firestore {
         isAdmin()
       );
       allow create: if false; // Solo Admin SDK via /api/submit-proposal
-      allow update: if isAuth() && (
-        resource.data.productOwnerUid == request.auth.uid || isAdmin()
-      );
+      allow update: if false; // Solo Admin SDK via /api/accept-proposal o /api/decline-proposal
       allow delete: if isAdmin();
     }
 

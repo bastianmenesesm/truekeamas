@@ -36,12 +36,15 @@ export default function BottomNav() {
       </button>
 
       {/* Chats — solo mensajes reales */}
+      {/* El span interno data-tour="agreements" permite que el tour lo encuentre en mobile,
+          donde el TopBar (.ta) está oculto con display:none */}
       <button
         className="bnb"
         data-tour="chats"
         onClick={() => openModal(currentUser ? 'chats_list' : 'auth')}
         style={{ position: 'relative' }}
       >
+        <span data-tour="agreements" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
         <svg viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
@@ -57,8 +60,9 @@ export default function BottomNav() {
         )}
       </button>
 
-      {/* Perfil */}
-      <button className="bnb" onClick={() => openModal(currentUser ? 'profile' : 'auth')}>
+      {/* Perfil — span interno para que el tour encuentre "notifications" en mobile */}
+      <button className="bnb" style={{ position: 'relative' }} onClick={() => openModal(currentUser ? 'profile' : 'auth')}>
+        <span data-tour="notifications" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
         <svg viewBox="0 0 24 24">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
           <circle cx="12" cy="7" r="4"/>

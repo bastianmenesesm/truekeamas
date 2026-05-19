@@ -117,7 +117,7 @@ function ConfirmButton({ label, confirmLabel, className, disabled, onConfirm, st
 /* ────────────────────────────────────────────────────── */
 export default function AdminPage() {
   const router = useRouter();
-  const { currentUser, userData, isAdmin, showToast, deleteProduct } = useApp();
+  const { currentUser, userData, isAdmin, authLoading, showToast, deleteProduct } = useApp();
 
   const [tab,            setTab]          = useState('dashboard');
   const [loading,        setLoading]      = useState(false);
@@ -159,12 +159,11 @@ export default function AdminPage() {
 
   /* ── Redirect if not admin ─────────────────────────── */
   useEffect(() => {
-    if (currentUser === null && !isAdmin) {
-      // esperar a que auth resuelva antes de redirigir
-      const t = setTimeout(() => router.replace('/'), 2000);
-      return () => clearTimeout(t);
-    }
-  }, [currentUser, isAdmin, router]);
+    // Esperar a que Firebase Auth resuelva antes de evaluar — evita redirigir
+    // al admin legítimo durante los ~500ms que tarda onAuthStateChanged en cargar
+    if (authLoading) return;
+    if (!isAdmin) router.replace('/');
+  }, [authLoading, isAdmin, router]);
 
   /* ── Products listener (ALL — including blocked) ────── */
   useEffect(() => {
@@ -394,6 +393,15 @@ export default function AdminPage() {
   });
 
   /* ── Guard ──────────────────────────────────────────── */
+  // Mientras Firebase Auth resuelve: spinner neutro (evita flash de "acceso restringido")
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ width: 36, height: 36, border: '3px solid var(--ln)', borderTopColor: 'var(--v)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>

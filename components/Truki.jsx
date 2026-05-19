@@ -273,26 +273,54 @@ export default function Truki() {
   const bottomRef       = useRef(null);
   const inputRef        = useRef(null);
   const shownAdminMsgs  = useRef(new Set());          // prevent duplicate admin replies
+  const sendTimerRef    = useRef(null);               // cleanup del delay de "escritura"
+
+  /* ── Restaurar ticketId desde sessionStorage al montar ── */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = sessionStorage.getItem('truqui_ticket_id');
+    if (saved) {
+      setTicketId(saved);
+      setFlow('support_live');
+    }
+  }, []);
+
+  /* ── Persistir ticketId en sessionStorage cuando cambia ── */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (ticketId) {
+      sessionStorage.setItem('truqui_ticket_id', ticketId);
+    } else {
+      sessionStorage.removeItem('truqui_ticket_id');
+    }
+  }, [ticketId]);
 
   /* ── Escuchar respuestas del admin en el ticket activo ── */
   useEffect(() => {
     if (!ticketId) return;
+    // `isFirst` = true en el primer snapshot (carga inicial o restauración tras recarga).
+    // En ese caso marcamos los mensajes existentes como "vistos" sin notificar al usuario,
+    // ya sea que los vio antes o que los verá al abrir el panel. Solo los mensajes que
+    // lleguen en snapshots posteriores (tiempo real) disparan el mensaje en el chat.
+    let isFirst = true;
     const q = query(
       collection(db, 'support', ticketId, 'messages'),
       orderBy('createdAt', 'asc')
     );
     const unsub = onSnapshot(q, snap => {
       snap.docs.forEach(d => {
-        if (d.data().from === 'admin' && !shownAdminMsgs.current.has(d.id)) {
-          shownAdminMsgs.current.add(d.id);
-          addBotMsg(
-            `🛡️ **Soporte Truekeamas:**\n${d.data().text}`,
-            ['💬 Responder al equipo', '✅ Gracias, listo'],
-          );
-          // Abrir el panel si estaba cerrado
-          setOpen(true);
-        }
+        const data = d.data();
+        if (data.from !== 'admin') return;
+        if (shownAdminMsgs.current.has(d.id)) return;
+        shownAdminMsgs.current.add(d.id);
+        if (isFirst) return; // silenciosamente marcado como visto en carga inicial
+        addBotMsg(
+          `🛡️ **Soporte Truekeamas:**\n${data.text}`,
+          ['💬 Responder al equipo', '✅ Gracias, listo'],
+        );
+        setOpen(true);
       });
+      isFirst = false;
     }, () => {});
     return unsub;
   }, [ticketId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -449,6 +477,9 @@ export default function Truki() {
     return false;
   }
 
+  /* Cancelar el timer de "escritura" al desmontar el componente */
+  useEffect(() => () => clearTimeout(sendTimerRef.current), []);
+
   /* ── Enviar mensaje ── */
   async function send(text) {
     const t = text.trim();
@@ -460,7 +491,8 @@ export default function Truki() {
     setTyping(true);
     const delay = Math.min(600 + t.length * 6, 1400);
 
-    setTimeout(async () => {
+    // Guardar el ID para poder cancelarlo si el componente se desmonta
+    sendTimerRef.current = setTimeout(async () => {
       const handled = await handleFlow(t);
       if (!handled) {
         // Detectar chips de acción especial primero

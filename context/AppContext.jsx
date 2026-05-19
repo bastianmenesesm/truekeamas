@@ -30,9 +30,21 @@ function rateLimit(key, maxCalls, windowMs) {
 }
 
 /* ── Chime de notificación (Web Audio API, sin archivos externos) ── */
+// AudioContext único reutilizable — los navegadores limitan a ~6 contextos simultáneos.
+// Se crea de forma lazy (requiere interacción del usuario previa para no ser bloqueado).
+let _sharedAudioCtx = null;
+function getSharedAudioCtx() {
+  if (!_sharedAudioCtx || _sharedAudioCtx.state === 'closed') {
+    _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _sharedAudioCtx;
+}
+
 function playNotifChime() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getSharedAudioCtx();
+    // Algunos navegadores suspenden el contexto si lleva tiempo inactivo
+    if (ctx.state === 'suspended') ctx.resume();
     [[880, 0], [1100, 0.15]].forEach(([freq, delay]) => {
       const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -69,12 +81,19 @@ function shouldUseRedirect() {
   return false;
 }
 
-/* ── Nivel automático de usuario ──────────────────────────────── */
+/* ── Jerarquía de niveles (debe coincidir con /api/rate-user) ──── */
+// Nuevo < Activo < Verificado < Confiable
+// 'Activo'    → automático: 5+ calificaciones con promedio ≥ 4.0
+// 'Verificado'→ manual por admin (prevalece sobre 'Activo')
+// 'Confiable' → automático: 10+ calificaciones con promedio ≥ 4.5
+const LEVEL_RANK = { Nuevo: 0, Activo: 1, Verificado: 2, Confiable: 3 };
+
 function computeLevel(ud, emailVerified) {
-  const trades = ud?.tradesCompleted || 0;
-  const rating = ud?.ratingAvg       || 0;
-  if (trades >= 3 && rating >= 4.0) return 'Confiable';
-  if (emailVerified)                 return 'Verificado';
+  const rating = ud?.ratingAvg   || 0;
+  const count  = ud?.ratingCount || 0;
+  if (count >= 10 && rating >= 4.5) return 'Confiable';
+  if (emailVerified)                return 'Verificado'; // admin-verified supera 'Activo'
+  if (count >= 5  && rating >= 4.0) return 'Activo';
   return 'Nuevo';
 }
 
@@ -328,11 +347,16 @@ export function AppProvider({ children }) {
     } catch { return null; }
   }
 
-  /* Recalcula y persiste el nivel si cambió (se llama en segundo plano) */
+  /* Recalcula y persiste el nivel si cambió (se llama en segundo plano).
+     Solo sube de nivel — nunca baja uno asignado por el servidor o el admin. */
   async function syncLevel(user, ud) {
     if (!user || !ud) return;
-    const expected = computeLevel(ud, user.emailVerified);
-    if ((ud.level || 'Nuevo') === expected) return;
+    const expected    = computeLevel(ud, user.emailVerified);
+    const current     = ud.level || 'Nuevo';
+    const currentRank = LEVEL_RANK[current]  ?? 0;
+    const expectedRank = LEVEL_RANK[expected] ?? 0;
+    // No escribir si el nivel es el mismo o si bajaría (p.ej. 'Activo' → 'Verificado' con RANK 2>1)
+    if (currentRank >= expectedRank) return;
     try {
       await updateDoc(doc(db, 'users', user.uid), { level: expected });
       setUserData(prev => ({ ...prev, level: expected }));
@@ -495,67 +519,33 @@ export function AppProvider({ children }) {
     return data.proposalId;
   }
 
+  // Helper para llamadas autenticadas a la API
+  async function authFetch(path, body) {
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch(path, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body:    JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+    return data;
+  }
+
   async function acceptProposal(proposalId) {
     if (!currentUser) return;
-    const propSnap = await getDoc(doc(db, 'proposals', proposalId));
-    if (!propSnap.exists()) throw new Error('Propuesta no encontrada');
-    const proposal = propSnap.data();
-    if (proposal.productOwnerUid !== currentUser.uid) throw new Error('Sin permiso');
-
-    // Create match (chat entry)
-    const matchRef = await addDoc(collection(db, 'matches'), {
-      productId: proposal.productId,
-      productTitle: proposal.productTitle,
-      productPhoto: proposal.productPhoto || null,
-      ownerId: proposal.productOwnerUid,
-      ownerName: userData?.displayName || currentUser.displayName || 'Usuario',
-      requesterId: proposal.proposerUid,
-      requesterName: proposal.proposerName,
-      proposalId,
-      status: 'active',
-      lastMessage: '',
-      lastMessageAt: serverTimestamp(),
-      createdAt: serverTimestamp()
-    });
-
-    await updateDoc(doc(db, 'proposals', proposalId), {
-      status: 'accepted', matchId: matchRef.id, updatedAt: serverTimestamp()
-    });
-
-    // Liberar el lock para que el proponente pueda volver a proponer si quiere
-    deleteDoc(doc(db, 'proposal_locks', `${proposal.proposerUid}_${proposal.productId}`)).catch(() => {});
-
-    await createNotif(proposal.proposerUid, {
-      type: 'proposal_accepted',
-      title: '¡Propuesta aceptada! 🎉',
-      body: `Tu propuesta para "${proposal.productTitle}" fue aceptada. ¡Ya pueden chatear!`,
-      proposalId, productId: proposal.productId, chatId: matchRef.id
-    });
-
+    // Validación + creación de match + limpieza de lock via Admin SDK (server-side)
+    // Evita race conditions de doble-aceptar y garantiza integridad de datos
+    const data = await authFetch('/api/accept-proposal', { proposalId });
     loadStats();
-    return matchRef.id;
+    return data.matchId;
   }
 
   async function declineProposal(proposalId) {
     if (!currentUser) return;
-    const propSnap = await getDoc(doc(db, 'proposals', proposalId));
-    if (!propSnap.exists()) return;
-    const proposal = propSnap.data();
-    if (proposal.productOwnerUid !== currentUser.uid) throw new Error('Sin permiso');
-
-    await updateDoc(doc(db, 'proposals', proposalId), {
-      status: 'declined', updatedAt: serverTimestamp()
-    });
-
-    // Liberar lock para que pueda volver a proponer
-    deleteDoc(doc(db, 'proposal_locks', `${proposal.proposerUid}_${proposal.productId}`)).catch(() => {});
-
-    await createNotif(proposal.proposerUid, {
-      type: 'proposal_declined',
-      title: 'Propuesta no aceptada',
-      body: `Tu propuesta para "${proposal.productTitle}" no fue aceptada esta vez.`,
-      proposalId, productId: proposal.productId
-    });
+    // Rechazar via API para que el lock se limpie correctamente con Admin SDK
+    // (el cliente no puede borrar proposal_locks por las reglas de Firestore)
+    await authFetch('/api/decline-proposal', { proposalId });
   }
 
   /* ── Auth ─────────────────────────────────── */
