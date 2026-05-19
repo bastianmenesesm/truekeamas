@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
@@ -36,8 +37,8 @@ const KB = [
   /* 1 ── SALUDO */
   { id:'greet',
     pat:['hola','wena','wenas','buenas','hey','saludos','buenos dias','buenas tardes','buenas noches','alo','que tal','que onda','como estas'],
-    text:(n)=>`¡Wena${n?' '+n.split(' ')[0]:''}! 👋 Soy **Truki**, el asistente de Truekeamas.\n¿En qué te doy una mano hoy po? 😊`,
-    chips:['🔄 ¿Cómo funciona?','📤 ¿Cómo publico?','🤝 ¿Cómo hago un match?','👮 Hablar con admin'],
+    text:(n)=>`¡Wena${n?' '+n.split(' ')[0]:''}! 👋 Soy **Truqui**, el asistente de Truekeamas.\n¿En qué te doy una mano hoy po? 😊`,
+    chips:['🗺️ Tour de la plataforma','🔄 ¿Cómo funciona?','📤 ¿Cómo publico?','🤝 ¿Cómo hago un match?','👮 Hablar con admin'],
   },
   /* 2 ── DESPEDIDA */
   { id:'bye',
@@ -281,8 +282,8 @@ export default function Truki() {
     if (open && !inited) {
       setInited(true);
       const name = userData?.displayName || currentUser?.displayName;
-      const greeting = `¡Wena${name ? ' ' + name.split(' ')[0] : ''}! 👋 Soy **Truki**, el asistente de Truekeamas.\n\n¿En qué te doy una mano hoy po? 😊`;
-      addBotMsg(greeting, ['🔄 ¿Cómo funciona?','📤 ¿Cómo publico?','🤝 ¿Cómo hacer match?','👮 Hablar con admin']);
+      const greeting = `¡Wena${name ? ' ' + name.split(' ')[0] : ''}! 👋 Soy **Truqui**, el asistente de Truekeamas.\n\n¿En qué te doy una mano hoy po? 😊`;
+      addBotMsg(greeting, ['🗺️ Tour de la plataforma','🔄 ¿Cómo funciona?','📤 ¿Cómo publico?','🤝 ¿Cómo hacer match?','👮 Hablar con admin']);
     }
     if (open && inited) {
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -408,6 +409,20 @@ export default function Truki() {
 
   /* ── Chip clicked ── */
   function chipClick(chip) {
+    // Tour
+    if (norm(chip).includes('tour') || norm(chip).includes('recorrido')) {
+      addUserMsg(chip);
+      setTyping(true);
+      setTimeout(() => {
+        addBotMsg('¡Perfecto po! Te muestro todo paso a paso 🗺️ Iniciando el tour...', []);
+        setTyping(false);
+        setTimeout(() => {
+          setOpen(false);
+          window.dispatchEvent(new CustomEvent('start-truqui-tour'));
+        }, 900);
+      }, 500);
+      return;
+    }
     // Chips de acción directa
     const directActions = { '📤 publicar ahora': 'publish', '📦 ver mis publicaciones': 'myposts', '📬 ver mis propuestas': 'proposals', '🤝 ver mis acuerdos': 'agreements', '👤 ir a mi perfil': 'profile', '🤝 mis acuerdos': 'agreements', '📬 mis propuestas': 'proposals', '👤 mi perfil': 'profile', '📦 mis publicaciones': 'myposts' };
     const key = norm(chip);
@@ -431,13 +446,14 @@ export default function Truki() {
       {/* ── FAB ── */}
       <button
         className={`truki-fab${open ? ' truki-fab--open' : ''}`}
+        data-tour="truqui"
         onClick={() => setOpen(o => !o)}
-        title="Truki — Asistente Truekeamas"
-        aria-label="Abrir asistente Truki"
+        title="Truqui — Asistente Truekeamas"
+        aria-label="Abrir asistente Truqui"
       >
         {open
           ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          : <span style={{ fontSize: 26, lineHeight: 1 }}>🤖</span>
+          : <Image src="/truqui.png" alt="Truqui" width={46} height={46} style={{ objectFit: 'contain', display: 'block' }} priority />
         }
       </button>
 
@@ -446,9 +462,11 @@ export default function Truki() {
 
         {/* Header */}
         <div className="truki-header">
-          <div className="truki-header-avatar">🤖</div>
+          <div className="truki-header-avatar">
+            <Image src="/truqui.png" alt="Truqui" width={28} height={28} style={{ objectFit: 'contain' }} />
+          </div>
           <div className="truki-header-info">
-            <div className="truki-header-name">Truki</div>
+            <div className="truki-header-name">Truqui</div>
             <div className="truki-header-status">
               <span className="truki-dot" />
               Asistente Truekeamas · Siempre disponible
@@ -464,7 +482,9 @@ export default function Truki() {
           {messages.map(m => (
             <div key={m.id} className={`truki-row truki-row--${m.from}`}>
               {m.from === 'bot' && (
-                <div className="truki-bot-avatar">🤖</div>
+                <div className="truki-bot-avatar">
+                  <Image src="/truqui.png" alt="Truqui" width={18} height={18} style={{ objectFit: 'contain' }} />
+                </div>
               )}
               <div className="truki-bubble-wrap">
                 <div className={`truki-bubble truki-bubble--${m.from}`}>
