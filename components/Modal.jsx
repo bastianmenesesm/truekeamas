@@ -1,24 +1,28 @@
 'use client';
-import { useApp } from '@/context/AppContext';
-import AuthModal          from '@/components/modals/AuthModal';
-import PublishModal       from '@/components/modals/PublishModal';
-import CartModal          from '@/components/modals/CartModal';
-import AgreementsModal    from '@/components/modals/AgreementsModal';
-import MyPostsModal       from '@/components/modals/MyPostsModal';
-import ProfileModal       from '@/components/modals/ProfileModal';
-import HelpModal          from '@/components/modals/HelpModal';
-import ChatModal          from '@/components/modals/ChatModal';
-import TermsModal         from '@/components/modals/TermsModal';
-import MatchProposalModal from '@/components/modals/MatchProposalModal';
-import ProposalsModal     from '@/components/modals/ProposalsModal';
-import NotificationsModal from '@/components/modals/NotificationsModal';
-import ReportModal          from '@/components/modals/ReportModal';
-import ProductDetailModal  from '@/components/modals/ProductDetailModal';
-import UserProfileModal    from '@/components/modals/UserProfileModal';
-import RateUserModal       from '@/components/modals/RateUserModal';
-import ReportUserModal     from '@/components/modals/ReportUserModal';
-import OnboardingModal    from '@/components/modals/OnboardingModal';
-import ChatsListModal    from '@/components/modals/ChatsListModal';
+import dynamic            from 'next/dynamic';
+import { useApp }         from '@/context/AppContext';
+
+// Lazy load: cada modal se descarga solo cuando el usuario lo abre por primera vez.
+// { ssr: false } porque son componentes 100% interactivos que no necesitan pre-renderizado.
+const AuthModal          = dynamic(() => import('@/components/modals/AuthModal'),          { ssr: false });
+const PublishModal       = dynamic(() => import('@/components/modals/PublishModal'),       { ssr: false });
+const CartModal          = dynamic(() => import('@/components/modals/CartModal'),          { ssr: false });
+const AgreementsModal    = dynamic(() => import('@/components/modals/AgreementsModal'),    { ssr: false });
+const MyPostsModal       = dynamic(() => import('@/components/modals/MyPostsModal'),       { ssr: false });
+const ProfileModal       = dynamic(() => import('@/components/modals/ProfileModal'),       { ssr: false });
+const HelpModal          = dynamic(() => import('@/components/modals/HelpModal'),          { ssr: false });
+const ChatModal          = dynamic(() => import('@/components/modals/ChatModal'),          { ssr: false });
+const TermsModal         = dynamic(() => import('@/components/modals/TermsModal'),         { ssr: false });
+const MatchProposalModal = dynamic(() => import('@/components/modals/MatchProposalModal'), { ssr: false });
+const ProposalsModal     = dynamic(() => import('@/components/modals/ProposalsModal'),     { ssr: false });
+const NotificationsModal = dynamic(() => import('@/components/modals/NotificationsModal'), { ssr: false });
+const ReportModal        = dynamic(() => import('@/components/modals/ReportModal'),        { ssr: false });
+const ProductDetailModal = dynamic(() => import('@/components/modals/ProductDetailModal'), { ssr: false });
+const UserProfileModal   = dynamic(() => import('@/components/modals/UserProfileModal'),   { ssr: false });
+const RateUserModal      = dynamic(() => import('@/components/modals/RateUserModal'),      { ssr: false });
+const ReportUserModal    = dynamic(() => import('@/components/modals/ReportUserModal'),    { ssr: false });
+const OnboardingModal    = dynamic(() => import('@/components/modals/OnboardingModal'),    { ssr: false });
+const ChatsListModal     = dynamic(() => import('@/components/modals/ChatsListModal'),     { ssr: false });
 
 const TITLES = {
   auth:            'Acceder',
