@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 
 export default function Error({ error, reset }) {
   useEffect(() => {
-    // Log en producción — reemplazar con Sentry si se agrega luego
     console.error('[App Error]', error);
   }, [error]);
 

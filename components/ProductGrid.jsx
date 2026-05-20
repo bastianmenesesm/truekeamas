@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp, CATS } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
 import { COMUNAS_POR_REGION } from '@/lib/communes';
@@ -29,6 +29,23 @@ export default function ProductGrid() {
   const communeOptions = regionFilter && regionFilter !== 'all'
     ? (COMUNAS_POR_REGION[regionFilter] || [])
     : [];
+
+  const sentinelRef = useRef(null);
+
+  // Infinite scroll: observa el sentinel al fondo de la lista
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreProducts && !loadingMore && !productsLoading) {
+          loadMoreProducts();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMoreProducts, loadingMore, productsLoading, loadMoreProducts]);
 
   const blockedUsers = userData?.blockedUsers || [];
 
@@ -192,15 +209,11 @@ export default function ProductGrid() {
         )}
       </div>
 
-      {/* Cargar más */}
-      {hasMoreProducts && !productsLoading && (
+      {/* Sentinel para infinite scroll */}
+      <div ref={sentinelRef} style={{ height: 1 }} />
+      {loadingMore && (
         <div className="pg-load-more-wrap">
-          <button className="pg-load-more-btn" onClick={loadMoreProducts} disabled={loadingMore}>
-            {loadingMore
-              ? <><div className="sp" style={{ width: 16, height: 16, borderWidth: 2 }} />Cargando...</>
-              : '⬇ Cargar más publicaciones'
-            }
-          </button>
+          <div className="sp" style={{ width: 24, height: 24, borderWidth: 3 }} />
         </div>
       )}
     </section>
