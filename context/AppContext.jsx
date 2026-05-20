@@ -219,17 +219,29 @@ export function AppProvider({ children }) {
       if (user) {
         let ud = await loadUserData(user.uid);
         // Auto-create missing user doc (e.g. admin added manually, old accounts)
+        // IMPORTANTE: loadUserData puede devolver null por un error de red transitorio
+        // aunque el documento exista. Por eso verificamos con getDoc antes de crear,
+        // para nunca sobrescribir role:'admin' con role:'user'.
         if (!ud) {
           try {
-            await setDoc(doc(db, 'users', user.uid), {
-              displayName: user.displayName || user.email?.split('@')[0] || 'Usuario',
-              email:       user.email || '',
-              phone:       '',
-              region:      '',
-              level:       'Nuevo',
-              role:        'user',
-              createdAt:   serverTimestamp(),
-            }, { merge: true }); // merge: true preserves any existing fields (e.g. role: 'admin')
+            const docRef  = doc(db, 'users', user.uid);
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists()) {
+              // Solo crear si el documento realmente NO existe (usuario genuinamente nuevo).
+              // 'role' NO se incluye en el merge — solo se pone en documentos nuevos
+              // para evitar sobrescribir role:'admin' ante cualquier error de red.
+              await setDoc(docRef, {
+                displayName: user.displayName || user.email?.split('@')[0] || 'Usuario',
+                email:       user.email || '',
+                phone:       '',
+                region:      '',
+                level:       'Nuevo',
+                role:        'user',   // seguro: doc confirmado como inexistente
+                createdAt:   serverTimestamp(),
+              });
+            }
+            // Si el doc existe pero loadUserData falló (error de red), no tocamos nada.
+            // El rol y todos los campos quedan intactos.
             ud = await loadUserData(user.uid);
           } catch (e) { console.warn('[Auth] No se pudo crear doc de usuario:', e); }
         }
