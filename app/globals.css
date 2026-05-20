@@ -537,7 +537,7 @@ select.fs:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
 .cip button { width: 20px; height: 20px; border-radius: 50%; background: var(--dg); color: #fff; font-size: 11px; display: grid; place-items: center; }
 
 /* ─── FORMS ───────────────────────────────── */
-.fg { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.fg { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
 .fg .fl { grid-column: 1/-1; }
 label.fd { display: flex; flex-direction: column; gap: 7px; font-weight: 600; font-size: 13px; color: var(--is); letter-spacing: .1px; }
 label.fd input, label.fd select, label.fd textarea {
