@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse }           from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
-import crypto from 'crypto';
+import { requireAdmin }             from '@/lib/adminGuard';
+import crypto                       from 'crypto';
 
-const CLOUD_NAME = 'dnkvgg0zi';
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'dnkvgg0zi';
 
 /**
  * Extrae el public_id de una URL de Cloudinary
@@ -86,9 +87,8 @@ export async function POST(request) {
 
     const product = productSnap.data();
 
-    // Verificar propiedad o rol admin
-    const userSnap = await adminDb.collection('users').doc(decoded.uid).get();
-    const isAdmin  = userSnap.exists && userSnap.data()?.role === 'admin';
+    // Verificar propiedad o rol admin (fast path JWT, slow path Firestore)
+    const isAdmin = await requireAdmin(decoded, adminDb);
     if (product.ownerId !== decoded.uid && !isAdmin) {
       return NextResponse.json({ error: 'Sin permiso para eliminar esta publicación' }, { status: 403 });
     }

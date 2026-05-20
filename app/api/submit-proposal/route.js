@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
-import { inMemoryRateLimit, rateLimitResponse } from '@/lib/rateLimit';
-import admin from 'firebase-admin';
+import { NextResponse }                                       from 'next/server';
+import { getAdminAuth, getAdminDb }                          from '@/lib/firebase-admin';
+import { firestoreRateLimit, rateLimitResponse }             from '@/lib/rateLimit';
+import admin                                                 from 'firebase-admin';
 
 export async function POST(request) {
-  // ── Parse body ─────────────────────────────────────────────────
+  // ── Parse body ────────────────────────────────────────────────────────
   let body;
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 }); }
@@ -14,7 +14,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
   }
 
-  // ── Validación de longitud (previene payloads abusivos) ────────
+  // ── Validación de longitud (previene payloads abusivos) ───────────────
   if (typeof productId !== 'string' || productId.length > 128) {
     return NextResponse.json({ error: 'productId inválido' }, { status: 400 });
   }
@@ -27,8 +27,15 @@ export async function POST(request) {
   if (offerPhotos && (!Array.isArray(offerPhotos) || offerPhotos.length > 5)) {
     return NextResponse.json({ error: 'Máximo 5 fotos por propuesta' }, { status: 400 });
   }
+  // Validación de offerAmount (HIGH-4: type y rango)
+  if (offerAmount !== undefined && offerAmount !== null) {
+    const amt = Number(offerAmount);
+    if (!Number.isFinite(amt) || amt < 0 || amt > 999_999_999) {
+      return NextResponse.json({ error: 'El monto ingresado no es válido' }, { status: 400 });
+    }
+  }
 
-  // ── Auth ────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -42,18 +49,21 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Sesión expirada, vuelve a iniciar sesión' }, { status: 401 });
   }
 
-  // ── Rate limit: 10 propuestas por usuario por hora ──────────────
-  const rl = inMemoryRateLimit(`proposal:${fromUid}`, 10, 60 * 60 * 1000);
+  // ── Rate limit distribuido: 10 propuestas por usuario por hora (CRIT-2) ─
+  // firestoreRateLimit es compartido entre todas las instancias serverless de Vercel
+  const adminDb = getAdminDb();
+  const rl = await firestoreRateLimit(adminDb, `proposal:${fromUid}`, 10, 60 * 60 * 1000);
   if (!rl.allowed) {
-    return rateLimitResponse(rl.retryAfter,
-      `Enviaste demasiadas propuestas seguidas. Espera ${Math.ceil(rl.retryAfter / 60)} minuto${Math.ceil(rl.retryAfter / 60) !== 1 ? 's' : ''} antes de intentarlo de nuevo.`);
+    return rateLimitResponse(
+      rl.retryAfter,
+      `Enviaste demasiadas propuestas seguidas. Espera ${Math.ceil(rl.retryAfter / 60)} minuto${Math.ceil(rl.retryAfter / 60) !== 1 ? 's' : ''} antes de intentarlo de nuevo.`
+    );
   }
 
   try {
-    const adminDb    = getAdminDb();
     const FieldValue = admin.firestore.FieldValue;
 
-    // ── Validar producto ────────────────────────────────────────
+    // ── Validar producto ─────────────────────────────────────────────
     const prodSnap = await adminDb.collection('products').doc(productId).get();
     if (!prodSnap.exists) {
       return NextResponse.json({ error: 'Publicación no encontrada' }, { status: 404 });
@@ -67,10 +77,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Esta publicación ya no está disponible' }, { status: 400 });
     }
 
-    // ── Verificar lock (1 propuesta pendiente por usuario × producto) ──
-    // ID determinístico — sin índice compuesto necesario
-    const lockId  = `${fromUid}_${productId}`;
-    const lockRef = adminDb.collection('proposal_locks').doc(lockId);
+    // ── Verificar lock (1 propuesta pendiente por usuario × producto) ─
+    const lockId   = `${fromUid}_${productId}`;
+    const lockRef  = adminDb.collection('proposal_locks').doc(lockId);
     const lockSnap = await lockRef.get();
     if (lockSnap.exists) {
       return NextResponse.json({
@@ -78,12 +87,12 @@ export async function POST(request) {
       }, { status: 409 });
     }
 
-    // ── Datos del que propone ───────────────────────────────────
-    const fromSnap  = await adminDb.collection('users').doc(fromUid).get();
-    const fromUser  = fromSnap.data() || {};
+    // ── Datos del que propone ────────────────────────────────────────
+    const fromSnap    = await adminDb.collection('users').doc(fromUid).get();
+    const fromUser    = fromSnap.data() || {};
     const proposerName = fromUser.displayName || 'Usuario';
 
-    // ── Crear propuesta ─────────────────────────────────────────
+    // ── Crear propuesta ──────────────────────────────────────────────
     const propRef = await adminDb.collection('proposals').add({
       productId,
       productTitle:    prod.title,
@@ -94,7 +103,7 @@ export async function POST(request) {
       offerType,
       offerDescription: offerDescription || '',
       offerPhotos:      offerPhotos      || [],
-      offerAmount:      offerAmount      || null,
+      offerAmount:      offerAmount !== undefined && offerAmount !== null ? Number(offerAmount) : null,
       message:          message          || '',
       status:    'pending',
       matchId:   null,
@@ -102,7 +111,7 @@ export async function POST(request) {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // ── Crear lock ──────────────────────────────────────────────
+    // ── Crear lock ───────────────────────────────────────────────────
     await lockRef.set({
       proposalId: propRef.id,
       productId,
@@ -110,7 +119,7 @@ export async function POST(request) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    // ── Notificar al dueño del producto ─────────────────────────
+    // ── Notificar al dueño del producto ──────────────────────────────
     await adminDb.collection('notifications').doc(prod.ownerId)
       .collection('items').add({
         type:       'proposal_received',
@@ -122,7 +131,7 @@ export async function POST(request) {
         createdAt:  FieldValue.serverTimestamp(),
       });
 
-    // ── Push notification FCM al dueño del producto ─────────────
+    // ── Push notification FCM al dueño del producto ──────────────────
     try {
       const ownerSnap = await adminDb.collection('users').doc(prod.ownerId).get();
       const fcmToken  = ownerSnap.data()?.fcmToken;
@@ -146,6 +155,6 @@ export async function POST(request) {
 
   } catch (err) {
     console.error('[submit-proposal]', err.code, err.message);
-    return NextResponse.json({ error: err.message || 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

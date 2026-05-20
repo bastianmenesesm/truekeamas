@@ -1,5 +1,6 @@
-import { NextResponse }  from 'next/server';
+import { NextResponse }           from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { requireAdmin }             from '@/lib/adminGuard';
 
 export async function POST(request) {
   try {
@@ -14,9 +15,8 @@ export async function POST(request) {
     const decoded  = await getAdminAuth().verifyIdToken(authHeader.slice(7));
     const adminDb  = getAdminDb();
 
-    // Solo admins
-    const requesterSnap = await adminDb.collection('users').doc(decoded.uid).get();
-    if (requesterSnap.data()?.role !== 'admin') {
+    // ── Solo admins (fast path: JWT claim; slow path: Firestore + auto-provisiona claim) ─
+    if (!(await requireAdmin(decoded, adminDb))) {
       return NextResponse.json({ error: 'Sin permisos de administrador' }, { status: 403 });
     }
 
@@ -35,6 +35,6 @@ export async function POST(request) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[block-product]', err);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

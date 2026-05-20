@@ -1,7 +1,8 @@
 import './globals.css';
-import { AppProvider } from '@/context/AppContext';
-import PWAProvider from '@/components/PWAProvider';
-import Analytics from '@/components/Analytics';
+import { AppProvider }  from '@/context/AppContext';
+import PWAProvider      from '@/components/PWAProvider';
+import Analytics        from '@/components/Analytics';
+import { headers }      from 'next/headers';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://truekeamas.cl';
 
@@ -93,7 +94,11 @@ const orgJsonLd = {
   ],
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // Nonce generado por middleware.js — necesario para que el JSON-LD y los
+  // scripts inline pasen la Content-Security-Policy 'strict-dynamic' (MED-4).
+  const nonce = (await headers()).get('x-nonce') ?? '';
+
   return (
     <html lang="es">
       <head>
@@ -123,6 +128,7 @@ export default function RootLayout({ children }) {
       <body>
         {/* Organization + WebSite structured data — aparece en Google Knowledge Panel */}
         <script
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
         />

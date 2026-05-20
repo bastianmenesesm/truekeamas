@@ -115,11 +115,18 @@ service cloud.firestore {
     }
 
     // ── Notifications ─────────────────────────────────────────
-    // Un usuario puede crear notificaciones para OTRO usuario (no para sí mismo)
-    // Solo el destinatario puede leer/actualizar/borrar sus propias notificaciones
+    // Solo el destinatario puede leer/actualizar/borrar sus propias notificaciones.
+    // Creación desde el cliente solo para tipos legítimos y para OTROS usuarios (MED-3):
+    //   - 'new_message'    → AppContext.notifyMessage (chat)
+    //   - 'support_ticket' → Truki.createTicket (notifica admins)
+    // Todo lo demás (proposal_received, trade_completed, etc.) va por Admin SDK.
     match /notifications/{userId}/items/{notifId} {
       allow read, update: if isOwner(userId) || isAdmin();
-      allow create:       if isAuth() && request.auth.uid != userId; // no auto-notifs
+      allow create:       if isAuth()
+                          && request.auth.uid != userId
+                          && request.resource.data.type in ['new_message', 'support_ticket']
+                          && request.resource.data.read  == false
+                          && request.resource.data.keys().hasAll(['type', 'read', 'createdAt']);
       allow delete:       if isOwner(userId) || isAdmin();
     }
 
@@ -127,7 +134,11 @@ service cloud.firestore {
     match /support/{ticketId} {
       allow create: if isAuth();
       allow read:   if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid);
-      allow update: if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid);
+      // El usuario puede actualizar su ticket, pero NO puede cambiar status ni adminId (MED-5).
+      // Esos campos solo los modifica el Admin SDK (cuando el admin responde o cierra el ticket).
+      allow update: if isAdmin() ||
+        (isAuth() && resource.data.uid == request.auth.uid &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'adminId']));
       allow delete: if isAdmin();
 
       match /messages/{msgId} {

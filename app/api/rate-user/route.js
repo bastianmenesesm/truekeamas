@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { firestoreRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 import { isValidUid, isValidId, isInRange, isOptionalString, sanitizeText } from '@/lib/validate';
 import admin from 'firebase-admin';
 
@@ -44,9 +45,18 @@ export async function POST(request) {
     return NextResponse.json({ error: 'No puedes calificarte a ti mismo' }, { status: 400 });
   }
 
-  // ── 3. Business logic ─────────────────────────────────────────
+  // ── 3. Rate limit distribuido: 10 calificaciones por usuario por hora (CRIT-2) ─
+  const adminDb = getAdminDb();
+  const rl = await firestoreRateLimit(adminDb, `rate_user:${fromUid}`, 10, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return rateLimitResponse(
+      rl.retryAfter,
+      `Demasiadas calificaciones seguidas. Espera ${Math.ceil(rl.retryAfter / 60)} minuto${Math.ceil(rl.retryAfter / 60) !== 1 ? 's' : ''}.`
+    );
+  }
+
+  // ── 4. Business logic ─────────────────────────────────────────
   try {
-    const adminDb    = getAdminDb();
     const FieldValue = admin.firestore.FieldValue;
 
     // Verificar que el match existe y ambos UIDs participan
@@ -117,10 +127,6 @@ export async function POST(request) {
 
   } catch (err) {
     console.error('[rate-user]', err.code, err.message);
-    // Devolver el mensaje real para facilitar el diagnóstico
-    return NextResponse.json(
-      { error: err.message || 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
