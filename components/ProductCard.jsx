@@ -73,7 +73,7 @@ export function ProductCardSkeleton() {
 }
 
 export default function ProductCard({ product: p }) {
-  const { currentUser, saved, toggleLike, openModal } = useApp();
+  const { currentUser, saved, toggleLike, openModal, isAdmin, toggleFeatured } = useApp();
   const [imgIdx, setImgIdx] = useState(0);
   const own    = currentUser && p.ownerId === currentUser.uid;
   const photos = p.photos || [];
@@ -203,7 +203,7 @@ export default function ProductCard({ product: p }) {
           )}
         </div>
 
-        {/* Share + Report */}
+        {/* Share + Report + Destacar (solo admin) */}
         <div className="pk-bottom-row">
           <ShareButton productId={p.id} title={p.title} />
           {!own && (
@@ -217,6 +217,15 @@ export default function ProductCard({ product: p }) {
                 <line x1="4" y1="22" x2="4" y2="15"/>
               </svg>
               Denunciar
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              className={`report-btn${p.featured ? ' pk-featured-active' : ''}`}
+              onClick={e => { e.stopPropagation(); toggleFeatured(p.id, !p.featured); }}
+              title={p.featured ? 'Quitar Trueque del Día' : 'Destacar como Trueque del Día'}
+            >
+              {p.featured ? '⭐ Destacado' : '☆ Destacar'}
             </button>
           )}
         </div>

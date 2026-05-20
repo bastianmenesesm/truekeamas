@@ -9,6 +9,7 @@ const STATUS_INFO = {
   active:  { label: 'Activa',     color: 'var(--lm)',  dot: '🟢' },
   sold:    { label: 'Completada', color: 'var(--v)',   dot: '✅' },
   blocked: { label: 'Bloqueada',  color: 'var(--dg)',  dot: '🚫' },
+  expired: { label: 'Caducada',   color: '#EF4444',    dot: '⏰' },
 };
 
 const ACTION_LABEL = {
@@ -92,7 +93,7 @@ function EditForm({ product, onSave, onCancel, loading }) {
   );
 }
 
-function PostCard({ product: p, onEdit, onSold, onReactivate, onDelete }) {
+function PostCard({ product: p, onEdit, onSold, onReactivate, onDelete, onRenew }) {
   const [expanded, setExpanded] = useState(false);
   const [editing,  setEditing]  = useState(false);
   const [loading,  setLoading]  = useState(false);
@@ -121,6 +122,13 @@ function PostCard({ product: p, onEdit, onSold, onReactivate, onDelete }) {
     finally { setLoading(false); }
   }
 
+  async function handleRenew() {
+    setLoading(true);
+    try { await onRenew(p.id); }
+    catch { }
+    finally { setLoading(false); }
+  }
+
   async function handleDelete() {
     if (!confirm(`¿Eliminar "${p.title}"? Esta acción no se puede deshacer.`)) return;
     setLoading(true);
@@ -145,6 +153,12 @@ function PostCard({ product: p, onEdit, onSold, onReactivate, onDelete }) {
             {ACTION_LABEL[p.action] || '🔄 Trueque'} · {p.category}
             {p.region && ` · ${p.region}`}
           </div>
+          {/* Aviso de caducidad próxima (notificado pero aún no caducado) */}
+          {p.status === 'active' && p.expiryNotifiedAt && (
+            <div style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600, marginTop: 2 }}>
+              ⏰ Caduca en menos de 7 días
+            </div>
+          )}
           <div className="mpost-bottom">
             <span className="mpost-price">{fmtP(p.price)}</span>
             <span className="mpost-status" style={{ color: status.color }}>
@@ -175,15 +189,28 @@ function PostCard({ product: p, onEdit, onSold, onReactivate, onDelete }) {
                 </button>
               )}
 
-              {/* Marcar completada / Reactivar */}
+              {/* Marcar completada / Reactivar / Renovar */}
               {p.status === 'active' && (
-                <button className="btn bsm mpost-btn mpost-btn--sold" onClick={handleSold} disabled={loading}>
-                  ✅ Marcar completada
-                </button>
+                <>
+                  <button className="btn bsm mpost-btn mpost-btn--sold" onClick={handleSold} disabled={loading}>
+                    ✅ Marcar completada
+                  </button>
+                  {/* Botón renovar si está próxima a caducar */}
+                  {p.expiryNotifiedAt && (
+                    <button className="btn bv bsm mpost-btn" onClick={handleRenew} disabled={loading}>
+                      🔄 Renovar 30 días
+                    </button>
+                  )}
+                </>
               )}
               {p.status === 'sold' && (
                 <button className="btn bv bsm mpost-btn" onClick={handleReactivate} disabled={loading}>
                   🔄 Reactivar
+                </button>
+              )}
+              {p.status === 'expired' && (
+                <button className="btn bv bsm mpost-btn" onClick={handleRenew} disabled={loading}>
+                  🔄 Renovar publicación
                 </button>
               )}
 
@@ -208,12 +235,12 @@ function PostCard({ product: p, onEdit, onSold, onReactivate, onDelete }) {
 }
 
 export default function MyPostsModal() {
-  const { currentUser, products, updateProduct, markProductSold, reactivateProduct, deleteProduct, showToast } = useApp();
+  const { currentUser, products, updateProduct, markProductSold, reactivateProduct, renewProduct, deleteProduct, showToast } = useApp();
 
   if (!currentUser) return <div className="nb nbd">No has iniciado sesión.</div>;
 
   const myPosts = products
-    .filter(p => p.ownerId === currentUser.uid)
+    .filter(p => p.ownerId === currentUser.uid && p.status !== 'deleted')
     .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
   if (!myPosts.length) return (
@@ -225,6 +252,7 @@ export default function MyPostsModal() {
 
   const active    = myPosts.filter(p => p.status === 'active').length;
   const completed = myPosts.filter(p => p.status === 'sold').length;
+  const expired   = myPosts.filter(p => p.status === 'expired').length;
 
   async function handleEdit(id, data) {
     try { await updateProduct(id, data); showToast('✅ Publicación actualizada.'); }
@@ -246,6 +274,11 @@ export default function MyPostsModal() {
     catch { showToast('Error al eliminar.'); }
   }
 
+  async function handleRenew(id) {
+    try { await renewProduct(id); }
+    catch { showToast('Error al renovar.'); }
+  }
+
   return (
     <div>
       {/* Resumen */}
@@ -253,6 +286,11 @@ export default function MyPostsModal() {
         <div className="mpost-stat"><strong>{myPosts.length}</strong><span>Total</span></div>
         <div className="mpost-stat mpost-stat--active"><strong>{active}</strong><span>Activas</span></div>
         <div className="mpost-stat mpost-stat--sold"><strong>{completed}</strong><span>Completadas</span></div>
+        {expired > 0 && (
+          <div className="mpost-stat" style={{ color: '#EF4444' }}>
+            <strong>{expired}</strong><span>Caducadas</span>
+          </div>
+        )}
       </div>
 
       {/* Lista */}
@@ -264,6 +302,7 @@ export default function MyPostsModal() {
             onEdit={handleEdit}
             onSold={handleSold}
             onReactivate={handleReactivate}
+            onRenew={handleRenew}
             onDelete={handleDelete}
           />
         ))}

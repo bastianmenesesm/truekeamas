@@ -4,12 +4,13 @@ import { useApp, CATS } from '@/context/AppContext';
 import { REGIONES_CHILE } from '@/lib/regions';
 import { COMUNAS_POR_REGION } from '@/lib/communes';
 import ProductCard, { ProductCardSkeleton } from './ProductCard';
+import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
 const CONDITIONS = ['Nuevo', 'Como nuevo', 'Buen estado', 'Usado', 'Para reparar'];
 
 export default function ProductGrid() {
   const {
-    products, userData, activeCategory, searchQuery,
+    products, userData, openModal, activeCategory, searchQuery,
     modeFilter,      setModeFilter,
     levelFilter,     setLevelFilter,
     conditionFilter, setConditionFilter,
@@ -49,8 +50,13 @@ export default function ProductGrid() {
 
   const blockedUsers = userData?.blockedUsers || [];
 
+  // Producto destacado del día (independiente de los filtros activos)
+  const featuredProduct = !productsLoading
+    ? products.find(p => p.featured && p.status === 'active')
+    : null;
+
   const filtered = products.filter(p => {
-    if (p.status === 'blocked' || p.status === 'sold') return false;
+    if (p.status === 'blocked' || p.status === 'sold' || p.status === 'expired') return false;
     if (blockedUsers.includes(p.ownerId)) return false;
 
     // Texto
@@ -194,6 +200,47 @@ export default function ProductGrid() {
         </div>
 
       </div>
+
+      {/* ── Trueque del Día ───────────────────────────────── */}
+      {featuredProduct && (
+        <div
+          className="featured-banner"
+          onClick={() => openModal({ type: 'product_detail', productId: featuredProduct.id })}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && openModal({ type: 'product_detail', productId: featuredProduct.id })}
+        >
+          <div className="featured-banner-label">⭐ Trueque del Día</div>
+          <div className="featured-banner-inner">
+            <div className="featured-banner-img">
+              {featuredProduct.photos?.[0]
+                ? <img src={optimizeCloudinaryUrl(featuredProduct.photos[0], 300)} alt={featuredProduct.title} />
+                : <span style={{ fontSize: 40 }}>{featuredProduct.emoji || '📦'}</span>
+              }
+            </div>
+            <div className="featured-banner-info">
+              <div className="featured-banner-title">{featuredProduct.title}</div>
+              {featuredProduct.wants && (
+                <div className="featured-banner-wants">🔄 {featuredProduct.wants}</div>
+              )}
+              {featuredProduct.price > 0 && (
+                <div className="featured-banner-price">
+                  ${Number(featuredProduct.price).toLocaleString('es-CL')}
+                </div>
+              )}
+              <div className="featured-banner-meta">
+                📍 {featuredProduct.commune
+                  ? `${featuredProduct.commune}, ${featuredProduct.region || 'Chile'}`
+                  : (featuredProduct.region || 'Chile')
+                }
+                {featuredProduct.ownerName && (
+                  <span> · {featuredProduct.ownerName}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="pg">
         {productsLoading ? (

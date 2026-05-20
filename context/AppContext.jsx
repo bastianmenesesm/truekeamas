@@ -720,6 +720,38 @@ export function AppProvider({ children }) {
     setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'active' } : p));
   }
 
+  // Renovar publicación: reinicia el reloj de caducidad 30 días más
+  async function renewProduct(id) {
+    if (!currentUser) throw new Error('No autenticado');
+    await updateDoc(doc(db, 'products', id), {
+      status:           'active',
+      renewedAt:        serverTimestamp(),
+      expiryNotifiedAt: null,
+    });
+    setProducts(prev => prev.map(p =>
+      p.id === id ? { ...p, status: 'active', expiryNotifiedAt: null } : p
+    ));
+    showToast('✅ Publicación renovada por 30 días.');
+  }
+
+  // Destacar / quitar destacado (solo admin) — Trueque del Día
+  async function toggleFeatured(productId, featured) {
+    if (!currentUser || !isAdmin) { showToast('Sin permisos de administrador.'); return; }
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/toggle-featured', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body:    JSON.stringify({ productId, featured }),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Error'); }
+    // Actualizar estado local: solo un producto puede estar destacado a la vez
+    setProducts(prev => prev.map(p => ({
+      ...p,
+      featured: p.id === productId ? featured : (featured ? false : p.featured),
+    })));
+    showToast(featured ? '⭐ Trueque del Día activado.' : 'Destacado removido.');
+  }
+
   async function reportProduct(productId, reason, description) {
     if (!currentUser) { openModal('auth'); return; }
     try { rateLimit('rep_' + currentUser.uid, 5, 3600000); } catch (e) { throw e; }
@@ -905,7 +937,7 @@ export function AppProvider({ children }) {
     showToast, openModal, closeModal,
     toggleLike,
     loginUser, registerUser, socialLogin, logoutUser, updateUserProfile, requestPhoneChange,
-    publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct,
+    publishProduct, deleteProduct, updateProduct, markProductSold, reactivateProduct, renewProduct, toggleFeatured,
     blockProduct, unblockProduct, banUser, reportProduct,
     blockUser, unblockUser,
     sidebarPinned, sidebarOpen, setSidebarOpen, toggleSidebarPin, openSidebarDrawer,

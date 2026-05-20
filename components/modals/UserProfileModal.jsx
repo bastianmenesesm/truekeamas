@@ -171,9 +171,18 @@ export default function UserProfileModal({ userId }) {
   );
 
   const initial     = (user.displayName || 'U').charAt(0).toUpperCase();
-  const avg         = user.ratingAvg   || 0;
-  const count       = user.ratingCount || 0;
+  const avg         = user.ratingAvg      || 0;
+  const count       = user.ratingCount    || 0;
+  const trades      = user.tradesCompleted || 0;
   const memberSince = user._fromProduct ? null : fmtMemberSince(user.createdAt);
+
+  // Hito de trueques: muestra un trofeo según cuántos trueques completados tiene el usuario
+  const tradeMilestone =
+    trades >= 25 ? { icon: '🥇', label: 'Veterano' } :
+    trades >= 10 ? { icon: '🥈', label: 'Experto'  } :
+    trades >= 5  ? { icon: '🥉', label: 'Activo'   } :
+    trades >= 1  ? { icon: '🌱', label: 'Novato'   } :
+    null;
 
   const levelMeta = {
     'Confiable': { label: '🏅 Confiable', cls: 'up-badge--trusted',  title: '3+ trueques completados · Calificación ≥ 4.0' },
@@ -242,8 +251,11 @@ export default function UserProfileModal({ userId }) {
           <strong>{prodLoading ? '…' : ownProducts.length}</strong>
           <span>Publicaciones</span>
         </div>
-        <div className="up-stat-item">
-          <strong>{user.tradesCompleted || 0}</strong>
+        <div className="up-stat-item" title={tradeMilestone ? `${tradeMilestone.icon} ${tradeMilestone.label}` : 'Sin trueques aún'}>
+          <strong>
+            {tradeMilestone && <span style={{ marginRight: 3 }}>{tradeMilestone.icon}</span>}
+            {trades}
+          </strong>
           <span>Trueques</span>
         </div>
         <div className="up-stat-item">
