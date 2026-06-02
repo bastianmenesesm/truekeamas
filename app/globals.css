@@ -1773,12 +1773,13 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   text-transform: uppercase;
 }
 .l-mundialero-title {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(22px, 3.5vw, 34px);
-  font-weight: 800;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(26px, 4vw, 44px);
+  font-weight: 700;
   color: #fff;
   line-height: 1.2;
   margin-bottom: 12px;
+  letter-spacing: .2px;
 }
 .l-mundialero-sub {
   font-size: 15px;
@@ -1925,13 +1926,14 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   padding: 64px 0 72px;
 }
 .l-actions-title {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(18px, 2.8vw, 26px);
-  font-weight: 800;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(22px, 3.2vw, 36px);
+  font-weight: 700;
   color: #fff;
   text-align: center;
   margin-bottom: 40px;
   letter-spacing: .2px;
+  line-height: 1.25;
 }
 .l-actions-title span { color: var(--lm); }
 
