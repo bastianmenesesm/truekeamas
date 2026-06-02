@@ -1740,11 +1740,26 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 }
 .l-mundialero-inner {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 40px;
   padding-top: 32px;
   padding-bottom: 32px;
+}
+.l-mundialero-banner-wrap {
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  max-width: 340px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+}
+.l-mundialero-banner-wrap img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+@media (max-width: 1100px) {
+  .l-mundialero-banner-wrap { max-width: 260px; }
 }
 @media (max-width: 700px) {
   .l-mundialero-inner {
@@ -1753,6 +1768,7 @@ label.fd textarea { min-height: 90px; resize: vertical; }
     padding-top: 24px;
     padding-bottom: 24px;
   }
+  .l-mundialero-banner-wrap { max-width: 100%; }
   .l-mundialero-img-wrap { display: flex; justify-content: center; }
 }
 .l-mundialero-img-wrap { flex-shrink: 0; }

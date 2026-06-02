@@ -293,6 +293,17 @@ export default function LandingPage() {
               </button>
             </div>
           </div>
+
+          {/* Banner promo */}
+          <div className="l-mundialero-banner-wrap">
+            <Image
+              src="/banner-laminas.webp"
+              alt="Completa tu álbum con Truekeamas"
+              width={340}
+              height={191}
+              style={{ width: '100%', height: 'auto' }}
+            />
+          </div>
         </div>
       </section>
 
