@@ -1440,9 +1440,10 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 }
 .l-hero-title {
   font-family: 'Playfair Display', serif; font-weight: 700;
-  font-size: clamp(32px, 5.5vw, 60px);
-  color: #fff; line-height: 1.22; letter-spacing: .1px; margin-bottom: 8px;
+  font-size: clamp(28px, 4vw, 52px);
+  color: #fff; line-height: 1.2; letter-spacing: .1px; margin-bottom: 14px;
 }
+.l-hero-title em { color: var(--lm); font-style: normal; }
 .l-hero-tagline {
   font-size: 13px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
   color: rgba(255,255,255,.7); margin-bottom: 18px;
@@ -1658,11 +1659,10 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 32px;
-  max-width: 1160px;
+  gap: 48px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 80px 48px 60px;
-  min-height: 580px;
+  padding: 72px 56px 72px;
 }
 @media (max-width: 820px) {
   .l-hero-inner {
@@ -1692,8 +1692,17 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 .l-hero-truki-img {
   position: relative; z-index: 1;
   width: 100% !important; height: auto !important;
-  max-width: 340px;
-  filter: drop-shadow(0 24px 48px rgba(0,0,0,.5));
+  max-width: 380px;
+  border-radius: 24px;
+  /* Funde los 4 bordes de la imagen con el fondo oscuro */
+  -webkit-mask-image:
+    linear-gradient(to bottom,  transparent 0%,  black 18%, black 75%, transparent 100%),
+    linear-gradient(to right,   transparent 0%,  black 12%, black 88%, transparent 100%);
+  mask-image:
+    linear-gradient(to bottom,  transparent 0%,  black 18%, black 75%, transparent 100%),
+    linear-gradient(to right,   transparent 0%,  black 12%, black 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
   animation: truki-float 4s ease-in-out infinite;
 }
 @keyframes truki-float {
