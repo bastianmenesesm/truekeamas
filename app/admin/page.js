@@ -162,6 +162,9 @@ export default function AdminPage() {
   const [landingUserCount,    setLandingUserCount]    = useState('');
   const [savingUserCount,     setSavingUserCount]     = useState(false);
   const [userCountSaved,      setUserCountSaved]      = useState(false);
+  const [landingMatchCount,   setLandingMatchCount]   = useState('');
+  const [savingMatchCount,    setSavingMatchCount]    = useState(false);
+  const [matchCountSaved,     setMatchCountSaved]     = useState(false);
 
   /* ── Redirect if not admin ─────────────────────────── */
   useEffect(() => {
@@ -254,8 +257,9 @@ export default function AdminPage() {
     if (!isAdmin || tab !== 'dashboard') return;
     getDoc(doc(db, 'settings', 'stats')).then(snap => {
       if (snap.exists()) {
-        const val = snap.data().userCount;
-        if (val !== undefined) setLandingUserCount(String(val));
+        const d = snap.data();
+        if (d.userCount  !== undefined) setLandingUserCount(String(d.userCount));
+        if (d.matchCount !== undefined) setLandingMatchCount(String(d.matchCount));
       }
     }).catch(() => {});
   }, [isAdmin, tab]);
@@ -273,6 +277,22 @@ export default function AdminPage() {
       showToast('❌ Error al guardar');
     } finally {
       setSavingUserCount(false);
+    }
+  }
+
+  async function saveLandingMatchCount() {
+    const val = parseInt(landingMatchCount, 10);
+    if (isNaN(val) || val < 0) return;
+    setSavingMatchCount(true);
+    try {
+      await setDoc(doc(db, 'settings', 'stats'), { matchCount: val }, { merge: true });
+      setMatchCountSaved(true);
+      setTimeout(() => setMatchCountSaved(false), 2500);
+      showToast('✅ Contador de trueques actualizado');
+    } catch {
+      showToast('❌ Error al guardar');
+    } finally {
+      setSavingMatchCount(false);
     }
   }
 
@@ -671,6 +691,33 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  {/* Trueques manual */}
+                  <div style={{ background: '#fff', border: '1.5px solid var(--ln)', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--is)', marginBottom: 8 }}>🤝 Trueques (manual)</div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        value={landingMatchCount}
+                        onChange={e => setLandingMatchCount(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && saveLandingMatchCount()}
+                        placeholder="Ej: 120"
+                        style={{ flex: 1, border: '1.5px solid var(--ln)', borderRadius: 8, padding: '7px 10px', fontSize: 14, fontWeight: 700, color: 'var(--ink)', outline: 'none', width: '100%' }}
+                      />
+                      <button
+                        className={`btn bsm ${matchCountSaved ? 'bv' : 'bo'}`}
+                        onClick={saveLandingMatchCount}
+                        disabled={savingMatchCount}
+                        style={{ flexShrink: 0, minWidth: 64 }}
+                      >
+                        {savingMatchCount ? '...' : matchCountSaved ? '✓ Listo' : 'Guardar'}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 6 }}>
+                      Se muestra como <strong>{landingMatchCount || '0'} Trueques</strong> en el landing
+                    </div>
+                  </div>
+
                   {/* Indicadores automáticos (solo lectura) */}
                   <div style={{ background: '#fff', border: '1.5px solid var(--ln)', borderRadius: 12, padding: '14px 16px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '.8px', marginBottom: 10 }}>
@@ -691,7 +738,7 @@ export default function AdminPage() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A' }}>
                         <span>🌱 CO₂ ahorrado (kg)</span>
-                        <strong>{typeof matchesCount === 'number' ? matchesCount * 3 : '—'}</strong>
+                        <strong>{typeof matchesCount === 'number' ? (matchesCount * 3.7).toFixed(1) : '—'}</strong>
                       </div>
                     </div>
                   </div>

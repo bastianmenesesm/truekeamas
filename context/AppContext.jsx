@@ -421,12 +421,17 @@ export function AppProvider({ children }) {
 
   async function loadStats() {
     // 1 ─ settings/stats es pública (allow read: if true) — funciona sin login
+    let manualMatchCount;
     try {
       const settingsSnap = await getDoc(doc(db, 'settings', 'stats'));
       if (settingsSnap.exists()) {
         const sd = settingsSnap.data();
         if (sd.userCount !== undefined) {
           setStats(prev => ({ ...prev, users: sd.userCount }));
+        }
+        if (sd.matchCount !== undefined) {
+          manualMatchCount = sd.matchCount;
+          setStats(prev => ({ ...prev, completedMatches: sd.matchCount, matches: sd.matchCount }));
         }
       }
     } catch { /* regla no publicada aún o doc no existe */ }
@@ -443,8 +448,9 @@ export function AppProvider({ children }) {
         ...prev,
         // Solo sobreescribe users si settings no tenía userCount
         users:            prev.users === '—' ? u.size : prev.users,
-        matches:          m.size,
-        completedMatches,
+        // Solo sobreescribe matches/completedMatches si no hay valor manual en settings
+        matches:          manualMatchCount !== undefined ? prev.matches : m.size,
+        completedMatches: manualMatchCount !== undefined ? prev.completedMatches : completedMatches,
       }));
     } catch { /* visitante no autenticado — normal */ }
   }

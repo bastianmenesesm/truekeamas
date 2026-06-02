@@ -86,7 +86,7 @@ export default function LandingPage() {
   const userCount         = typeof stats.users === 'number' ? stats.users : null;
   const completedMatches  = stats.completedMatches || 0;
   const itemsRescued      = completedMatches * 2;
-  const co2Saved          = completedMatches * 3; // kg
+  const co2Saved          = completedMatches * 3.7; // kg
 
   // Categorías rápidas para filtrar (Láminas primero)
   const QUICK_CATS = [
