@@ -420,24 +420,33 @@ export function AppProvider({ children }) {
   }
 
   async function loadStats() {
+    // 1 ─ settings/stats es pública (allow read: if true) — funciona sin login
     try {
-      const [u, m, settingsSnap] = await Promise.all([
+      const settingsSnap = await getDoc(doc(db, 'settings', 'stats'));
+      if (settingsSnap.exists()) {
+        const sd = settingsSnap.data();
+        if (sd.userCount !== undefined) {
+          setStats(prev => ({ ...prev, users: sd.userCount }));
+        }
+      }
+    } catch { /* regla no publicada aún o doc no existe */ }
+
+    // 2 ─ users y matches requieren auth — solo cargan cuando hay sesión activa
+    try {
+      const [u, m] = await Promise.all([
         getDocs(query(collection(db, 'users'),   limit(500))),
         getDocs(query(collection(db, 'matches'), limit(500))),
-        getDoc(doc(db, 'settings', 'stats')),
       ]);
-      const sd = settingsSnap.exists() ? settingsSnap.data() : {};
-      // userCount: preferir el valor manual de Firestore Console (más preciso)
-      const userCount = sd.userCount || u.size;
-      // completedMatches: para estadísticas ecológicas
-      const completedMatches = m.docs.filter(d => d.data().status === 'completed').length;
+      const completedMatches = m.docs
+        .filter(d => d.data().status === 'completed').length;
       setStats(prev => ({
         ...prev,
-        users: userCount,
-        matches: m.size,
+        // Solo sobreescribe users si settings no tenía userCount
+        users:            prev.users === '—' ? u.size : prev.users,
+        matches:          m.size,
         completedMatches,
       }));
-    } catch { }
+    } catch { /* visitante no autenticado — normal */ }
   }
 
   /* ── Toast ────────────────────────────────── */
