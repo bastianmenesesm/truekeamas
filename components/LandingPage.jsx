@@ -217,12 +217,10 @@ export default function LandingPage() {
           {/* Stats — plataforma + sostenibilidad */}
           <div className="l-hero-stats">
             {/* Grupo: plataforma */}
-            {userCount !== null && (
-              <div className="l-stat">
-                <strong>{fmtNum(userCount)}+</strong>
-                <span>Usuarios</span>
-              </div>
-            )}
+            <div className="l-stat">
+              <strong>{userCount !== null ? `${fmtNum(userCount)}+` : '…'}</strong>
+              <span>Usuarios</span>
+            </div>
             <div className="l-stat">
               <strong>{fmtNum(allCount)}</strong>
               <span>Publicaciones</span>

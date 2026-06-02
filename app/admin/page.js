@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import {
   collection, query, orderBy, onSnapshot,
   doc, updateDoc, limit, getDocs, where, addDoc, serverTimestamp,
+  getDoc, setDoc,
 } from 'firebase/firestore';
 import { optimizeCloudinaryUrl } from '@/lib/firebase';
 
@@ -157,6 +158,11 @@ export default function AdminPage() {
   const [proposalsCount, setProposalsCount] = useState('—');
   const [matchesCount,   setMatchesCount]   = useState('—');
 
+  // Stats del landing (settings/stats)
+  const [landingUserCount,    setLandingUserCount]    = useState('');
+  const [savingUserCount,     setSavingUserCount]     = useState(false);
+  const [userCountSaved,      setUserCountSaved]      = useState(false);
+
   /* ── Redirect if not admin ─────────────────────────── */
   useEffect(() => {
     // Esperar a que Firebase Auth resuelva antes de evaluar — evita redirigir
@@ -242,6 +248,33 @@ export default function AdminPage() {
       setMatchesCount(m.size);
     }).catch(() => {});
   }, [isAdmin, tab]);
+
+  /* ── Stats del landing (settings/stats) ─────────────── */
+  useEffect(() => {
+    if (!isAdmin || tab !== 'dashboard') return;
+    getDoc(doc(db, 'settings', 'stats')).then(snap => {
+      if (snap.exists()) {
+        const val = snap.data().userCount;
+        if (val !== undefined) setLandingUserCount(String(val));
+      }
+    }).catch(() => {});
+  }, [isAdmin, tab]);
+
+  async function saveLandingUserCount() {
+    const val = parseInt(landingUserCount, 10);
+    if (isNaN(val) || val < 0) return;
+    setSavingUserCount(true);
+    try {
+      await setDoc(doc(db, 'settings', 'stats'), { userCount: val }, { merge: true });
+      setUserCountSaved(true);
+      setTimeout(() => setUserCountSaved(false), 2500);
+      showToast('✅ Contador de usuarios actualizado');
+    } catch {
+      showToast('❌ Error al guardar');
+    } finally {
+      setSavingUserCount(false);
+    }
+  }
 
   /* ── Derived counts ─────────────────────────────────── */
   const activeProducts  = products.filter(p => p.status === 'active').length;
@@ -596,6 +629,73 @@ export default function AdminPage() {
                     ))}
                     {products.length === 0 && <p style={{ fontSize: 13, color: 'var(--mu)' }}>Cargando...</p>}
                   </div>
+                </div>
+              </div>
+
+              {/* ── Stats del Landing ── */}
+              <div style={{ marginTop: 28, padding: '20px 24px', background: 'linear-gradient(135deg,#EEF4FF,#F0FDF4)', border: '1.5px solid #C7D7FD', borderRadius: 14 }}>
+                <h3 style={{ fontFamily: 'Syne,sans-serif', fontSize: 14, fontWeight: 800, marginBottom: 4, color: 'var(--ink)' }}>
+                  🌐 Stats del Landing
+                </h3>
+                <p style={{ fontSize: 12, color: 'var(--mu)', marginBottom: 16 }}>
+                  Estos números aparecen en la página principal. Actualízalos manualmente cuando quieras.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+
+                  {/* Contador de usuarios */}
+                  <div style={{ background: '#fff', border: '1.5px solid var(--ln)', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '.8px', marginBottom: 8 }}>
+                      👥 Usuarios registrados
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        value={landingUserCount}
+                        onChange={e => setLandingUserCount(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && saveLandingUserCount()}
+                        placeholder="Ej: 1200"
+                        style={{ flex: 1, border: '1.5px solid var(--ln)', borderRadius: 8, padding: '7px 10px', fontSize: 14, fontWeight: 700, color: 'var(--ink)', outline: 'none', width: '100%' }}
+                      />
+                      <button
+                        className={`btn bsm ${userCountSaved ? 'bv' : 'bo'}`}
+                        onClick={saveLandingUserCount}
+                        disabled={savingUserCount}
+                        style={{ flexShrink: 0, minWidth: 64 }}
+                      >
+                        {savingUserCount ? '...' : userCountSaved ? '✓ Listo' : 'Guardar'}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 6 }}>
+                      Se muestra como <strong>{landingUserCount || '0'}+ Usuarios</strong> en el landing
+                    </div>
+                  </div>
+
+                  {/* Indicadores automáticos (solo lectura) */}
+                  <div style={{ background: '#fff', border: '1.5px solid var(--ln)', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '.8px', marginBottom: 10 }}>
+                      ⚙️ Automáticos (se calculan solos)
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink)' }}>
+                        <span>📦 Publicaciones</span>
+                        <strong>{activeProducts}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink)' }}>
+                        <span>🤝 Trueques completados</span>
+                        <strong>{matchesCount}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A' }}>
+                        <span>♻️ Objetos rescatados</span>
+                        <strong>{typeof matchesCount === 'number' ? matchesCount * 2 : '—'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A' }}>
+                        <span>🌱 CO₂ ahorrado (kg)</span>
+                        <strong>{typeof matchesCount === 'number' ? matchesCount * 3 : '—'}</strong>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
