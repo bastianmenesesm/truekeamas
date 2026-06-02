@@ -1712,7 +1712,7 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 }
 .l-hero-truki-img {
   object-fit: cover;
-  object-position: center 35%;
+  object-position: center 70%;
 }
 @keyframes truki-float {
   0%, 100% { transform: translateY(0); }
