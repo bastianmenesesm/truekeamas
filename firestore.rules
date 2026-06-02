@@ -179,5 +179,13 @@ service cloud.firestore {
       allow read, write: if false; // Solo Admin SDK
     }
 
+    // ── Settings (stats públicas) ─────────────────────────────
+    // Lectura pública para mostrar estadísticas en el landing.
+    // Solo admins (vía Admin SDK o Firebase Console) pueden escribir.
+    match /settings/{docId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
   }
 }

@@ -421,11 +421,22 @@ export function AppProvider({ children }) {
 
   async function loadStats() {
     try {
-      const [u, m] = await Promise.all([
+      const [u, m, settingsSnap] = await Promise.all([
         getDocs(query(collection(db, 'users'),   limit(500))),
         getDocs(query(collection(db, 'matches'), limit(500))),
+        getDoc(doc(db, 'settings', 'stats')),
       ]);
-      setStats(prev => ({ ...prev, users: u.size, matches: m.size }));
+      const sd = settingsSnap.exists() ? settingsSnap.data() : {};
+      // userCount: preferir el valor manual de Firestore Console (más preciso)
+      const userCount = sd.userCount || u.size;
+      // completedMatches: para estadísticas ecológicas
+      const completedMatches = m.docs.filter(d => d.data().status === 'completed').length;
+      setStats(prev => ({
+        ...prev,
+        users: userCount,
+        matches: m.size,
+        completedMatches,
+      }));
     } catch { }
   }
 
