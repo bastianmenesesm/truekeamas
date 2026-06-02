@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Bloquear rutas privadas/admin
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://truekeamas.cl/sitemap.xml

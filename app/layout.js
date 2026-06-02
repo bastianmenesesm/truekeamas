@@ -13,7 +13,13 @@ export const metadata = {
     template: '%s | Truekeamas',
   },
   description: 'Truekeamas es una plataforma de trueque digital en Chile para intercambiar productos y servicios. Publica gratis, encuentra lo que necesitas e intercambia con personas de todo el país.',
-  keywords: ['trueque', 'intercambio', 'Chile', 'compra venta', 'truekeamas', 'marketplace Chile'],
+  keywords: [
+    'trueque', 'trueque Chile', 'intercambio', 'intercambio de productos Chile',
+    'truekeamas', 'marketplace Chile', 'compra venta sin dinero',
+    'láminas', 'figuritas álbum', 'láminas repetidas Chile',
+    'trueque digital', 'plataforma trueque', 'intercambiar cosas',
+    'trueque online Chile', 'vender sin comisión Chile',
+  ],
   authors: [{ name: 'Truekeamas' }],
   creator: 'Truekeamas',
   robots: {
@@ -22,17 +28,24 @@ export const metadata = {
     googleBot: { index: true, follow: true },
   },
   openGraph: {
-    type: 'website',
-    locale: 'es_CL',
-    url: BASE_URL,
-    siteName: 'Truekeamas',
-    title: 'Truekeamas | Conecta · Intercambia · Crece',
-    description: 'Truekeamas es una plataforma de trueque digital en Chile para intercambiar productos y servicios. Publica gratis, encuentra lo que necesitas e intercambia con personas de todo el país.',
+    type:        'website',
+    locale:      'es_CL',
+    url:          BASE_URL,
+    siteName:    'Truekeamas',
+    title:       'Truekeamas | Conecta · Intercambia · Crece',
+    description: 'Truekeamas es la plataforma de trueque digital en Chile. Intercambia productos y servicios gratis con personas de todo el país. Sin intermediarios, sin comisiones.',
+    images: [{
+      url:    `${BASE_URL}/og-image.png`,
+      width:   1200,
+      height:  630,
+      alt:    'Truekeamas — Plataforma de trueque digital en Chile',
+    }],
   },
   twitter: {
-    card: 'summary',
-    title: 'Truekeamas | Conecta · Intercambia · Crece',
-    description: 'Truekeamas es una plataforma de trueque digital en Chile para intercambiar productos y servicios. Publica gratis, encuentra lo que necesitas e intercambia con personas de todo el país.',
+    card:        'summary_large_image',
+    title:       'Truekeamas | Conecta · Intercambia · Crece',
+    description: 'Truekeamas es la plataforma de trueque digital en Chile. Intercambia productos y servicios gratis con personas de todo el país.',
+    images:      [`${BASE_URL}/og-image.png`],
   },
   icons: {
     icon: [
@@ -114,14 +127,14 @@ export default async function RootLayout({ children }) {
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192.png" />
 
-        {/* Preload hero image para que no bloquee el LCP */}
-        <link rel="preload" as="image" href="/hero-bg.jpg" fetchPriority="high" />
+        {/* Preload de la imagen hero (LCP) — Truki ciudad */}
+        <link rel="preload" as="image" href="/truki-ciudad.webp" fetchPriority="high" type="image/webp" />
 
         {/* Fuentes con display=swap para no bloquear render */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800;900&display=swap"
           rel="stylesheet"
         />
       </head>
