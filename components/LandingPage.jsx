@@ -147,98 +147,98 @@ export default function LandingPage() {
           HERO — dark navy + Truki ciudad
       ══════════════════════════════════════ */}
       <section className="l-hero" id="inicio">
+
+        {/* Truki ocupa toda la mitad derecha, como fondo */}
+        <div className="l-hero-truki" aria-hidden="true">
+          <Image
+            src="/truki-ciudad.webp"
+            alt=""
+            fill
+            priority
+            sizes="60vw"
+            className="l-hero-truki-img"
+          />
+        </div>
+
+        {/* Gradiente que protege legibilidad del texto */}
         <div className="l-hero-overlay" />
 
-        <div className="l-hero-inner">
-          {/* Columna izquierda: texto + búsqueda */}
-          <div className="l-hero-content">
-            <div className="l-hero-pill">🇨🇱 La comunidad de trueque digital de Chile</div>
+        {/* Texto encima */}
+        <div className="l-hero-content">
+          <div className="l-hero-pill">La comunidad de trueque digital de Chile</div>
 
-            <h1 className="l-hero-title">
-              Truekea<span className="l-hero-title-green">mas</span>
-            </h1>
-            <p className="l-hero-tagline">Plataforma de trueque digital en Chile</p>
+          <h1 className="l-hero-title">
+            Truekea<span className="l-hero-title-green">mas</span>
+          </h1>
+          <p className="l-hero-tagline">Plataforma de trueque digital en Chile</p>
 
-            <p className="l-hero-sub">
-              Intercambia lo que tienes por lo que quieres.<br />
-              Sin intermediarios, sin comisiones. 🇨🇱
-            </p>
+          <p className="l-hero-sub">
+            Intercambia lo que tienes por lo que quieres.<br />
+            Sin intermediarios, sin comisiones.
+          </p>
 
-            {/* Buscador */}
-            <div className="l-hero-search">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                width="18" height="18" style={{ flexShrink: 0, color: 'rgba(255,255,255,.5)' }}>
-                <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Busca láminas, celulares, ropa…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onFocus={() => document.getElementById('vitrina')?.scrollIntoView({ behavior: 'smooth' })}
-              />
-              {searchQuery && (
-                <button className="l-search-clear" onClick={() => setSearchQuery('')}>✕</button>
-              )}
-            </div>
-
-            {/* CTAs */}
-            <div className="l-hero-ctas">
-              <button
-                className="btn bv"
-                style={{ fontSize: 15, padding: '13px 28px' }}
-                onClick={loginGate}
-              >
-                Publicar gratis
-              </button>
-              <button
-                className="btn"
-                style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,.28)', fontSize: 15, padding: '13px 28px' }}
-                onClick={loginGate}
-              >
-                Explorar vitrina →
-              </button>
-            </div>
-
-            {/* Stats */}
-            <div className="l-hero-stats">
-              {userCount !== null && (
-                <div className="l-stat">
-                  <strong>{fmtNum(userCount)}+</strong>
-                  <span>Usuarios</span>
-                </div>
-              )}
-              <div className="l-stat">
-                <strong>{fmtNum(allCount)}</strong>
-                <span>Publicaciones</span>
-              </div>
-              <div className="l-stat">
-                <strong>{fmtNum(totalLikes)}</strong>
-                <span>Likes</span>
-              </div>
-              {completedMatches > 0 && (
-                <div className="l-stat">
-                  <strong>{fmtNum(completedMatches)}</strong>
-                  <span>Trueques</span>
-                </div>
-              )}
-            </div>
+          {/* Buscador */}
+          <div className="l-hero-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              width="18" height="18" style={{ flexShrink: 0, color: 'rgba(255,255,255,.5)' }}>
+              <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Busca láminas, celulares, ropa…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => document.getElementById('vitrina')?.scrollIntoView({ behavior: 'smooth' })}
+            />
+            {searchQuery && (
+              <button className="l-search-clear" onClick={() => setSearchQuery('')}>✕</button>
+            )}
           </div>
 
-          {/* Columna derecha: Truki ciudad */}
-          <div className="l-hero-truki">
-            <div className="l-hero-truki-glow" />
-            <Image
-              src="/truki-ciudad.webp"
-              alt="Truki — mascota de Truekeamas"
-              width={920}
-              height={1080}
-              priority
-              className="l-hero-truki-img"
-            />
+          {/* CTAs */}
+          <div className="l-hero-ctas">
+            <button
+              className="btn bv"
+              style={{ fontSize: 15, padding: '13px 28px' }}
+              onClick={loginGate}
+            >
+              Publicar gratis
+            </button>
+            <button
+              className="btn"
+              style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,.3)', fontSize: 15, padding: '13px 28px' }}
+              onClick={loginGate}
+            >
+              Explorar vitrina →
+            </button>
+          </div>
+
+          {/* Stats */}
+          <div className="l-hero-stats">
+            {userCount !== null && (
+              <div className="l-stat">
+                <strong>{fmtNum(userCount)}+</strong>
+                <span>Usuarios</span>
+              </div>
+            )}
+            <div className="l-stat">
+              <strong>{fmtNum(allCount)}</strong>
+              <span>Publicaciones</span>
+            </div>
+            <div className="l-stat">
+              <strong>{fmtNum(totalLikes)}</strong>
+              <span>Likes</span>
+            </div>
+            {completedMatches > 0 && (
+              <div className="l-stat">
+                <strong>{fmtNum(completedMatches)}</strong>
+                <span>Trueques</span>
+              </div>
+            )}
           </div>
         </div>
+
       </section>
 
       {/* ══════════════════════════════════════
