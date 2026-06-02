@@ -155,14 +155,13 @@ export default function LandingPage() {
             <div className="l-hero-pill">🇨🇱 La comunidad de trueque digital de Chile</div>
 
             <h1 className="l-hero-title">
-              Intercambia<br />
-              <em>lo que tienes</em><br />
-              por lo que quieres
+              Truekea<span className="l-hero-title-green">mas</span>
             </h1>
+            <p className="l-hero-tagline">Plataforma de trueque digital en Chile</p>
 
             <p className="l-hero-sub">
-              Truekeamas es la plataforma de trueque digital en Chile.
-              Conecta con personas de todo el país — sin intermediarios, sin comisiones.
+              Intercambia lo que tienes por lo que quieres.<br />
+              Sin intermediarios, sin comisiones. 🇨🇱
             </p>
 
             {/* Buscador */}
@@ -233,8 +232,8 @@ export default function LandingPage() {
             <Image
               src="/truki-ciudad.webp"
               alt="Truki — mascota de Truekeamas"
-              width={480}
-              height={560}
+              width={920}
+              height={1080}
               priority
               className="l-hero-truki-img"
             />
