@@ -1411,7 +1411,9 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 /* ─── Hero ─────────────────────────────── */
 .l-hero {
   position: relative;
-  min-height: 640px;
+  height: calc(100vh - 64px);
+  min-height: 560px;
+  max-height: 860px;
   background: linear-gradient(145deg, #050F1E 0%, #0A1C38 50%, #0D2550 100%);
   overflow: hidden;
   display: flex;
@@ -1428,45 +1430,49 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 /* Texto: encima del gradiente y de Truki */
 .l-hero-content {
   position: relative; z-index: 2;
-  max-width: 580px;
-  padding: 64px 56px 72px;
+  max-width: 600px;
+  padding: 40px 56px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 .l-hero-pill {
   display: inline-flex; align-items: center; gap: 8px;
-  background: rgba(255,255,255,.18); color: #fff;
-  border: 1px solid rgba(255,255,255,.3);
-  border-radius: 50px; padding: 5px 14px; font-size: 13px; font-weight: 600;
-  margin-bottom: 20px; backdrop-filter: blur(6px);
+  background: rgba(255,255,255,.12); color: rgba(255,255,255,.85);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 50px; padding: 4px 13px; font-size: 12px; font-weight: 600;
+  margin-bottom: 12px; backdrop-filter: blur(6px);
+  width: fit-content;
 }
 .l-hero-title {
   font-family: 'Playfair Display', serif; font-weight: 700;
-  font-size: clamp(40px, 6vw, 72px);
-  color: #fff; line-height: 1.1; letter-spacing: -.5px; margin-bottom: 10px;
+  font-size: clamp(36px, 5vw, 62px);
+  color: #fff; line-height: 1.05; letter-spacing: -.5px; margin-bottom: 8px;
 }
 .l-hero-title em { color: var(--lm); font-style: normal; }
 .l-hero-title-green { color: var(--lm); }
 .l-hero-tagline {
-  font-size: 12px; font-weight: 700; letter-spacing: 2.5px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2.8px;
   text-transform: uppercase;
-  color: rgba(255,255,255,.55);
-  margin-bottom: 20px;
+  color: rgba(255,255,255,.45);
+  margin-bottom: 14px;
 }
 .l-hero-tagline {
   font-size: 13px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
   color: rgba(255,255,255,.7); margin-bottom: 18px;
 }
 .l-hero-sub {
-  font-size: 16px; color: rgba(255,255,255,.85);
-  line-height: 1.65; margin-bottom: 28px; max-width: 480px;
+  font-size: 15px; color: rgba(255,255,255,.75);
+  line-height: 1.6; margin-bottom: 18px; max-width: 480px;
 }
 .l-hero-search {
   display: flex; align-items: center; gap: 10px;
   background: rgba(255,255,255,.1);
-  border: 1.5px solid rgba(255,255,255,.2);
+  border: 1.5px solid rgba(255,255,255,.18);
   border-radius: 14px;
-  padding: 10px 16px;
+  padding: 9px 14px;
   box-shadow: 0 8px 32px rgba(0,0,0,.3);
-  margin-bottom: 24px; max-width: 480px;
+  margin-bottom: 16px; max-width: 480px;
   backdrop-filter: blur(8px);
   transition: border-color .2s, background .2s;
 }
@@ -1475,22 +1481,58 @@ label.fd textarea { min-height: 90px; resize: vertical; }
   background: rgba(255,255,255,.15);
 }
 .l-hero-search input {
-  flex: 1; border: none; outline: none; font-size: 15px;
+  flex: 1; border: none; outline: none; font-size: 14px;
   color: #fff; background: transparent;
 }
-.l-hero-search input::placeholder { color: rgba(255,255,255,.5); }
+.l-hero-search input::placeholder { color: rgba(255,255,255,.45); }
 .l-search-clear {
   font-size: 13px; color: var(--mu); padding: 2px 6px;
   border-radius: 6px; transition: background .15s;
 }
 .l-search-clear:hover { background: var(--sf); }
-.l-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
+.l-hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+/* Stats bar — dos grupos: plataforma + sostenibilidad */
 .l-hero-stats {
-  display: flex; gap: 28px; flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  padding: 10px 0;
+  max-width: 480px;
+  backdrop-filter: blur(6px);
 }
-.l-stat { display: flex; flex-direction: column; }
-.l-stat strong { font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 800; color: #fff; }
-.l-stat span { font-size: 12px; color: rgba(255,255,255,.7); }
+.l-stat {
+  display: flex; flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 4px 12px;
+  position: relative;
+}
+.l-stat + .l-stat::before {
+  content: '';
+  position: absolute; left: 0; top: 15%; bottom: 15%;
+  width: 1px;
+  background: rgba(255,255,255,.15);
+}
+.l-stat strong {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px; font-weight: 800;
+  color: #fff; line-height: 1.2;
+}
+.l-stat span { font-size: 10.5px; color: rgba(255,255,255,.55); margin-top: 1px; white-space: nowrap; }
+.l-stat--eco strong { color: var(--lm); }
+
+/* Separador visual entre grupo plataforma y grupo eco */
+.l-stats-sep {
+  width: 1px; height: 36px;
+  background: rgba(255,255,255,.25);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
 
 /* ─── Category strip ───────────────────── */
 .l-cats-strip {

@@ -214,8 +214,9 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Stats */}
+          {/* Stats — plataforma + sostenibilidad */}
           <div className="l-hero-stats">
+            {/* Grupo: plataforma */}
             {userCount !== null && (
               <div className="l-stat">
                 <strong>{fmtNum(userCount)}+</strong>
@@ -227,15 +228,22 @@ export default function LandingPage() {
               <span>Publicaciones</span>
             </div>
             <div className="l-stat">
-              <strong>{fmtNum(totalLikes)}</strong>
-              <span>Likes</span>
+              <strong>{fmtNum(completedMatches)}</strong>
+              <span>Trueques</span>
             </div>
-            {completedMatches > 0 && (
-              <div className="l-stat">
-                <strong>{fmtNum(completedMatches)}</strong>
-                <span>Trueques</span>
-              </div>
-            )}
+
+            {/* Separador visual */}
+            <div className="l-stats-sep" />
+
+            {/* Grupo: sostenibilidad */}
+            <div className="l-stat l-stat--eco">
+              <strong>♻️ {fmtNum(itemsRescued)}</strong>
+              <span>Obj. rescatados</span>
+            </div>
+            <div className="l-stat l-stat--eco">
+              <strong>🌱 {fmtNum(co2Saved)}kg</strong>
+              <span>CO₂ ahorrado</span>
+            </div>
           </div>
         </div>
 
@@ -290,32 +298,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════
-          ECO STATS — impacto ecológico
-      ══════════════════════════════════════ */}
-      {(itemsRescued > 0 || co2Saved > 0) && (
-        <div className="l-eco-strip">
-          <div className="l-container l-eco-inner">
-            <div className="l-eco-item">
-              <span className="l-eco-icon">♻️</span>
-              <strong>{fmtNum(itemsRescued)}</strong>
-              <span>objetos rescatados del basurero</span>
-            </div>
-            <div className="l-eco-sep" />
-            <div className="l-eco-item">
-              <span className="l-eco-icon">🌱</span>
-              <strong>{fmtNum(co2Saved)} kg</strong>
-              <span>CO₂ no emitido al planeta</span>
-            </div>
-            <div className="l-eco-sep" />
-            <div className="l-eco-item">
-              <span className="l-eco-icon">🤝</span>
-              <strong>{fmtNum(completedMatches)}</strong>
-              <span>trueques completados</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ══════════════════════════════════════
           CATEGORÍAS — filtros rápidos
