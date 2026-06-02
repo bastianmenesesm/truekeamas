@@ -208,7 +208,7 @@ export default function LandingPage() {
             <button
               className="btn"
               style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,.3)', fontSize: 15, padding: '13px 28px' }}
-              onClick={loginGate}
+              onClick={() => document.getElementById('vitrina')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Explorar vitrina →
             </button>
