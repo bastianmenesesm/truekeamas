@@ -1028,7 +1028,7 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 /* ─────────────────────────────────────────────
    LANDING PAGE
 ───────────────────────────────────────────── */
-.landing { min-height: 100vh; background: #fff; }
+.landing { min-height: 100vh; background: #050F1E; }
 
 /* Header */
 .lh {
@@ -1411,6 +1411,9 @@ label.fd textarea { min-height: 90px; resize: vertical; }
 /* ─── Hero ─────────────────────────────── */
 .l-hero {
   position: relative;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   height: calc(100vh - 64px);
   min-height: 560px;
   max-height: 860px;

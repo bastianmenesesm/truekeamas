@@ -29,8 +29,9 @@ function getBadge(p) {
 
 export default function ProductDetailModal({ productId }) {
   const { products, currentUser, saved, toggleLike, openModal, closeModal } = useApp();
-  const [imgIdx,  setImgIdx]  = useState(0);
-  const [copied,  setCopied]  = useState(false);
+  const [imgIdx,    setImgIdx]    = useState(0);
+  const [copied,    setCopied]    = useState(false);
+  const [lightbox,  setLightbox]  = useState(false);
 
   const p = products.find(x => x.id === productId);
   if (!p) return (
@@ -105,6 +106,8 @@ export default function ProductDetailModal({ productId }) {
                   className="pd-img-fill"
                   unoptimized
                   priority={imgIdx === 0}
+                  style={{ cursor: 'zoom-in' }}
+                  onClick={() => setLightbox(true)}
                 />
                 {photos.length > 1 && (
                   <>
@@ -336,5 +339,53 @@ export default function ProductDetailModal({ productId }) {
         </div>
       </div>
     </div>
+
+    {/* ── Lightbox fullscreen ── */}
+    {lightbox && photos.length > 0 && (
+      <div
+        onClick={() => setLightbox(false)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,.92)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'zoom-out',
+        }}
+      >
+        <button
+          onClick={() => setLightbox(false)}
+          style={{
+            position: 'absolute', top: 16, right: 20,
+            background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff',
+            width: 36, height: 36, borderRadius: '50%',
+            fontSize: 20, cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}
+        >✕</button>
+        {photos.length > 1 && (
+          <button
+            onClick={e => { e.stopPropagation(); setImgIdx(i => (i - 1 + photos.length) % photos.length); }}
+            style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', width: 44, height: 44, borderRadius: '50%', fontSize: 24, cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+          >‹</button>
+        )}
+        <img
+          src={optimizeCloudinaryUrl(photos[imgIdx], 1600)}
+          alt={p.title}
+          onClick={e => e.stopPropagation()}
+          style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 40px rgba(0,0,0,.5)' }}
+        />
+        {photos.length > 1 && (
+          <button
+            onClick={e => { e.stopPropagation(); setImgIdx(i => (i + 1) % photos.length); }}
+            style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', width: 44, height: 44, borderRadius: '50%', fontSize: 24, cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+          >›</button>
+        )}
+        {photos.length > 1 && (
+          <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
+            {photos.map((_, i) => (
+              <div key={i} onClick={e => { e.stopPropagation(); setImgIdx(i); }} style={{ width: 8, height: 8, borderRadius: '50%', background: i === imgIdx ? '#fff' : 'rgba(255,255,255,.35)', cursor: 'pointer' }} />
+            ))}
+          </div>
+        )}
+      </div>
+    )}
   );
 }
